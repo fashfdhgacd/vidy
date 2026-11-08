@@ -1,0 +1,179 @@
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { LayoutGrid, Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/hooks/use-debounce";
+import { cn } from "@/lib/utils";
+import { BRAND_LOGO_SRC } from "@/lib/brand-logo";
+import { prefetchCatalog } from "@/lib/catalog/client";
+import { DEFAULT_PAGE_SIZE } from "@/lib/catalog/types";
+
+const QUICK_CATS = [
+  { slug: "bokep", label: "Video Unggulan" },
+  { slug: "paling-ditonton", label: "Paling Banyak Ditonton" },
+  { slug: "jav", label: "Jav" },
+  { slug: "hentai", label: "Hentai" },
+  { slug: "ai-plus", label: "AI+" },
+  { slug: "videy", label: "Videy" },
+  { slug: "paling-disukai", label: "Paling Banyak Disukai" },
+] as const;
+
+export function Header({
+  query,
+  category,
+}: {
+  query?: string;
+  category?: string;
+}) {
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const onCategoriesPage = pathname === "/kategori" || pathname.startsWith("/kategori/");
+  const [draft, setDraft] = useState(query ?? "");
+  const debounced = useDebounce(draft, 400);
+  const quickActive = Boolean(category && QUICK_CATS.some((c) => c.slug === category));
+
+  useEffect(() => {
+    setDraft(query ?? "");
+  }, [query]);
+
+  useEffect(() => {
+    const next = debounced.trim();
+    const current = (query ?? "").trim();
+    if (next === current) return;
+    if (next.length === 1) return;
+    void navigate({
+      to: "/",
+      search: (prev) => {
+        if ((prev.q ?? "").trim() === next) return prev;
+        return {
+          ...prev,
+          q: next || undefined,
+          category: undefined,
+          page: undefined,
+        };
+      },
+    });
+  }, [debounced, navigate, query]);
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-2 px-3 sm:h-16 sm:gap-3 sm:px-6">
+        <Link
+          to="/"
+          search={{ q: undefined, category: undefined }}
+          aria-label="Videy Hub (beranda)"
+          className="flex shrink-0 items-center gap-2"
+        >
+          <img
+            src={BRAND_LOGO_SRC}
+            alt="Videy Hub"
+            width={32}
+            height={32}
+            style={{ imageRendering: "pixelated" }}
+            className="size-8 rounded-none bg-white object-cover ring-1 ring-border [image-rendering:pixelated] sm:size-10"
+          />
+          <span className="pixel hidden text-[0.7rem] leading-none text-foreground min-[400px]:inline sm:text-xs">
+            VIDEY HUB
+          </span>
+          <span className="pixel hidden border border-foreground/40 px-1.5 py-0.5 text-[9px] text-muted sm:inline">
+            18+
+          </span>
+        </Link>
+
+        <form
+          className="relative min-w-0 flex-1"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const next = draft.trim();
+            void navigate({
+              to: "/",
+              search: next ? { q: next, category: undefined } : { q: undefined, category: undefined },
+            });
+          }}
+        >
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted sm:left-3" />
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Cari judul…"
+            className="pixel h-10 rounded-none border border-white/40 bg-black pl-9 pr-9 text-xs shadow-none placeholder:text-white/45 focus-visible:border-white/80 focus-visible:ring-0 sm:h-11 sm:pl-10 sm:pr-10 sm:text-sm"
+            type="search"
+            enterKeyHint="search"
+            autoComplete="off"
+            aria-label="Cari judul"
+          />
+          {draft ? (
+            <button
+              type="button"
+              className="absolute right-1.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center text-muted"
+              onClick={() => setDraft("")}
+              aria-label="Hapus pencarian"
+            >
+              <X className="size-4" />
+            </button>
+          ) : null}
+        </form>
+
+        <Button variant="ghost" size="icon" asChild aria-label="Semua kategori" className="size-10 shrink-0 rounded-none border border-white/40 hover:border-white/80 hover:bg-transparent sm:size-11">
+          <Link to="/kategori">
+            <LayoutGrid className="size-5" />
+          </Link>
+        </Button>
+      </div>
+
+      <nav className="mx-auto max-w-[1600px] px-3 sm:px-6" aria-label="Navigasi cepat">
+        <ul className="-mx-3 flex gap-1.5 overflow-x-auto px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
+          <li className="shrink-0">
+            <Link
+              to="/"
+              search={{ q: undefined, category: undefined }}
+              className={chipClass(!query && !category && !onCategoriesPage)}
+            >
+              Terbaru
+            </Link>
+          </li>
+          {QUICK_CATS.map((cat) => (
+            <li key={cat.slug} className="shrink-0">
+              <Link
+                to="/kategori/$slug"
+                params={{ slug: cat.slug }}
+                className={chipClass(category === cat.slug && !query)}
+                onMouseEnter={() =>
+                  prefetchCatalog({
+                    type: "category",
+                    category: cat.slug,
+                    page: 1,
+                    limit: DEFAULT_PAGE_SIZE,
+                  })
+                }
+                onFocus={() =>
+                  prefetchCatalog({
+                    type: "category",
+                    category: cat.slug,
+                    page: 1,
+                    limit: DEFAULT_PAGE_SIZE,
+                  })
+                }
+              >
+                {cat.label}
+              </Link>
+            </li>
+          ))}
+          <li className="shrink-0">
+            <Link to="/kategori" className={chipClass(onCategoriesPage && !quickActive)}>
+              Kategori
+            </Link>
+          </li>
+        </ul>
+      </nav>
+    </header>
+  );
+}
+
+function chipClass(active: boolean) {
+  return cn(
+    "pixel inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-none border px-3 text-[11px] transition-colors duration-150 sm:text-xs",
+    active ? "border-[#c8c8c8] bg-[#c8c8c8] text-black" : "border-white/35 text-white/75 hover:border-white/80 hover:text-white",
+  );
+}

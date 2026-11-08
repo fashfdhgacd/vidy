@@ -1,0 +1,61 @@
+# IndexNow tiap 6 jam (07:45, 13:45, 19:45, 01:45 WIB) + otomatis ~8 menit sesudah Daily video sync selesai.
+# scripts/indexnow-sync.mjs baca sitemap LIVE, kirim cuma URL baru/berubah/hilang ke api.indexnow.org
+# (Bing, Yandex, Seznam, Naver; DuckDuckGo pakai index Bing), lalu commit data/indexnow-urls.txt.
+# Gratis di GitHub Actions: tanpa secret, tanpa env Worker, tanpa KV. Commit pakai [skip ci] supaya
+# Workers Builds tidak build ulang (file state tidak dipakai situs).
+name: IndexNow sync
+
+on:
+  schedule:
+    - cron: "45 0,6,12,18 * * *"
+  # Right after the daily upload sync, so new videos reach Bing/Yandex the same night.
+  workflow_run:
+    workflows: ["Daily video sync"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      all:
+        description: "Kirim SEMUA URL sitemap (sekali saja, mis. sesudah perubahan besar)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: indexnow-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    # workflow_run: only after a successful sync.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # The sync commit triggers a Workers Builds deploy; wait for it so the live sitemap has the new videos.
+      - name: Wait for the deploy of the synced data
+        if: github.event_name == 'workflow_run'
+        run: sleep 480
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Submit new/changed URLs
+        run: node scripts/indexnow-sync.mjs ${{ inputs.all && '--all' || '' }}
+
+      - name: Commit state (only if changed)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add data/indexnow-urls.txt
+          git diff --cached --quiet && { echo "Tidak ada perubahan."; exit 0; }
+          git commit -m "chore: IndexNow state ($(date -u '+%Y-%m-%d %H:%M') UTC) [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep 10
+          done
+          exit 1

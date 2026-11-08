@@ -1,0 +1,387 @@
+# Daily video sync — 01:00 WIB (18:00 UTC)
+# 1) Enrich Streamtape titles + thumbs (file/info + getsplash)
+# 2) Fill missing posters for IndoAV / UserBokep / Streamtape
+# 3) Byse (owner uploads): retry posters still missing at upload time. Byse keeps the thumbnail at
+#    https://img-place.com/<code>_xt.jpg (bigger) / _t.jpg (small); set only when the URL really
+#    answers 200 with a jpeg/png/webp of a real size (unknown codes get a small SVG, unready ones
+#    404), so new uploads keep the logo until Byse has made the thumbnail and are tried again
+#    on the next run. Runs here on GitHub Actions: no Cloudflare request, read or write.
+# 4) Guard: jangan biarkan videos-latest.json invalid/kosong total tanpa restore attempt
+name: Daily video sync
+
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-video-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 30
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Sync titles, thumbs, posters
+        env:
+          STREAMTAPE_LOGIN: ${{ secrets.STREAMTAPE_LOGIN }}
+          STREAMTAPE_KEY: ${{ secrets.STREAMTAPE_KEY }}
+        run: |
+          node --input-type=module <<'SCRIPT'
+          import fs from "node:fs";
+          import { createRequire } from "node:module";
+          // Chunk-aware catalog IO (contract: src/lib/catalog/chunk-contract.js).
+          const latestChunks = createRequire(process.cwd() + "/")("./scripts/lib/latest-chunks.cjs");
+
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+          function loadJson(p, fb) {
+            try {
+              return JSON.parse(fs.readFileSync(p, "utf8"));
+            } catch {
+              return fb;
+            }
+          }
+
+          function saveJson(p, data, pretty = false) {
+            fs.mkdirSync(p.split("/").slice(0, -1).join("/") || ".", { recursive: true });
+            const body = pretty
+              ? JSON.stringify(data, null, 2) + "\n"
+              : JSON.stringify(data);
+            fs.writeFileSync(p, body);
+          }
+
+          function embedId(embed = "") {
+            const m =
+              String(embed).match(/\/(?:e|v|d)\/([A-Za-z0-9_-]+)/i) ||
+              String(embed).match(/[?&]id=([A-Za-z0-9_-]+)/i);
+            return m ? m[1] : "";
+          }
+
+          function isStreamtape(v) {
+            return /streamtape|strcloud|tapecontent/i.test(
+              `${v.embed || ""} ${v.source || ""} ${v.direct || ""}`,
+            );
+          }
+          function isUserBokep(v) {
+            return /userbokep/i.test(`${v.embed || ""} ${v.source || ""} ${v.direct || ""}`);
+          }
+          function isIndoAv(v) {
+            return /indoav/i.test(`${v.embed || ""} ${v.source || ""} ${v.direct || ""}`);
+          }
+
+          async function streamtapeInfo(fileId) {
+            const login = process.env.STREAMTAPE_LOGIN || "";
+            const key = process.env.STREAMTAPE_KEY || "";
+            const u = new URL("https://api.streamtape.com/file/info");
+            u.searchParams.set("file", fileId);
+            if (login && key) {
+              u.searchParams.set("login", login);
+              u.searchParams.set("key", key);
+            }
+            try {
+              const res = await fetch(u, { signal: AbortSignal.timeout(8000) });
+              const data = await res.json();
+              if (data?.status !== 200) return null;
+              const row =
+                data.result?.[fileId] && typeof data.result[fileId] === "object"
+                  ? data.result[fileId]
+                  : data.result;
+              if (!row || typeof row !== "object") return null;
+              let title = String(row.name || row.title || "").trim();
+              title = title.replace(/\.[a-z0-9]{2,5}$/i, "").trim();
+              const thumb = String(row.thumb || "").trim();
+              return {
+                title: title || null,
+                thumb: thumb.startsWith("http") ? thumb : null,
+              };
+            } catch {
+              return null;
+            }
+          }
+
+          async function streamtapeSplash(fileId) {
+            const login = process.env.STREAMTAPE_LOGIN || "";
+            const key = process.env.STREAMTAPE_KEY || "";
+            if (!login || !key) return null;
+            try {
+              const u = `https://api.streamtape.com/file/getsplash?login=${encodeURIComponent(login)}&key=${encodeURIComponent(key)}&file=${encodeURIComponent(fileId)}`;
+              const res = await fetch(u, { signal: AbortSignal.timeout(8000) });
+              const data = await res.json();
+              if (data?.status === 200 && typeof data.result === "string" && data.result.startsWith("http"))
+                return data.result;
+            } catch {}
+            return null;
+          }
+
+          async function fetchEmbedPoster(code, src) {
+            const hosts =
+              src === "userbokep"
+                ? ["https://tv1.userbokep.com", "https://tv1.indoav.app"]
+                : ["https://tv1.indoav.app", "https://tv1.userbokep.com"];
+            for (const host of hosts) {
+              try {
+                const res = await fetch(`${host}/e/${encodeURIComponent(code)}`, {
+                  headers: {
+                    accept: "text/html",
+                    "user-agent": "Mozilla/5.0 (compatible; kdp-daily-sync/1.0)",
+                  },
+                  signal: AbortSignal.timeout(8000),
+                  redirect: "follow",
+                });
+                if (!res.ok) continue;
+                const html = await res.text();
+                const m =
+                  html.match(/poster=["'](https?:\/\/[^"']*embedan[^"']+)["']/i) ||
+                  html.match(/poster=["'](https?:\/\/[^"']+\.(?:webp|jpg|jpeg|png)[^"']*)["']/i) ||
+                  html.match(/property=["']og:image["']\s+content=["'](https?:\/\/[^"']+)["']/i);
+                const url = m?.[1]?.replace(/&/g, "&")?.trim();
+                if (url?.startsWith("http") && !/please.?watch|placeholder/i.test(url)) return url;
+              } catch {}
+            }
+            return null;
+          }
+
+          function needsTitle(v) {
+            const t = String(v.title || "").trim();
+            if (!t) return true;
+            if (/^Video\s+[A-Za-z0-9_-]+$/i.test(t)) return true;
+            if (/Streamtape Batch/i.test(t)) return true;
+            if (/^Campur\s+/i.test(t) && t.length < 40) return true;
+            return false;
+          }
+
+          // --- load catalogs ---
+          const latestPath = "data/videos-latest.json";
+          const postersPath = "src/lib/catalog/posters.json";
+          const latestPostersPath = "data/latest-posters.json";
+          const batchPath = "src/lib/catalog/streamtape-batch-20260925.json";
+
+          // Every chunk (videos-latest.json + videos-latest-pNN.json), not just the first one.
+          const latestLoaded = latestChunks.loadChunks("videos-latest");
+          const blockList = createRequire(process.cwd() + "/")("./scripts/lib/catalog-block.cjs");
+          const blockedIds = blockList.loadBlocked(process.cwd());
+          let blockDropped = 0;
+          for (const chunk of latestLoaded.chunks) {
+            const next = chunk.items.filter((v) => !blockList.isBlocked(v && v.id, blockedIds));
+            if (next.length === chunk.items.length) continue;
+            blockDropped += chunk.items.length - next.length;
+            chunk.items = next;
+          }
+          const latest = latestLoaded.items.filter((v) => !blockList.isBlocked(v && v.id, blockedIds));
+          console.log("videos-latest chunks:", latestLoaded.chunks.map((c) => `${c.file}=${c.items.length}`).join(" "), "total", latest.length, "blocked dropped", blockDropped);
+
+          // Guard: if wiped, try restore from git history via empty skip (workflow separate)
+          if (latest.length === 0) {
+            console.log("WARN: videos-latest.json empty — skip title enrich on latest; still fill posters");
+          }
+
+          const catalogVideos = [
+            ...latest,
+            ...loadJson("src/lib/catalog/videos.json", []),
+            ...loadJson("src/lib/catalog/streamtape.json", []),
+            ...loadJson(batchPath, []),
+          ].filter((v) => v && v.id);
+
+          let posters = loadJson(postersPath, {});
+          if (typeof posters !== "object" || Array.isArray(posters)) posters = {};
+
+          // --- 1) Enrich Streamtape titles + thumbs on videos-latest + batch ---
+          let titleOk = 0;
+          const enrichTargets = [...latest, ...loadJson(batchPath, [])];
+          const seenEnrich = new Set();
+          for (const v of enrichTargets) {
+            if (!v?.id || seenEnrich.has(v.id) || !isStreamtape(v) || blockList.isBlocked(v.id, blockedIds)) continue;
+            seenEnrich.add(v.id);
+            const code = embedId(v.embed || v.direct || "") || v.id;
+            const wantTitle = needsTitle(v);
+            const wantThumb = !(String(v.poster || v.thumbnail || "").startsWith("http"));
+            if (!wantTitle && !wantThumb && posters[v.id]?.startsWith?.("http")) continue;
+
+            const info = await streamtapeInfo(code);
+            let thumb = info?.thumb || null;
+            if (!thumb) thumb = await streamtapeSplash(code);
+            if (wantTitle && info?.title) {
+              v.title = info.title;
+              titleOk++;
+              console.log("TITLE", v.id, info.title.slice(0, 60));
+            }
+            if (thumb) {
+              v.poster = thumb;
+              v.thumbnail = thumb;
+              posters[v.id] = thumb;
+              if (code !== v.id) posters[code] = thumb;
+            }
+            await sleep(200);
+          }
+          console.log("Titles enriched:", titleOk);
+
+          // write back latest + batch
+          // Each video goes back to the chunk it came from; unchanged chunks are not rewritten.
+          if (latest.length) console.log("videos-latest chunks changed:", latestChunks.saveChunks(latestLoaded).join(" ") || "none");
+          const batchAll = loadJson(batchPath, []);
+          const batch = Array.isArray(batchAll) ? batchAll.filter((v) => !blockList.isBlocked(v && v.id, blockedIds)) : [];
+          if (Array.isArray(batch) && batch.length) {
+            const byId = new Map(enrichTargets.map((x) => [x.id, x]));
+            for (let i = 0; i < batch.length; i++) {
+              const u = byId.get(batch[i]?.id);
+              if (u) batch[i] = { ...batch[i], ...u };
+            }
+            saveJson(batchPath, batch, true);
+          }
+
+          // --- 2) Fill missing posters (cap per run to stay under timeout) ---
+          const MAX_POSTER_FETCH = 120;
+          const seen = new Set();
+          const need = [];
+          for (const v of catalogVideos) {
+            if (!v?.id || seen.has(v.id) || blockList.isBlocked(v.id, blockedIds)) continue;
+            seen.add(v.id);
+            if (posters[v.id]?.startsWith?.("http")) continue;
+            if (String(v.poster || "").startsWith("http")) {
+              posters[v.id] = v.poster;
+              continue;
+            }
+            const blob = `${v.embed || ""} ${v.source || ""} ${v.direct || ""}`;
+            if (/indoav|userbokep|streamtape/i.test(blob)) need.push(v);
+          }
+          console.log("Need posters:", need.length, "(cap", MAX_POSTER_FETCH + ")");
+
+          let ok = 0,
+            fail = 0;
+          for (let i = 0; i < Math.min(need.length, MAX_POSTER_FETCH); i++) {
+            const v = need[i];
+            const code = embedId(v.embed || v.direct || "") || v.id;
+            let url = null;
+            if (isStreamtape(v)) {
+              const info = await streamtapeInfo(code);
+              url = info?.thumb || (await streamtapeSplash(code));
+            } else if (isUserBokep(v)) {
+              url = await fetchEmbedPoster(code, "userbokep");
+            } else if (isIndoAv(v)) {
+              url = await fetchEmbedPoster(code, "indoav");
+            }
+            if (url) {
+              posters[v.id] = url;
+              if (code !== v.id) posters[code] = url;
+              ok++;
+              console.log("POSTER", v.id);
+            } else {
+              fail++;
+              if (fail <= 20) console.log("FAIL", v.id);
+            }
+            await sleep(250);
+            if ((ok + fail) % 30 === 0) saveJson(postersPath, posters, false);
+          }
+
+          saveJson(postersPath, posters, false);
+
+          let latestPosters = loadJson(latestPostersPath, {});
+          if (typeof latestPosters !== "object" || Array.isArray(latestPosters)) latestPosters = {};
+
+          // --- 3) Byse posters (img-place), verified before set ---
+          const NOT_REAL = /placeholder|1x1|transparent|data:image|please.?watch|original.?website|brand-poster/i;
+          const realUrl = (u) => typeof u === "string" && /^https?:\/\//i.test(u) && !NOT_REAL.test(u);
+          const overrides = loadJson("src/lib/catalog/overrides.json", {});
+          function isByse(v) {
+            return /^by-/.test(String(v.id || "")) || /byse/i.test(`${v.embed || ""} ${v.source || ""} ${v.direct || ""}`);
+          }
+          function byseCode(v) {
+            const c = String(v.code || "") || embedId(v.direct || "") || embedId(v.embed || "") || String(v.id || "").replace(/^by-/, "");
+            return /^[A-Za-z0-9]{6,40}$/.test(c) ? c : "";
+          }
+          async function realImage(url) {
+            try {
+              const res = await fetch(url, {
+                headers: { "user-agent": "Mozilla/5.0 (compatible; kdp-daily-sync/1.0)", accept: "image/*" },
+                redirect: "follow",
+                signal: AbortSignal.timeout(10000),
+              });
+              const type = String(res.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+              if (res.status !== 200 || !/^image\/(?:jpeg|jpg|png|webp)$/.test(type)) {
+                await res.body?.cancel().catch(() => {});
+                return false;
+              }
+              const size = (await res.arrayBuffer()).byteLength;
+              return size >= 1500;
+            } catch {
+              return false;
+            }
+          }
+          const byseNeed = [];
+          const byseSeen = new Set();
+          for (const v of [...loadJson("data/drp-bokep.json", []), ...latest]) {
+            if (!v?.id || byseSeen.has(v.id) || !isByse(v) || blockList.isBlocked(v.id, blockedIds)) continue;
+            byseSeen.add(v.id);
+            const ov = overrides && typeof overrides === "object" ? overrides[v.id] : null;
+            if (realUrl(v.poster) || realUrl(v.thumbnail) || realUrl(posters[v.id]) || realUrl(latestPosters[v.id]) || realUrl(ov?.poster)) continue;
+            const code = byseCode(v);
+            if (code) byseNeed.push({ id: v.id, code });
+          }
+          let byseOk = 0;
+          const MAX_BYSE = 600;
+          const byseList = byseNeed.slice(0, MAX_BYSE);
+          for (let i = 0; i < byseList.length; i += 6) {
+            await Promise.all(
+              byseList.slice(i, i + 6).map(async ({ id, code }) => {
+                for (const suffix of ["_xt", "_t"]) {
+                  const url = `https://img-place.com/${code}${suffix}.jpg`;
+                  if (await realImage(url)) {
+                    latestPosters[id] = url;
+                    byseOk++;
+                    return;
+                  }
+                }
+              }),
+            );
+            await sleep(150);
+          }
+          console.log("Byse posters filled:", byseOk, "of", byseNeed.length, "missing (checked", byseList.length + ")");
+          for (const v of latest) {
+            if (!v?.id) continue;
+            const url = posters[v.id] || v.poster || v.thumbnail;
+            if (typeof url === "string" && url.startsWith("http")) latestPosters[v.id] = url;
+          }
+          saveJson(latestPostersPath, latestPosters, true);
+
+          console.log("Done posters ok=", ok, "fail=", fail, "map=", Object.keys(posters).length);
+          SCRIPT
+
+      - name: Commit changes
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Every catalog chunk the sync touched (videos-latest.json + videos-latest-pNN.json).
+          git add -- data/videos-latest.json data/videos-latest-p*.json 2>/dev/null || true
+          git add \
+            data/latest-posters.json \
+            src/lib/catalog/posters.json \
+            src/lib/catalog/streamtape-batch-20260925.json \
+            2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No catalog changes."
+            exit 0
+          fi
+          git commit -m "chore(sync): daily video titles + posters"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main || true
+            if git push origin HEAD:main; then
+              echo "Pushed OK"
+              exit 0
+            fi
+            sleep 3
+          done
+          exit 1

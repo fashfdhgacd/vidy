@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+  <ShortName>Videy Hub</ShortName>
+  <Description>Cari video di Videy Hub (18+)</Description>
+  <InputEncoding>UTF-8</InputEncoding>
+  <Image width="48" height="48" type="image/png">https://videyy.icu/logo-penguin.png</Image>
+  <Url type="text/html" method="get" template="https://videyy.icu/?q={searchTerms}"/>
+</OpenSearchDescription>

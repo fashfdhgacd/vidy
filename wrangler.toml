@@ -1,0 +1,39 @@
+name = "videy-hub"
+compatibility_date = "2026-09-27"
+compatibility_flags = [ "nodejs_compat" ]
+
+# Custom domain utama (DNS videyy.icu harus sudah aktif di zone Cloudflare yang sama).
+[[routes]]
+pattern = "videyy.icu"
+custom_domain = true
+
+[[routes]]
+pattern = "www.videyy.icu"
+custom_domain = true
+
+# KV analytics (kode baca env.ANALYTICS_KV)
+[[kv_namespaces]]
+binding = "ANALYTICS_KV"
+id = "8c809729ccd64e5da6e9cb7dd62fb40b"
+
+# Alias nama dashboard (opsional, sama namespace)
+[[kv_namespaces]]
+binding = "DR_PINGUIN_ANALYTICS"
+id = "8c809729ccd64e5da6e9cb7dd62fb40b"
+
+# D1 analytics (kode baca env.ANALYTICS_DB)
+[[d1_databases]]
+binding = "ANALYTICS_DB"
+database_name = "koleksi-analytics"
+database_id = "97453aca-c414-4251-92db-a7fb6d8d3b54"
+
+# Poster video. File tetap ada setelah deploy.
+[[r2_buckets]]
+binding = "POSTERS"
+bucket_name = "posters"
+
+# Cost guard: max CPU per request (paid default is 30 s). Data 26 Oct–2 Nov 2026: p99 0.4–2.5 s,
+# p999 2.4–4.1 s (cold catalog load, /pemilik owner tools ~1 s). 15 s is ~3.6x the worst p999, so normal
+# and owner requests never hit it; a runaway/looping request is cut at 15 s CPU instead of 30 s.
+[limits]
+cpu_ms = 15000

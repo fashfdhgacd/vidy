@@ -1,0 +1,153 @@
+import { DRP_SOURCES, drpKindOfUrl } from "./drp-hosts.js";
+
+export type PlayMode = "video" | "iframe";
+
+export type ResolvedSource = {
+  mode: PlayMode;
+  url: string;
+  fallbacks: string[];
+  host: string;
+};
+
+function videyId(url: string): string {
+  try {
+    const u = new URL(url);
+    if (/videy\.co/i.test(u.hostname)) {
+      const q = u.searchParams.get("id");
+      if (q) return q;
+      const last = (u.pathname.split("/").filter(Boolean).pop() || "").replace(/\.(mp4|mov)$/i, "");
+      if (last && !/^(v|e|d|embed|watch)$/i.test(last)) return last;
+    }
+  } catch {
+    /* ignore */
+  }
+  const m = url.match(/[?&]id=([A-Za-z0-9_-]+)/);
+  return m ? m[1] : "";
+}
+
+function videyCdns(id: string): string[] {
+  const mov = `https://cdn.videy.co/${id}.mov`;
+  const mp4 = `https://cdn.videy.co/${id}.mp4`;
+  return id.length === 9 && id.charAt(8) === "2" ? [mov, mp4] : [mp4, mov];
+}
+
+export function hostLabel(url: string): string {
+  const s = url.toLowerCase();
+  if (/indoav/.test(s)) return "IndoAV";
+  if (/userbokep/.test(s)) return "UserBokep";
+  if (/videy/.test(s)) return "Videy";
+  // LuluStream / DoodStream / Byse: their own label (Lulu used to be lumped in with Streamtape, which
+  // made the player add Streamtape-only ?color=/?thumb= params and wait for Streamtape's Player.js).
+  const drp = drpKindOfUrl(url);
+  if (drp) return DRP_SOURCES[drp as keyof typeof DRP_SOURCES];
+  if (/streamtape|campur|strcloud|tapecontent/.test(s)) return "Streamtape";
+  if (/putarin|puterin/.test(s)) return "Puterin";
+  if (/archive\.org/.test(s)) return "Arsip";
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "Sumber";
+  }
+}
+
+export function hostPriority(urlOrHost: string): number {
+  const s = urlOrHost.toLowerCase();
+  if (/indoav/.test(s)) return 0;
+  if (/userbokep/.test(s)) return 1;
+  if (/puterin|putarin/.test(s)) return 2;
+  if (/videy/.test(s)) return 3;
+  if (/streamtape|strcloud|tapecontent/.test(s)) return 4;
+  if (/\.(mp4|mov|webm)($|\?)/.test(s)) return 5;
+  return 6;
+}
+
+export function isIndoAvUrl(url: string): boolean {
+  return /indoav/i.test(url);
+}
+
+function isFile(url: string): boolean {
+  return /\.(mp4|mov|webm)($|\?)/i.test(url);
+}
+
+function playId(url: string): string {
+  const m = String(url).match(/\/(?:e|v|d|watch|embed)\/([A-Za-z0-9_-]+)/i);
+  return m ? m[1] : "";
+}
+
+function toEmbedPath(url: string): string {
+  try {
+    const u = new URL(url);
+    if (/\/(?:v|d|watch)\//.test(u.pathname)) {
+      u.pathname = u.pathname.replace(/\/(?:v|d|watch)\//, "/e/");
+      return u.toString();
+    }
+  } catch {
+    /* ignore */
+  }
+  return url;
+}
+
+function indoAvFallbacks(url: string): string[] {
+  const embed = toEmbedPath(url);
+  const id = playId(url);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const add = (next: string) => {
+    if (!next || seen.has(next)) return;
+    seen.add(next);
+    out.push(next);
+  };
+  add(embed);
+  try {
+    const u = new URL(embed);
+    if (id) add(`${u.protocol}//${u.host}/e/${id}`);
+  } catch {
+    /* ignore */
+  }
+  if (id) add(`https://tv1.indoav.app/e/${id}`);
+  return out;
+}
+
+export function resolveSource(raw: string | null | undefined): ResolvedSource | null {
+  if (!raw) return null;
+  let url = raw.trim();
+  url = url.replace("/d/", "/e/");
+
+  const vid = videyId(url);
+  if (vid && /videy/i.test(url)) {
+    const cdns = videyCdns(vid);
+    return {
+      mode: "video",
+      url: cdns[0],
+      fallbacks: cdns,
+      host: "Videy",
+    };
+  }
+
+  if (isFile(url)) {
+    return {
+      mode: "video",
+      url,
+      fallbacks: [url],
+      host: hostLabel(url),
+    };
+  }
+
+  if (/indoav/i.test(url)) {
+    const variants = indoAvFallbacks(url);
+    return {
+      mode: "iframe",
+      url: variants[0],
+      fallbacks: variants,
+      host: "IndoAV",
+    };
+  }
+
+  const embedUrl = toEmbedPath(url);
+  return {
+    mode: "iframe",
+    url: embedUrl,
+    fallbacks: embedUrl !== url ? [embedUrl, url] : [url],
+    host: hostLabel(url),
+  };
+}

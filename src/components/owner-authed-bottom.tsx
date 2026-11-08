@@ -1,0 +1,122 @@
+"use client";
+
+import type { ReactNode } from "react";
+import { useState } from "react";
+import { OwnerChart } from "@/components/owner-chart";
+import { OwnerStats14 } from "@/components/owner-stats14";
+import { fmt, deviceLabel, dayLabel, type OwnerStats, type DeviceKind, type DayRow } from "@/components/owner-dashboard-shared";
+
+type DeviceRow = { device: DeviceKind; views: number; pct: number };
+
+export function OwnerAuthedBottom(props: {
+  days: DayRow[];
+  devices: DeviceRow[];
+  stats: OwnerStats | null;
+  secret: string;
+  loading: boolean;
+  fetchOnline: (key: string, quiet?: boolean) => Promise<void>;
+  logout: () => void;
+  /** Collapsed owner sections rendered after the statistics block (player error, hidden list, poster, bot). */
+  beforeFooter?: ReactNode;
+}) {
+  const { days, devices, stats, beforeFooter } = props;
+  const deviceTotal = devices.reduce((sum, d) => sum + (Number(d.views) || 0), 0);
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[#111314]">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left text-sm font-medium text-zinc-100 hover:bg-white/[0.02]"
+        >
+          Statistik 14 hari · perangkat · halaman · sumber
+          <span className={`text-zinc-500 transition-transform ${open ? "rotate-90" : ""}`} aria-hidden="true">›</span>
+        </button>
+        {open ? (
+          <div className="flex flex-col gap-3 border-t border-white/[0.06] p-2 sm:p-3">
+            <OwnerStats14 secret={props.secret} />
+      {days.length ? (
+              <section className="rounded-xl border border-white/[0.05] bg-[#0c0e0f] p-4">
+                <h2 className="text-[13px] uppercase tracking-[0.16em] text-zinc-400">Kunjungan halaman 14 hari (WIB)</h2>
+                <div className="mt-3">
+                  <OwnerChart days={days} />
+                </div>
+              </section>
+            ) : null}
+
+            {days.length ? (
+              <section className="rounded-xl border border-white/[0.05] bg-[#0c0e0f] p-4">
+                <h2 className="text-[13px] uppercase tracking-[0.16em] text-zinc-400">Riwayat 14 hari</h2>
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="text-[13px] uppercase tracking-wide text-zinc-500">
+                      <tr>
+                        <th className="pb-2 font-medium">Hari</th>
+                        <th className="pb-2 text-right font-medium">Kunjungan</th>
+                        <th className="pb-2 text-right font-medium">Unik</th>
+                        <th className="pb-2 text-right font-medium">Puncak</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {days.map((row, i) => (
+                        <tr key={row.day} className="border-t border-white/[0.06]">
+                          <td className="py-2 text-zinc-300">
+                            {dayLabel(row.day, i)}
+                            <span className="ml-2 text-[13px] text-zinc-500">{row.day}</span>
+                          </td>
+                          <td className="py-2 text-right tabular-nums text-zinc-200">{fmt(row.views)}</td>
+                          <td className="py-2 text-right tabular-nums text-zinc-400">{fmt(row.unique)}</td>
+                          <td className="py-2 text-right tabular-nums text-zinc-400">{fmt(row.peak)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            ) : null}
+
+            {devices.length ? (
+              <section className="rounded-xl border border-white/[0.05] bg-[#0c0e0f] p-4">
+                <h2 className="text-[13px] uppercase tracking-[0.16em] text-zinc-400">Perangkat hari ini (WIB)</h2>
+                <ul className="mt-3 space-y-2">
+                  {devices.map((d) => (
+                    <li key={d.device} className="flex items-center gap-3 text-sm">
+                      <span className="w-16 shrink-0 text-zinc-400">{deviceLabel(d.device)}</span>
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+                        <span className="block h-full rounded-full bg-[#2dd4bf]/80" style={{ width: `${d.pct}%` }} />
+                      </span>
+                      <span className="shrink-0 text-right tabular-nums text-zinc-300">
+                        {fmt(d.views)} dari {fmt(deviceTotal)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            {stats?.topPaths?.length ? (
+              <section className="rounded-xl border border-white/[0.05] bg-[#0c0e0f] p-4">
+                <h2 className="text-[13px] uppercase tracking-[0.16em] text-zinc-400">Halaman hari ini (WIB)</h2>
+                <ul className="mt-3 space-y-2 text-sm">
+                  {stats.topPaths.slice(0, 8).map((row) => (
+                    <li key={row.path} className="flex justify-between gap-3">
+                      <span className="truncate text-zinc-300">{row.path}</span>
+                      <span className="tabular-nums text-zinc-400">{fmt(row.views)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+
+
+          </div>
+        ) : null}
+      </div>
+
+      {beforeFooter}
+    </>
+  );
+}

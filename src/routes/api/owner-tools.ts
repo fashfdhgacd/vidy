@@ -1,0 +1,1299 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { collectSharePool } from "@/lib/bot/share-pool";
+import { loadShareUsed, saveShareUsed } from "@/lib/bot/share-used";
+import { processUploadBatch } from "@/lib/bot/upload-handler.js";
+import {
+  cleanPosterId,
+  isHttpPoster,
+  mergeAutoMeta,
+  mergeLatestPosters,
+  refreshMissingPosters,
+} from "@/lib/bot/posters.js";
+
+import { listHiddenForReview, setReviewMark } from "@/lib/owner-hidden-review";
+import { approveDetectorReviewBulk, decideDetectorReview, listDetectorReview, verifyDetectorReview } from "@/lib/owner-detector-review";
+import {
+  listHiddenCandidates,
+  applyUnhidden,
+  isLockedMinor,
+  isPublicHidden,
+  applyCatalogBlock,
+  applyFlagReviewKept,
+  isCatalogBlocked,
+  loadItemsRaw,
+  multiServerOf,
+  type HiddenCandidate,
+} from "@/lib/catalog/local-cache";
+import blockFile from "@/lib/catalog/catalog-blocklist.json";
+import { removalPlan, removedReport, singleRemoveId, titleSlug } from "@/lib/catalog/catalog-block.js";
+import { addCatalogBlocked, commitCatalogBlock, readCatalogBlockState } from "@/lib/catalog/catalog-block-store";
+import { isDrpBokep, isPutarin, javCoverFromTitle, PLACEHOLDER_IMAGE_RE, slugOf, sourceLabel, type RawItem } from "@/lib/catalog/local-shared";
+import deadSources from "@/lib/catalog/dead-sources.json";
+import rankMeta from "@/lib/catalog/rank-periods-meta.json";
+import latestPosters from "../../../data/latest-posters.json";
+import thumbsDeploy from "../../../data/.thumbs-deploy.json";
+import { findCategory } from "@/lib/catalog/categories";
+import { isLockedMinorId, lockedMinorReason, ownerEditBlockReason, reviewHitReason, schoolReason } from "@/lib/catalog/minor-lock.js";
+import { approveFlagReview, readFlagReviewState } from "@/lib/catalog/flag-review-store";
+import { NO_SOURCE, isRealTitle } from "@/lib/catalog/generic-title.js";
+import { reviewPriority as detectorPriority, minorContentReason as ownerDetectorReason } from "@/lib/catalog/minor-detector.js";
+import { explainTitle } from "@/lib/catalog/minor-context.js";
+import itemOverrides from "@/lib/catalog/overrides.json";
+import { readUnhideState, setUnhidden, writeUnhideState } from "@/lib/catalog/unhide-store";
+import { isReviewPendingReason } from "@/lib/catalog/review-pending.js";
+import { readOwnerHideState } from "@/lib/catalog/owner-hide-store";
+import { withSavedEdit } from "@/lib/catalog/owner-edit-merge.js";
+import {
+  MAX_DESCRIPTION,
+  MAX_EXTRA_CATEGORIES,
+  MAX_MERGE_IDS,
+  bulkEditOwnerExtra,
+  readOwnerEditState,
+  setOwnerEdit,
+  setOwnerMerges,
+} from "@/lib/catalog/owner-edit-store";
+import { isOwnerRequest, ownerSecret } from "@/lib/owner-auth";
+import { isSafeManualDescription } from "@/lib/seo";
+import { runPosterFill } from "@/lib/poster-fill";
+import {
+  getWebhookInfo,
+  lastSetupAt,
+  lastVerifiedUpdateAt,
+  setupWebhook,
+  WEBHOOK_URL,
+} from "@/lib/telegram-webhook";
+
+export const maxDuration = 60;
+
+// ---------------------------------------------------------------------------
+// Hidden videos (minor/school-flagged, see src/lib/catalog/hidden-ids.js): owner-only list and
+// the reversible "Unhide" override (KV "owner:unhide:v1"). Only reachable with the owner key.
+// ---------------------------------------------------------------------------
+
+type HiddenListRow = {
+  id: string;
+  title: string;
+  source: string;
+  sourceUrl: string | null;
+  embedUrl: string | null;
+  javCode: string | null;
+  reason: string;
+  reasonLabel: string;
+  unhidden: boolean;
+  unhiddenAt: number | null;
+  watchUrl: string;
+};
+
+const HIDE_REASON_LABELS: Record<string, string> = {
+  "minor-lock": "Terkunci (ID/judul jelas bertema minor/sekolah), tidak bisa di-Unhide",
+  "owner-hide": "Disembunyikan manual dari kartu Player error",
+  "masked-school-term": "Kata bertema sekolah disensor (***) di judul sumber",
+  school: "Kata sekolah (SMA/SMP/siswi/pelajar/sekolah…)",
+  "school-uniform": "Seragam sekolah",
+  minor: "Menyiratkan di bawah umur (bocil/loli/anak kecil…)",
+  "anime-school": "Anime bertema sekolah (JK/schoolgirl/classroom)",
+  "teacher-student": "Guru & murid",
+  classroom: "Ruang kelas",
+  "incest-child": "Inses dengan anak",
+  "bot-flag": "Ditandai bot saat upload",
+  "locked:minor-detector": "Detector minor: judul jelas di bawah umur (diblokir)",
+  "detector-review": "Perlu dicek: sinyal sekolah/umur dari detector minor (lihat kotak Perlu dicek)",
+  "title-rename": "Judul perlu diganti: ditahan saat upload (lihat kotak Perlu dicek, Edit lalu Tayangkan)",
+  "source-gone": "Dihapus di sumber",
+};
+
+function reasonLabel(reason: string): string {
+  return HIDE_REASON_LABELS[reason] || reason;
+}
+
+const NOT_JAV =
+  /^(?:EPS?|EPISODE|PART|MP|HD|FHD|UHD|SD|VOL|NO|TAHUN|THN|JAM|MENIT|SMA|SMP|SMU|SMK|KELAS|UMUR|USIA|IDR|RP|INDO|BOKEP|VIRAL|TIKTOK|VIDEO|VID|IMG|DSC|MOV|PIC|TOP|NEW|LIVE|COL|SET|TER|BIGO|ONLY|OF|PAP|PJS|FULL)$/;
+
+/** JAV code like "SSIS-123", "IPX456", "ABP 123" (uppercase), "FC2-PPV-1234567"; null when none. */
+function javCodeOf(title: string): string | null {
+  const t = String(title || "");
+  const fc2 = t.match(/\bFC2[-_ ]?(?:PPV[-_ ]?)?(\d{6,7})\b/i);
+  if (fc2) return `FC2-PPV-${fc2[1]}`;
+  for (const m of t.matchAll(/\b([A-Za-z]{2,6})([-_ ]?)(\d{3,5})\b/g)) {
+    const prefix = m[1].toUpperCase();
+    if (NOT_JAV.test(prefix)) continue;
+    const sep = m[2];
+    // Without a hyphen, only accept an all-caps prefix ("ABP123", "ABP 123") and not a year.
+    if (sep !== "-" && m[1] !== prefix) continue;
+    if (sep !== "-" && /^(?:19|20)\d\d$/.test(m[3])) continue;
+    return `${prefix}-${m[3]}`;
+  }
+  return null;
+}
+
+function httpUrl(v: unknown): string | null {
+  const s = String(v || "").trim();
+  return /^https?:\/\//i.test(s) ? s : null;
+}
+
+/** Link to the video's page at the source (falls back to the embed URL). */
+function sourceLinkOf(it: RawItem): { page: string | null; embed: string | null } {
+  const embed = httpUrl(it.embed) || httpUrl(it.direct);
+  const direct = httpUrl(it.direct);
+  const any = embed || direct || "";
+  const host = any.match(/^(https?:\/\/[^/]+)\/e\/([A-Za-z0-9_-]+)/i);
+  if (host && /indoav|userbokep/i.test(host[1])) return { page: `${host[1]}/d/${host[2]}`, embed };
+  const st = any.match(/^https?:\/\/(?:www\.)?streamtape\.[a-z]+\/e\/([A-Za-z0-9]+)/i);
+  if (st) return { page: `https://streamtape.com/v/${st[1]}`, embed };
+  if (direct && /\/v\//.test(direct)) return { page: direct, embed };
+  return { page: embed || direct, embed };
+}
+
+function toHiddenRow(c: HiddenCandidate): HiddenListRow {
+  const it = c.item;
+  const title = String(it.title || "");
+  const link = sourceLinkOf(it);
+  return {
+    id: it.id,
+    title,
+    source: sourceLabel(it),
+    sourceUrl: link.page,
+    embedUrl: link.embed,
+    javCode: javCodeOf(title),
+    reason: c.reason,
+    reasonLabel: reasonLabel(c.reason),
+    unhidden: c.unhidden,
+    unhiddenAt: c.unhiddenAt || null,
+    watchUrl: `/watch/${it.id}`,
+  };
+}
+
+async function listHiddenVideos(): Promise<HiddenListRow[]> {
+  let at: Record<string, number> = {};
+  try {
+    const st = await readUnhideState();
+    at = Object.fromEntries(Object.entries(st.ids).map(([k, v]) => [k, v.at]));
+  } catch {
+    at = {};
+  }
+  const rows = (await listHiddenCandidates(at)).map(toHiddenRow);
+  return rows.sort((a, b) => a.title.localeCompare(b.title));
+}
+
+/** unhide=true → public again; unhide=false → hidden again (default). */
+async function setHiddenOverride(body: {
+  id?: unknown;
+  unhide?: unknown;
+}): Promise<{ ok: boolean; error?: string; status?: number; unhidden?: boolean; total?: number }> {
+  const id = String(body.id || "").trim();
+  if (!/^[A-Za-z0-9_-]{3,64}$/.test(id)) return { ok: false, error: "bad_id", status: 400 };
+  if (typeof body.unhide !== "boolean") return { ok: false, error: "bad_unhide", status: 400 };
+  const candidates = await listHiddenCandidates();
+  const cand = candidates.find((c) => c.item.id === id);
+  if (!cand) return { ok: false, error: "not_hidden_item", status: 404 };
+  // REVIEW_PENDING: same one-tap rule as "Perlu dicek" Tayangkan (only the strict set needs a proof note).
+  if (body.unhide && isReviewPendingReason(cand.reason)) {
+    const r = await decideDetectorReview({ id, decision: "show" });
+    if (!r.ok) return { ok: false, error: r.error === "proof_required" ? "review_pending_needs_proof" : r.error, status: r.status || 409 };
+    return { ok: true, unhidden: true };
+  }
+  try {
+    const state = await setUnhidden(id, body.unhide);
+    applyUnhidden(Object.keys(state.ids));
+    return { ok: true, unhidden: body.unhide, total: Object.keys(state.ids).length };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "kv_error", status: 503 };
+  }
+}
+
+/**
+ * Bulk Unhide / hide again: one KV read-modify-write of owner:unhide:v1. Every id must be a
+ * flagged (hidden-by-default) item; unknown ids are rejected and reported, nothing is deleted.
+ */
+async function setHiddenOverrideBulk(body: {
+  ids?: unknown;
+  unhide?: unknown;
+}): Promise<{
+  ok: boolean;
+  error?: string;
+  status?: number;
+  unhidden?: boolean;
+  changed?: number;
+  applied?: string[];
+  rejected?: string[];
+  total?: number;
+}> {
+  if (typeof body.unhide !== "boolean") return { ok: false, error: "bad_unhide", status: 400 };
+  if (!Array.isArray(body.ids) || !body.ids.length) return { ok: false, error: "no_ids", status: 400 };
+  if (body.ids.length > 2000) return { ok: false, error: "too_many_ids", status: 400 };
+  const ids = [...new Set(body.ids.map((x) => String(x || "").trim()))];
+  const cands = await listHiddenCandidates();
+  // REVIEW_PENDING goes through the "Tayangkan semua" rule: non-sensitive ones are approved (durable
+  // decision), the strict set (needs a proof note) is skipped and reported.
+  const pendingIds = new Set(cands.filter((c) => body.unhide && isReviewPendingReason(c.reason)).map((c) => c.item.id));
+  const pendingAsked = ids.filter((id) => pendingIds.has(id));
+  let pendingApproved: string[] = [];
+  let pendingSkipped: string[] = [];
+  if (pendingAsked.length) {
+    const r = await approveDetectorReviewBulk({ ids: pendingAsked });
+    if (!r.ok) return { ok: false, error: r.error, status: r.status || 503 };
+    pendingApproved = r.approved || [];
+    pendingSkipped = r.skipped || [];
+  }
+  const flagged = new Set(cands.filter((c) => !pendingIds.has(c.item.id)).map((c) => c.item.id));
+  const applied = ids.filter((id) => /^[A-Za-z0-9_-]{3,64}$/.test(id) && flagged.has(id));
+  const rejected = ids.filter((id) => !applied.includes(id) && !pendingApproved.includes(id));
+  if (!applied.length && pendingApproved.length) {
+    return { ok: true, unhidden: true, changed: pendingApproved.length, applied: pendingApproved, rejected, total: 0 };
+  }
+  if (!applied.length) return { ok: false, error: "not_hidden_item", status: 404, rejected: [...new Set([...rejected, ...pendingSkipped])] };
+  try {
+    const state = await readUnhideState();
+    let changed = 0;
+    const now = Date.now();
+    for (const id of applied) {
+      if (body.unhide) {
+        if (!state.ids[id]) changed++;
+        state.ids[id] = { at: now };
+      } else if (state.ids[id]) {
+        delete state.ids[id];
+        changed++;
+      }
+    }
+    await writeUnhideState(state);
+    applyUnhidden(Object.keys(state.ids));
+    return {
+      ok: true,
+      unhidden: body.unhide,
+      changed: changed + pendingApproved.length,
+      applied: [...applied, ...pendingApproved],
+      rejected,
+      total: Object.keys(state.ids).length,
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "kv_error", status: 503 };
+  }
+}
+
+const HOST = "https://videyy.icu";
+
+function json(data: unknown, status = 200): Response {
+  return Response.json(data, { status, headers: { "cache-control": "no-store" } });
+}
+
+async function handleShare(body: { count?: number; category?: string; source?: string }) {
+  const usedFile = await loadShareUsed();
+  const n = Math.min(100, Math.max(1, Number(body.count) || 100));
+  const cat = String(body.category || "").trim();
+  const source = String(body.source || "").trim();
+  const picked = await collectSharePool({
+    count: n,
+    category: cat,
+    source,
+    excludeIds: usedFile.used,
+    excludeTitles: usedFile.titles,
+  });
+  if (!picked.items.length) {
+    return json({ ok: true, count: 0, text: "Kosong. Coba kategori lain.", reset: false });
+  }
+  const take = picked.items;
+  await saveShareUsed({
+    resetAt: picked.reset ? Date.now() : usedFile.resetAt,
+    used: picked.reset
+      ? take.map((v) => String(v.id))
+      : usedFile.used.concat(take.map((v) => String(v.id))),
+    titles: picked.reset
+      ? take.map((v) => String(v.title || ""))
+      : (usedFile.titles || []).concat(take.map((v) => String(v.title || ""))),
+    lastCat: cat,
+    lastSource: source,
+    lastCount: n,
+  });
+  const text = take.map((v) => `▶ ${v.title}\n${HOST}/watch/${v.id}`).join("\n\n");
+  return json({ ok: true, count: take.length, reset: picked.reset, text });
+}
+
+async function handleUpload(body: { text?: string; category?: string }) {
+  const raw = String(body.text || "").trim();
+  if (!raw) return json({ ok: false, error: "kosong" }, 400);
+  const cat = String(body.category || "").trim();
+  const text = cat ? `Kategori: ${cat}\n${raw}` : raw;
+  const lines: string[] = [];
+  await processUploadBatch({
+    token: "panel",
+    chatId: 0,
+    text,
+    env: process.env,
+    tgSend: async (_token: string, _chat: number, msg: string) => {
+      lines.push(msg);
+      return true;
+    },
+    tgSendChunks: async (_token: string, _chat: number, msg: string) => {
+      lines.push(msg);
+    },
+    MAIN_KEYBOARD: {},
+  });
+  return json({ ok: true, text: lines.filter(Boolean).join("\n\n") || "Selesai." });
+}
+
+async function handleSetPoster(body: { id?: string; url?: string }) {
+  const id = cleanPosterId(body.id);
+  const url = String(body.url || "").trim();
+  if (!id) return json({ ok: false, error: "bad_id" }, 400);
+  if (!isHttpPoster(url)) return json({ ok: false, error: "bad_url" }, 400);
+  const merged = await mergeLatestPosters(process.env, { [id]: url });
+  if (!merged.ok) return json({ ok: false, error: merged.error || "merge_failed" }, 502);
+  return json({
+    ok: true,
+    id,
+    url,
+    added: merged.added,
+    updated: merged.updated,
+    total: merged.total,
+    text:
+      merged.added || merged.updated
+        ? `Poster ${id} tersimpan. Map: ${merged.total} entri.`
+        : `Poster ${id} sudah sama. Map: ${merged.total} entri.`,
+  });
+}
+
+/**
+ * Several posters in ONE merge (one commit of data/latest-posters.json, so one deploy) for the
+ * "Thumbnail kosong" card, instead of one commit per pasted link. At most 50 per call.
+ */
+async function handleSetPosters(body: { posters?: unknown }) {
+  const input = body.posters && typeof body.posters === "object" && !Array.isArray(body.posters) ? body.posters : null;
+  if (!input) return json({ ok: false, error: "no_posters" }, 400);
+  const entries: Record<string, string> = {};
+  const rejected: string[] = [];
+  for (const [rawId, rawUrl] of Object.entries(input as Record<string, unknown>).slice(0, 50)) {
+    const id = cleanPosterId(rawId);
+    const url = String(rawUrl || "").trim();
+    if (id && isHttpPoster(url)) entries[id] = url;
+    else rejected.push(String(rawId).slice(0, 64));
+  }
+  if (!Object.keys(entries).length) return json({ ok: false, error: "bad_url", rejected }, 400);
+  const merged = await mergeLatestPosters(process.env, entries);
+  if (!merged.ok) return json({ ok: false, error: merged.error || "merge_failed", rejected }, 502);
+  return json({
+    ok: true,
+    saved: Object.keys(entries),
+    rejected,
+    added: merged.added,
+    updated: merged.updated,
+    total: merged.total,
+    text: `${Object.keys(entries).length} poster tersimpan. Tampil setelah deploy berikutnya (±2-3 menit).`,
+  });
+}
+
+async function handleRefreshPosters(body: { limit?: number }) {
+  const result = await refreshMissingPosters(process.env, { limit: body.limit });
+  if (!result.ok) {
+    return json({ ok: false, error: result.error || "refresh_failed", text: result.text }, 502);
+  }
+  return json(result);
+}
+
+// ---------------------------------------------------------------------------
+// Catalog overview, recent uploads, search and title/category edit for /pemilik.
+// Edits are written to src/lib/catalog/overrides.json in the repo (same file the catalog
+// reads at build time), so they go live with the next build. The minor-lock is checked on the
+// server: locked or flagged items cannot be edited, and a new title cannot carry a minor theme.
+// ---------------------------------------------------------------------------
+
+type CatalogRow = {
+  id: string;
+  title: string;
+  category: string;
+  categoryLabel: string;
+  extra?: string[];
+  source: string;
+  createdAt: number;
+  hidden: boolean;
+  locked: boolean;
+  /** Owner's own Byse/Lulu/Dood upload without any poster: the site shows the penguin logo. */
+  noThumb: boolean;
+  /** Merged into this main page ("Gabung jadi satu" or same title): it plays as one of its servers. */
+  mergedInto?: string;
+  /** Main page of a multi-server group: number of servers (copies) it shows. */
+  servers?: number;
+};
+
+type BuiltLike = {
+  at?: number;
+  items: RawItem[];
+  raw?: RawItem[];
+  hiddenIds?: Set<string>;
+  byId: Map<string, RawItem>;
+  posters?: Record<string, string>;
+};
+
+function realPoster(v: unknown): boolean {
+  const s = String(v || "").trim();
+  return /^https?:\/\//i.test(s) && !PLACEHOLDER_IMAGE_RE.test(s) && !/brand-poster/i.test(s);
+}
+
+/**
+ * Same poster sources /thumb/<id> uses for the owner's Byse/LuluStream/DoodStream uploads (item
+ * poster/thumbnail, data/latest-posters.json, overrides.json, the catalog poster map). No poster
+ * means /thumb redirects to the brand logo. Only these uploads are checked: the other hosts always
+ * carry their own thumbnail. Pure in-memory check, no storage read.
+ */
+function lacksThumb(it: RawItem, posters?: Record<string, string>): boolean {
+  // Putarin: the bot resolves the embed's image at upload (providers.fetchPutarinMeta) and writes it to
+  // latest-posters.json; one without a stored poster or a JAV-code cover is "Gambar belum ketemu".
+  // Derived from the catalog on the owner request only: no extra writes, video stays public.
+  if (isPutarin(it)) {
+    if (realPoster(it.poster) || realPoster(posters?.[it.id]) || realPoster((latestPosters as Record<string, string>)[it.id])) return false;
+    return !javCoverFromTitle(String(it.title || ""));
+  }
+  if (!isDrpBokep(it)) return false;
+  if (realPoster(it.poster) || realPoster(it.thumbnail)) return false;
+  if (realPoster(posters?.[it.id]) || realPoster((latestPosters as Record<string, string>)[it.id])) return false;
+  const ov = (itemOverrides as Record<string, { poster?: string }>)[it.id];
+  return !realPoster(ov?.poster);
+}
+
+const WIB_MS = 7 * 3600 * 1000;
+
+/**
+ * Upload time. Bot uploads (lib/bot/store.js toRecord) carry no createdAt, only `date`
+ * (the UTC calendar day, so anything uploaded 00:00–07:00 WIB looked like "yesterday") and
+ * `updated_at` (full ISO time of the upload), which is the better source.
+ */
+function createdMs(it: RawItem): number {
+  const rec = it as RawItem & { updated_at?: unknown; updatedAt?: unknown };
+  const v = it.createdAt ?? rec.updated_at ?? rec.updatedAt ?? it.date;
+  if (typeof v === "number") return v < 1e12 ? v * 1000 : v;
+  const n = Date.parse(String(v || ""));
+  return Number.isFinite(n) ? n : 0;
+}
+
+// Same decision as the catalog (local-cache.ts), so the panel label never disagrees with what is hidden.
+function isLockedItem(it: RawItem): boolean {
+  return isLockedMinor(it);
+}
+
+function toCatalogRow(
+  it: RawItem,
+  shown: RawItem | undefined,
+  hidden: boolean,
+  posters?: Record<string, string>,
+  merge?: ReturnType<typeof multiServerOf>,
+): CatalogRow {
+  const view = shown || it;
+  const slug = slugOf(view);
+  return {
+    id: it.id,
+    title: String(view.title || ""),
+    category: slug,
+    categoryLabel: findCategory(slug)?.label || slug,
+    ...(Array.isArray(view.ownerExtraCategories) && view.ownerExtraCategories.length
+      ? { extra: (view.ownerExtraCategories as unknown[]).map(String) }
+      : {}),
+    source: sourceLabel(it),
+    createdAt: createdMs(it),
+    hidden,
+    locked: isLockedItem(it),
+    noThumb: lacksThumb(it, posters),
+    ...(merge?.mainOf.get(it.id) ? { mergedInto: merge.mainOf.get(it.id) } : {}),
+    ...((merge?.servers.get(it.id)?.length || 0) > 1 ? { servers: merge!.servers.get(it.id)!.length } : {}),
+  };
+}
+
+async function catalogBase(): Promise<{ raw: RawItem[]; cache: BuiltLike; hidden: Set<string> }> {
+  const cache = (await loadItemsRaw()) as unknown as BuiltLike;
+  const raw = cache.raw || cache.items;
+  const shownIds = new Set(cache.items.map((it) => it.id));
+  // A copy merged into another page is not hidden: it plays as a server of that page.
+  const merged = multiServerOf(cache as never).mainOf;
+  const hidden = new Set<string>();
+  for (const it of raw) if (it?.id && !shownIds.has(it.id) && !merged.has(it.id)) hidden.add(it.id);
+  return { raw, cache, hidden };
+}
+
+async function handleCatalogOverview(
+  body: { limit?: unknown; offset?: unknown; source?: unknown; noThumb?: unknown } = {},
+) {
+  const limit = Math.min(100, Math.max(1, Math.floor(Number(body.limit) || 50)));
+  const offset = Math.max(0, Math.floor(Number(body.offset) || 0));
+  const sourceFilter = typeof body.source === "string" ? body.source.trim().slice(0, 40) : "";
+  const noThumbFilter = body.noThumb === true;
+  const { raw, cache, hidden } = await catalogBase();
+  const posters = cache.posters;
+  const now = Date.now();
+  const dayStart = Math.floor((now + WIB_MS) / 86400000) * 86400000 - WIB_MS;
+  const weekStart = dayStart - 6 * 86400000;
+  let today = 0;
+  let week = 0;
+  const todayBySource: Record<string, number> = {};
+  const bySource: Record<string, number> = {};
+  const seen = new Set<string>();
+  const uniq: { it: RawItem; t: number; source: string }[] = [];
+  for (const it of raw) {
+    if (!it?.id || seen.has(it.id)) continue;
+    seen.add(it.id);
+    const t = createdMs(it);
+    const source = sourceLabel(it);
+    uniq.push({ it, t, source });
+    bySource[source] = (bySource[source] || 0) + 1;
+    if (t >= dayStart) {
+      today++;
+      todayBySource[source] = (todayBySource[source] || 0) + 1;
+    }
+    if (t >= weekStart) week++;
+  }
+  // Public catalog per category and the shown uploads still on the logo (in-memory counts only).
+  const catCount = new Map<string, number>();
+  let noThumb = 0;
+  for (const it of cache.items) {
+    const slug = slugOf(it);
+    catCount.set(slug, (catCount.get(slug) || 0) + 1);
+    if (lacksThumb(it, posters)) noThumb++;
+  }
+  const categories = [...catCount.entries()]
+    .map(([slug, count]) => ({ slug, label: findCategory(slug)?.label || slug, count }))
+    .sort((a, b) => b.count - a.count);
+  // Strictly by upload time (sortByNewest ranks by source first, which is right for the catalog
+  // pages but not for "Upload terbaru"). Items without a usable date go last.
+  const recent0 = uniq
+    .filter((r) => (!sourceFilter || r.source === sourceFilter) && (!noThumbFilter || lacksThumb(r.it, posters)))
+    .sort((a, b) => b.t - a.t);
+  const page = recent0
+    .slice(offset, offset + limit)
+    .map(({ it }) => toCatalogRow(it, cache.byId?.get(it.id), hidden.has(it.id), posters, multiServerOf(cache as never)));
+  // "Perlu dicek": Jav items whose title looks like an episode (maybe hentai). Owner moves them in one tap.
+  const EP_RE = /\b(?:episode|ep)\.?\s*\d{1,3}\b/i;
+  const checkRows = cache.items
+    .filter((it) => slugOf(it) === "jav" && EP_RE.test(String(it.title || "")))
+    .slice(0, 40)
+    .map((it) => toCatalogRow(it, cache.byId?.get(it.id), hidden.has(it.id), posters, multiServerOf(cache as never)));
+  const dead = deadSources as { checkedAt?: string | null };
+  return json({
+    ok: true,
+    checkJav: offset === 0 ? checkRows : undefined,
+    total: cache.items.length,
+    hidden: hidden.size,
+    uploadedToday: today,
+    uploadedWeek: week,
+    todayBySource,
+    bySource,
+    categories,
+    noThumb,
+    recent: page,
+    recentTotal: recent0.length,
+    offset,
+    source: sourceFilter || null,
+    noThumbOnly: noThumbFilter,
+    status: {
+      catalogAt: typeof cache.at === "number" ? cache.at : null,
+      thumbsAt: (thumbsDeploy as { at?: string }).at || null,
+      deadCheckedAt: dead.checkedAt || null,
+      statsUpdated: (rankMeta as { updated?: string }).updated || null,
+    },
+  });
+}
+
+/** Shown Byse/Lulu/Dood uploads without a poster, newest first, for "Thumbnail kosong". */
+async function handleThumbMissing(body: { limit?: unknown; offset?: unknown } = {}) {
+  const limit = Math.min(100, Math.max(1, Math.floor(Number(body.limit) || 20)));
+  const offset = Math.max(0, Math.floor(Number(body.offset) || 0));
+  const { cache } = await catalogBase();
+  const rows = cache.items
+    .filter((it) => lacksThumb(it, cache.posters))
+    .map((it) => ({ it, t: createdMs(it) }))
+    .sort((a, b) => b.t - a.t);
+  return json({
+    ok: true,
+    total: rows.length,
+    offset,
+    items: rows.slice(offset, offset + limit).map(({ it }) => toCatalogRow(it, it, false, cache.posters, multiServerOf(cache as never))),
+  });
+}
+
+/**
+ * "Isi poster": one small batch of the public catalog per owner click (see lib/poster-fill.ts).
+ * The panel walks offset 0..total itself, one request after another, only while the owner's run is on.
+ */
+/**
+ * Titles found by the "Isi poster" sweep (or "sumber-nggak-ngasih" marks) into data/auto-meta.json:
+ * one commit per call, at most 50. Fills only (posters.js mergeAutoMeta never replaces a title).
+ * A found title that trips the minor/school checks is stored with `hidden`, so it never goes live.
+ */
+async function handleSetAutoMeta(body: { meta?: unknown }) {
+  const input = body.meta && typeof body.meta === "object" && !Array.isArray(body.meta) ? (body.meta as Record<string, unknown>) : null;
+  if (!input) return json({ ok: false, error: "no_meta" }, 400);
+  const entries: Record<string, { title?: string; none?: string; at?: string; hidden?: string }> = {};
+  const rejected: string[] = [];
+  let hiddenCount = 0;
+  for (const [rawId, raw] of Object.entries(input).slice(0, 50)) {
+    const id = cleanPosterId(rawId);
+    const e = raw && typeof raw === "object" ? (raw as { title?: unknown; none?: unknown; at?: unknown }) : null;
+    const title = String(e?.title || "").trim().slice(0, 200);
+    if (id && title && isRealTitle(title)) {
+      const hidden = ownerDetectorReason(title) || lockedMinorReason(title) || schoolReason(title) || "";
+      if (hidden) hiddenCount += 1;
+      entries[id] = { title, ...(hidden ? { hidden: String(hidden) } : {}) };
+    } else if (id && !title && e?.none === NO_SOURCE) {
+      entries[id] = { none: NO_SOURCE, at: String(e.at || "") };
+    } else rejected.push(String(rawId).slice(0, 64));
+  }
+  if (!Object.keys(entries).length) return json({ ok: false, error: "bad_meta", rejected }, 400);
+  const merged = await mergeAutoMeta(process.env, entries);
+  if (!merged.ok) return json({ ok: false, error: merged.error || "merge_failed", rejected }, 502);
+  return json({
+    ok: true,
+    added: merged.added,
+    marked: merged.marked,
+    kept: merged.kept,
+    hidden: hiddenCount,
+    total: merged.total,
+    rejected,
+    text: `${merged.added} judul diisi, ${merged.marked} ditandai sumber nggak ngasih. Tampil setelah deploy berikutnya (±2-3 menit).`,
+  });
+}
+
+async function handlePosterFill(body: { offset?: unknown; limit?: unknown }) {
+  const { cache } = await catalogBase();
+  const result = await runPosterFill(cache.items, cache.posters || {}, body);
+  return json(result, result.ok ? 200 : 503);
+}
+
+/**
+ * Owner search over the whole catalog (hidden items too): title, id, main category (slug + label),
+ * extra categories, stored tags and source. Every word must match somewhere. Paginated (limit/offset)
+ * with a total, so bulk tagging can select beyond the first page. One in-memory pass, no KV write.
+ */
+async function handleCatalogSearch(body: { q?: unknown; limit?: unknown; offset?: unknown }) {
+  const q = String(body.q || "").trim().toLowerCase().slice(0, 120);
+  const limit = Math.min(100, Math.max(1, Math.floor(Number(body.limit) || 50)));
+  const offset = Math.max(0, Math.floor(Number(body.offset) || 0));
+  if (q.length < 2) return json({ ok: true, items: [], total: 0, offset, limit });
+  const words = q.split(/\s+/).filter(Boolean);
+  const { raw, cache, hidden } = await catalogBase();
+  const hits: { it: RawItem; shown: RawItem | undefined }[] = [];
+  const seen = new Set<string>();
+  for (const it of raw) {
+    if (!it?.id || seen.has(it.id)) continue;
+    seen.add(it.id);
+    const shown = cache.byId?.get(it.id);
+    const view = shown || it;
+    const slug = slugOf(view);
+    const extra = Array.isArray(view.ownerExtraCategories) ? (view.ownerExtraCategories as unknown[]).map(String) : [];
+    const tags = Array.isArray(view.tags) ? (view.tags as unknown[]).map(String) : [];
+    const labels = [slug, ...extra, ...tags].map((s) => `${s} ${findCategory(s)?.label || ""}`).join(" ");
+    const title = String(view.title || it.title || "");
+    const titleKey = titleSlug(title);
+    const hay = `${title} ${titleKey} ${titleKey.replace(/-/g, " ")} ${it.id} ${labels} ${sourceLabel(it)}`.toLowerCase();
+    const flat = hay.replace(/-/g, " ");
+    if (!words.every((w) => hay.includes(w) || flat.includes(w.replace(/-/g, " ")))) continue;
+    hits.push({ it, shown });
+  }
+  return json({
+    ok: true,
+    total: hits.length,
+    offset,
+    limit,
+    items: hits.slice(offset, offset + limit).map(({ it, shown }) => toCatalogRow(it, shown, hidden.has(it.id), cache.posters, multiServerOf(cache as never))),
+  });
+}
+
+/**
+ * Exact lookup of one video for the edit sheet: current title, main category, the extra
+ * categories and the manual description stored in KV (owner:edit:v1), falling back to the catalog view. Unlike catalog-search
+ * it never misses an id because of a result limit.
+ */
+async function handleEditGet(body: { id?: unknown }) {
+  const id = String(body.id || "").trim();
+  if (!/^[A-Za-z0-9_-]{3,64}$/.test(id)) return json({ ok: false, error: "ID video tidak valid." }, 400);
+  const { raw, cache, hidden } = await catalogBase();
+  const it = raw.find((x) => x?.id === id);
+  if (!it) return json({ ok: false, error: "Video tidak ditemukan di katalog." }, 404);
+  const row = toCatalogRow(it, cache.byId?.get(id), hidden.has(id), cache.posters, multiServerOf(cache as never));
+  let stored: { extra?: string[]; category?: string; description?: string } | undefined;
+  try {
+    stored = (await readOwnerEditState()).ids[id];
+  } catch {
+    return json({ ok: false, error: "Penyimpanan KV tidak tersedia, kategori tersimpan tidak bisa dibaca." }, 503);
+  }
+  return json({
+    ok: true,
+    item: {
+      ...row,
+      category: stored?.category || row.category,
+      extra: stored ? stored.extra || [] : row.extra || [],
+      description: stored?.description || "",
+    },
+  });
+}
+
+function slugList(v: unknown): string[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  return [...new Set(v.map((s) => String(s).trim()).filter(Boolean))];
+}
+
+async function handleEditVideo(body: {
+  id?: unknown;
+  title?: unknown;
+  category?: unknown;
+  extra?: unknown;
+  extraAdd?: unknown;
+  extraRemove?: unknown;
+  description?: unknown;
+}) {
+  const id = String(body.id || "").trim();
+  if (!/^[A-Za-z0-9_-]{3,64}$/.test(id)) return json({ ok: false, error: "ID video tidak valid." }, 400);
+  const title = typeof body.title === "string" ? body.title.replace(/\s+/g, " ").trim() : "";
+  const category = typeof body.category === "string" ? body.category.trim() : "";
+  let extra: string[] | undefined;
+  if (Array.isArray(body.extra)) {
+    extra = [...new Set(body.extra.map((s) => String(s).trim()).filter(Boolean))];
+    const bad = extra.find((s) => !findCategory(s));
+    if (bad) return json({ ok: false, error: `Kategori tidak dikenal: ${bad}` }, 400);
+    if (extra.length > MAX_EXTRA_CATEGORIES) {
+      return json({ ok: false, error: `Maksimal ${MAX_EXTRA_CATEGORIES} kategori tambahan.` }, 400);
+    }
+  }
+  const extraAdd = slugList(body.extraAdd);
+  const extraRemove = slugList(body.extraRemove);
+  const badDelta = [...(extraAdd || []), ...(extraRemove || [])].find((s) => !findCategory(s));
+  if (badDelta) return json({ ok: false, error: `Kategori tidak dikenal: ${badDelta}` }, 400);
+  if ((extraAdd?.length || 0) > MAX_EXTRA_CATEGORIES) {
+    return json({ ok: false, error: `Maksimal ${MAX_EXTRA_CATEGORIES} kategori tambahan.` }, 400);
+  }
+  const hasDelta = Boolean(extraAdd?.length || extraRemove?.length);
+  // Manual description: a string replaces it ("" = back to the generated one); absent = unchanged.
+  const description = typeof body.description === "string" ? body.description.replace(/\s+/g, " ").trim() : undefined;
+  if (description && description.length > MAX_DESCRIPTION) {
+    return json({ ok: false, error: `Deskripsi maksimal ${MAX_DESCRIPTION} karakter.` }, 400);
+  }
+  // Same safety filter as the public page (seo.ts) plus the title checks: rejected, never saved silently.
+  if (description && (!isSafeManualDescription(description) || ownerEditBlockReason(description))) {
+    return json({ ok: false, error: "Deskripsi mengandung kata terlarang (minor/sekolah). Ubah dulu deskripsinya." }, 400);
+  }
+  if (!title && !category && !extra && !hasDelta && description === undefined) {
+    return json({ ok: false, error: "Tidak ada perubahan." }, 400);
+  }
+  // Chinese/Japanese/Korean titles are dense: 2 characters ("龍女") is already a real title.
+  const minTitle = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(title) ? 2 : 4;
+  if (title && (title.length < minTitle || title.length > 200)) {
+    return json({ ok: false, error: `Judul harus ${minTitle}–200 karakter.` }, 400);
+  }
+  if (category && !findCategory(category)) return json({ ok: false, error: `Kategori tidak dikenal: ${category}` }, 400);
+
+  const { raw } = await catalogBase();
+  const item = raw.find((it) => it?.id === id);
+  if (!item) return json({ ok: false, error: "Video tidak ditemukan di katalog." }, 404);
+  // Owner rule 2026-11-02: every video stays editable (held, REVIEW_PENDING, locked). The checks only
+  // decide whether it is shown: a clean title releases an automatic hold; a minor-locked id or a
+  // school/minor title is saved but stays hidden (reported back in `live` / `moderation`).
+  const editBlock = title ? ownerEditBlockReason(title) : "";
+  const lockedId = isLockedMinorId(id);
+
+  // Stored in KV (owner:edit:v1) and applied by the catalog at load time: no commit, no rebuild,
+  // no GitHub token needed in the Worker.
+  let saved;
+  try {
+    saved = await setOwnerEdit(id, {
+      title,
+      category,
+      ...(extra ? { extra } : hasDelta ? { extraAdd: extraAdd || [], extraRemove: extraRemove || [] } : {}),
+      ...(description !== undefined ? { description } : {}),
+    });
+  } catch (err) {
+    const msg = String((err as Error)?.message || err);
+    return json(
+      { ok: false, error: msg === "kv_unavailable" ? "Penyimpanan KV tidak tersedia." : `Gagal menyimpan: ${msg.slice(0, 120)}` },
+      503,
+    );
+  }
+  // Rebuild this isolate's catalog now; other isolates pick it up within ~30 s.
+  try {
+    const [unhide, hiddenState, edits] = await Promise.all([
+      readUnhideState(),
+      readOwnerHideState().catch(() => null),
+      readOwnerEditState(),
+    ]);
+    // KV reads are edge-cached (up to 60 s), so the read right after the put can still miss this
+    // edit; applying that stale state reverted the edit in this isolate (the "edit won't save" bug).
+    applyUnhidden(
+      Object.keys(unhide.ids),
+      hiddenState ? Object.keys(hiddenState.ids) : null,
+      withSavedEdit(edits.ids, id, saved),
+    );
+  } catch {
+    /* the regular 30 s sync applies it */
+  }
+  let live: boolean | null = null;
+  try {
+    live = !(await isPublicHidden(id));
+  } catch {
+    live = null;
+  }
+  return json({
+    ok: true,
+    id,
+    live,
+    ...(lockedId ? { note: "Video ini dikunci per-ID (indikasi di bawah umur): judul tersimpan, video tetap tidak tayang." } : {}),
+    ...(editBlock ? { note: `Judul tersimpan, tapi bertema sekolah/di bawah umur (${editBlock}): video tetap tidak tayang.` } : {}),
+    title: saved?.title || null,
+    category: saved?.category || null,
+    // minor-detector.js verdict for the new title ("review" = owner should double-check it).
+    detector: title ? detectorPriority("", title) : null,
+    // Status moderasi (locked / review_pending / clear) + penjelasan konteks untuk pemilik.
+    moderation: title ? explainTitle(title, ownerDetectorReason(title)) : null,
+    ...(extra || hasDelta ? { extra: saved?.extra || [] } : {}),
+    ...(description !== undefined ? { description: saved?.description || "" } : {}),
+  });
+}
+
+// Slugs that imply school/minors are never added in bulk (silently dropped).
+const BULK_TAG_BLOCK_RE = /(^|-)(teen|college|sma|smp|sd|sekolah|pelajar|siswa|siswi|abg|bocil|anak|kid|kids|loli|schoolgirl|school|student|minor|underage)(-|$)/i;
+const BULK_MAX_IDS = 300;
+
+function cleanSlugList(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.map((s) => String(s).trim().toLowerCase()).filter(Boolean))].slice(0, 20);
+}
+
+/**
+ * "Gabung jadi satu" / "Pisahkan" from /pemilik: one KV read + one KV write (owner:edit:v1), only on
+ * this owner action. Merge: 2+ published copies become one page with a server button per copy
+ * (multi-server.ts applyManualMerges). Unmerge: the picked ids (and their whole group) get their own
+ * pages again. Nothing is deleted; locked (minor-flagged) videos are never merged.
+ */
+async function handleMergeVideos(body: { ids?: unknown; op?: unknown }) {
+  const op = body.op === "unmerge" ? "unmerge" : "merge";
+  const ids = Array.isArray(body.ids)
+    ? [...new Set(body.ids.map((s) => String(s).trim()).filter((s) => /^[A-Za-z0-9_-]{3,64}$/.test(s)))]
+    : [];
+  if (op === "merge" && ids.length < 2) return json({ ok: false, error: "Pilih minimal 2 video untuk digabung." }, 400);
+  if (!ids.length) return json({ ok: false, error: "Belum ada video yang dipilih." }, 400);
+  if (ids.length > MAX_MERGE_IDS) return json({ ok: false, error: `Maksimal ${MAX_MERGE_IDS} video sekali gabung.` }, 400);
+  const { raw, cache, hidden } = await catalogBase();
+  const byId = new Map<string, RawItem>();
+  for (const it of raw) if (it?.id && !byId.has(it.id)) byId.set(it.id, it);
+  const missing = ids.filter((id) => !byId.has(id));
+  if (missing.length) return json({ ok: false, error: `Video tidak ditemukan: ${missing.slice(0, 3).join(", ")}` }, 400);
+  if (op === "merge") {
+    const bad = ids.filter((id) => isLockedItem(byId.get(id)!) || hidden.has(id));
+    if (bad.length) return json({ ok: false, error: `Video terkunci/tersembunyi tidak bisa digabung: ${bad.slice(0, 3).join(", ")}` }, 400);
+  }
+  // Unmerge: the other copies of the picked ids' current groups (automatic ones too) come apart as well.
+  const multi = multiServerOf(cache as never);
+  const mates: string[] = [];
+  if (op === "unmerge") {
+    for (const id of ids) mates.push(...(multi.servers.get(multi.mainOf.get(id) || id) || []));
+  }
+  let res;
+  try {
+    res = await setOwnerMerges(ids, op, mates);
+  } catch (err) {
+    const msg = String((err as Error)?.message || err);
+    if (msg === "too_many") return json({ ok: false, error: `Satu halaman maksimal ${MAX_MERGE_IDS} server.` }, 400);
+    return json(
+      { ok: false, error: msg === "kv_unavailable" ? "Penyimpanan KV tidak tersedia." : `Gagal menyimpan: ${msg.slice(0, 120)}` },
+      503,
+    );
+  }
+  try {
+    const [unhide, hiddenState, edits] = await Promise.all([
+      readUnhideState(),
+      readOwnerHideState().catch(() => null),
+      readOwnerEditState(),
+    ]);
+    applyUnhidden(Object.keys(unhide.ids), hiddenState ? Object.keys(hiddenState.ids) : null, edits.ids, res);
+  } catch {
+    /* the regular 30 s sync applies it */
+  }
+  const after = multiServerOf((await loadItemsRaw()) as never);
+  const main = op === "merge" ? after.mainOf.get(ids[0]) || (after.servers.has(ids[0]) ? ids[0] : "") : "";
+  return json({ ok: true, op, main, servers: main ? after.servers.get(main)?.length || 0 : 0 });
+}
+
+/** One request, one KV write: add/remove extra category slugs on many videos. Never title/main category/hide. */
+async function handleBulkTags(body: { ids?: unknown; add?: unknown; remove?: unknown }) {
+  const ids = Array.isArray(body.ids)
+    ? [...new Set(body.ids.map((s) => String(s).trim()).filter((s) => /^[A-Za-z0-9_-]{3,64}$/.test(s)))]
+    : [];
+  if (!ids.length) return json({ ok: false, error: "Belum ada video yang dipilih." }, 400);
+  if (ids.length > BULK_MAX_IDS) return json({ ok: false, error: `Maksimal ${BULK_MAX_IDS} video sekali simpan.` }, 400);
+  const addIn = cleanSlugList(body.add);
+  const remove = cleanSlugList(body.remove).filter((s) => findCategory(s));
+  const unknown = addIn.find((s) => !findCategory(s));
+  if (unknown) return json({ ok: false, error: `Tag tidak dikenal: ${unknown}` }, 400);
+  const add = addIn.filter((s) => {
+    const label = findCategory(s)?.label || "";
+    return !BULK_TAG_BLOCK_RE.test(s) && !ownerEditBlockReason(`${s} ${label}`);
+  });
+  if (!add.length && !remove.length) return json({ ok: false, error: "Pilih tag yang mau ditambah atau dihapus." }, 400);
+
+  const { raw, cache } = await catalogBase();
+  const byId = new Map<string, RawItem>();
+  for (const it of raw) if (it?.id && !byId.has(it.id)) byId.set(it.id, it);
+  const known = ids.filter((id) => byId.has(id));
+  // Locked (minor-flagged) videos never get new tags; removing tags from them is fine.
+  const locked = new Set(known.filter((id) => isLockedItem(byId.get(id)!)));
+  const missing = ids.length - known.length;
+  const mainOf = (id: string) => slugOf(cache.byId?.get(id) || byId.get(id)!);
+
+  let res;
+  try {
+    const addTargets = known.filter((id) => !locked.has(id));
+    if (add.length && remove.length) {
+      // Two ops on one state would need two writes; keep it one action = one write.
+      return json({ ok: false, error: "Pilih tambah atau hapus, jangan dua-duanya sekaligus." }, 400);
+    }
+    res = await bulkEditOwnerExtra(add.length ? addTargets : known, { add, remove }, mainOf);
+  } catch (err) {
+    const msg = String((err as Error)?.message || err);
+    return json(
+      { ok: false, error: msg === "kv_unavailable" ? "Penyimpanan KV tidak tersedia." : `Gagal menyimpan: ${msg.slice(0, 120)}` },
+      503,
+    );
+  }
+  if (res.changed.length) {
+    try {
+      const [unhide, hiddenState, edits] = await Promise.all([
+        readUnhideState(),
+        readOwnerHideState().catch(() => null),
+        readOwnerEditState(),
+      ]);
+      applyUnhidden(Object.keys(unhide.ids), hiddenState ? Object.keys(hiddenState.ids) : null, edits.ids);
+    } catch {
+      /* the regular 30 s sync applies it */
+    }
+  }
+  return json({
+    ok: true,
+    changed: res.changed.length,
+    unchanged: res.unchanged.length,
+    full: res.full.length,
+    skipped: missing + (add.length ? locked.size : 0),
+    dropped: addIn.length - add.length,
+    extra: res.extra,
+  });
+}
+
+/**
+ * Remove one catalog id from every public surface and put it on the blocklist.
+ * dryRun reports the plan and writes nothing. One id only (no bulk).
+ */
+async function handleCatalogRemove(body: { id?: unknown; ids?: unknown; dryRun?: unknown; dry?: unknown; all?: unknown; bulk?: unknown }) {
+  const parsed = singleRemoveId(body);
+  if ("error" in parsed) {
+    const message =
+      parsed.error === "no_bulk"
+        ? "Hapus satu video per kali. Penghapusan massal tidak tersedia."
+        : "ID video tidak valid.";
+    return json({ ok: false, error: parsed.error, message }, 400);
+  }
+  const id = parsed.id;
+  const dryRun = body.dryRun === true || body.dry === true;
+  const { raw, cache, hidden } = await catalogBase();
+  const it = raw.find((x) => x?.id === id);
+  const row = it ? toCatalogRow(it, cache.byId?.get(id), hidden.has(id), cache.posters, multiServerOf(cache as never)) : null;
+  const plan = removalPlan(id, Boolean(it));
+  const detail = {
+    ...plan,
+    title: row?.title || "",
+    slug: titleSlug(row?.title || it?.title || ""),
+    category: row?.category || "",
+    locked: Boolean(row?.locked),
+    hidden: Boolean(row?.hidden),
+    status: row?.locked ? "locked" : row?.hidden ? "hidden" : it ? "live" : "missing",
+  };
+  if (dryRun) return json({ ok: true, dryRun: true, ...detail });
+  if (!it) return json({ ok: false, error: "not_found", message: "Video tidak ada di katalog.", ...detail }, 404);
+  let state;
+  try {
+    state = await addCatalogBlocked(id, detail.title);
+  } catch {
+    return json({ ok: false, error: "kv_unavailable", message: "Penyimpanan moderasi tidak tersedia." }, 503);
+  }
+  applyCatalogBlock(Object.keys(state.ids));
+  const repo = await commitCatalogBlock(state, id);
+  return json({
+    ok: true,
+    dryRun: false,
+    ...detail,
+    watch: 410,
+    blocked: true,
+    repo: repo.skipped ? "skipped" : repo.ok ? "committed" : "error",
+  });
+}
+
+const FLAG_PAGE = 30;
+
+/** Flagged titles waiting for the owner. Read only. Already removed ids are not listed. */
+async function handleFlagReviewList(body: { limit?: unknown; offset?: unknown }) {
+  const limit = Math.min(50, Math.max(1, Math.floor(Number(body.limit) || FLAG_PAGE)));
+  const offset = Math.max(0, Math.floor(Number(body.offset) || 0));
+  let approved: Record<string, { at: number }> = {};
+  try {
+    approved = (await readFlagReviewState()).approved;
+  } catch {
+    return json({ ok: false, error: "kv_unavailable", message: "Antrian review belum bisa dibaca." }, 503);
+  }
+  const { raw, cache } = await catalogBase();
+  const rows: { id: string; title: string; reason: string }[] = [];
+  const seen = new Set<string>();
+  for (const it of raw) {
+    if (!it?.id || seen.has(it.id) || isCatalogBlocked(it.id) || approved[it.id]) continue;
+    seen.add(it.id);
+    const view = cache.byId?.get(it.id) || it;
+    const title = String(view.title || it.title || "");
+    const reason = reviewHitReason(title);
+    if (!reason) continue;
+    rows.push({ id: it.id, title, reason });
+  }
+  rows.sort((a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id));
+  return json({ ok: true, total: rows.length, offset, limit, items: rows.slice(offset, offset + limit) });
+}
+
+async function handleFlagReviewDecide(body: { id?: unknown; decision?: unknown; title?: unknown }) {
+  const parsed = singleRemoveId(body);
+  if ("error" in parsed) return json({ ok: false, error: parsed.error, message: "ID video tidak valid." }, 400);
+  const id = parsed.id;
+  const decision = body.decision === "reject" ? "reject" : body.decision === "approve" ? "approve" : "";
+  if (!decision) return json({ ok: false, error: "bad_decision", message: "Pilih biarkan tayang atau keluarkan." }, 400);
+  if (decision === "approve") {
+    let state;
+    try {
+      state = await approveFlagReview(id);
+    } catch {
+      return json({ ok: false, error: "kv_unavailable", message: "Keputusan belum tersimpan." }, 503);
+    }
+    applyFlagReviewKept(Object.keys(state.approved));
+    return json({ ok: true, decision, id });
+  }
+  const title = String(body.title || "").replace(/\s+/g, " ").trim().slice(0, 200);
+  let state;
+  try {
+    state = await addCatalogBlocked(id, title);
+  } catch {
+    return json({ ok: false, error: "kv_unavailable", message: "Penyimpanan moderasi tidak tersedia." }, 503);
+  }
+  applyCatalogBlock(Object.keys(state.ids));
+  const repo = await commitCatalogBlock(state, id);
+  return json({ ok: true, decision, id, repo: repo.skipped ? "skipped" : repo.ok ? "committed" : "error" });
+}
+
+/** Owner report of videos removed from the catalog. Read only: no KV write. */
+async function handleCatalogRemoved(body: { limit?: unknown; offset?: unknown }) {
+  const limit = Math.min(100, Math.max(1, Math.floor(Number(body.limit) || 30)));
+  const offset = Math.max(0, Math.floor(Number(body.offset) || 0));
+  let kv;
+  try {
+    kv = await readCatalogBlockState();
+  } catch {
+    return json({ ok: false, error: "kv_unavailable", message: "Daftar pengeluaran belum bisa dibaca." }, 503);
+  }
+  const items = removedReport(blockFile, kv);
+  return json({ ok: true, total: items.length, offset, limit, items: items.slice(offset, offset + limit) });
+}
+
+type OwnerBody = {
+  action?: string;
+  count?: number;
+  category?: string;
+  source?: string;
+  text?: string;
+  id?: string;
+  url?: string;
+  limit?: number;
+  unhide?: boolean;
+  ids?: string[];
+  decision?: string;
+  dryRun?: boolean;
+  dry?: boolean;
+  all?: boolean;
+  bulk?: boolean;
+  key?: string;
+  q?: string;
+  title?: string;
+  extra?: string[];
+  offset?: number;
+  noThumb?: boolean;
+  posters?: Record<string, string>;
+  meta?: Record<string, { title?: string; none?: string; at?: string }>;
+};
+
+/** Telegram webhook status for the owner: registered url, pending updates, last error, last OK. */
+async function handleTelegramWebhook(install: boolean) {
+  const [result, lastOk, lastSetup] = await Promise.all([
+    install ? setupWebhook() : getWebhookInfo(),
+    lastVerifiedUpdateAt(),
+    lastSetupAt(),
+  ]);
+  const info = result.info;
+  // Any of our own hosts (www, .site, workers.dev) delivers to this same Worker, so it counts as ok.
+  const urlOk = Boolean(info && (info.url === WEBHOOK_URL || info.isOurs));
+  return json(
+    {
+      ok: result.ok,
+      installed: install ? result.ok : undefined,
+      error: result.error,
+      expectedUrl: WEBHOOK_URL,
+      urlOk,
+      info: info || null,
+      before: "before" in result ? result.before || null : undefined,
+      lastSetupAt: install && result.ok ? new Date().toISOString() : lastSetup,
+      lastVerifiedUpdateAt: lastOk,
+    },
+    result.ok ? 200 : 502,
+  );
+}
+
+export const Route = createFileRoute("/api/owner-tools")({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        if (!ownerSecret()) return json({ ok: false, error: "not_configured" }, 503);
+        let body: OwnerBody = {};
+        try {
+          body = ((await request.json()) as OwnerBody) || {};
+        } catch {
+          body = {};
+        }
+        // Owner key: header x-online-key (or body.key). Never the URL query.
+        if (!(await isOwnerRequest(request, body.key))) return json({ ok: false, error: "forbidden" }, 403);
+        if (typeof body !== "object" || Array.isArray(body)) return json({ ok: false, error: "bad_json" }, 400);
+        if (body.action === "telegram-webhook-info") return handleTelegramWebhook(false);
+        if (body.action === "telegram-webhook-setup") return handleTelegramWebhook(true);
+        if (body.action === "hidden-review") {
+          const items = await listHiddenForReview();
+          return json({ ok: true, count: items.length, items });
+        }
+        // Hidden videos (minor/school-flagged): owner-only list + reversible Unhide override.
+        if (body.action === "hidden-list") {
+          const items = await listHiddenVideos();
+          return json({
+            ok: true,
+            count: items.length,
+            unhidden: items.filter((r) => r.unhidden).length,
+            items,
+          });
+        }
+        if (body.action === "unhide") {
+          const r = await setHiddenOverride(body);
+          return json(r, r.status || 200);
+        }
+        if (body.action === "unhide-bulk") {
+          const r = await setHiddenOverrideBulk(body);
+          return json(r, r.status || 200);
+        }
+        if (body.action === "detector-review-list") {
+          const items = await listDetectorReview();
+          return json({ ok: true, count: items.length, pending: items.filter((r) => r.group === "pending").length, items });
+        }
+        if (body.action === "detector-review-approve-all") {
+          const r = await approveDetectorReviewBulk(body as never);
+          return json(r, r.status || 200);
+        }
+        if (body.action === "detector-review-decide") {
+          const r = await decideDetectorReview(body as never);
+          return json(r, r.status || 200);
+        }
+        if (body.action === "detector-review-verify") {
+          const r = await verifyDetectorReview(body as never);
+          return json(r, r.status || 200);
+        }
+        if (body.action === "review-mark") {
+          const r = await setReviewMark(body as never);
+          return json(r, r.status || 200);
+        }
+        if (body.action === "flag-review-list") {
+          try {
+            return await handleFlagReviewList(body);
+          } catch (err) {
+            console.error("[owner-tools] flag-review-list", err);
+            return json({ ok: false, error: `Gagal memuat antrian: ${String((err as Error)?.message || err).slice(0, 160)}` }, 500);
+          }
+        }
+        if (body.action === "flag-review-decide") {
+          try {
+            return await handleFlagReviewDecide(body);
+          } catch (err) {
+            console.error("[owner-tools] flag-review-decide", err);
+            return json({ ok: false, error: `Gagal menyimpan keputusan: ${String((err as Error)?.message || err).slice(0, 160)}` }, 500);
+          }
+        }
+        if (body.action === "catalog-removed") {
+          try {
+            return await handleCatalogRemoved(body);
+          } catch (err) {
+            console.error("[owner-tools] catalog-removed", err);
+            return json({ ok: false, error: `Gagal membaca daftar: ${String((err as Error)?.message || err).slice(0, 160)}` }, 500);
+          }
+        }
+        if (body.action === "catalog-remove") {
+          try {
+            return await handleCatalogRemove(body);
+          } catch (err) {
+            console.error("[owner-tools] catalog-remove", err);
+            return json({ ok: false, error: `Gagal mengeluarkan video: ${String((err as Error)?.message || err).slice(0, 160)}` }, 500);
+          }
+        }
+        if (body.action === "catalog-overview" || body.action === "catalog-search" || body.action === "thumb-missing") {
+          // Always answer JSON, so the panel can show what went wrong instead of staying empty.
+          try {
+            if (body.action === "thumb-missing") return await handleThumbMissing(body);
+            return body.action === "catalog-overview" ? await handleCatalogOverview(body) : await handleCatalogSearch(body);
+          } catch (err) {
+            console.error("[owner-tools] catalog", err);
+            return json({ ok: false, error: `catalog_failed: ${String((err as Error)?.message || err).slice(0, 160)}` }, 500);
+          }
+        }
+        if (body.action === "purge-watch") {
+          // No write: the Worker entry (purgeAfterEdit) drops the cached pages of this id on `purge: true`.
+          const id = String(body.id || "").trim();
+          if (!/^[A-Za-z0-9_-]{3,64}$/.test(id)) return json({ ok: false, error: "ID tidak valid." }, 400);
+          return json({ ok: true, id, purge: true });
+        }
+        if (body.action === "edit-get") {
+          try {
+            return await handleEditGet(body);
+          } catch (err) {
+            console.error("[owner-tools] edit-get", err);
+            return json({ ok: false, error: `Gagal memuat video: ${String((err as Error)?.message || err).slice(0, 160)}` }, 500);
+          }
+        }
+        if (body.action === "edit-video") {
+          try {
+            return await handleEditVideo(body);
+          } catch (err) {
+            console.error("[owner-tools] edit-video", err);
+            return json({ ok: false, error: `Edit gagal: ${String((err as Error)?.message || err).slice(0, 160)}` }, 500);
+          }
+        }
+        if (body.action === "merge-videos") {
+          try {
+            return await handleMergeVideos(body as never);
+          } catch (err) {
+            console.error("[owner-tools] merge-videos", err);
+            return json({ ok: false, error: `Gabung gagal: ${String((err as Error)?.message || err).slice(0, 160)}` }, 500);
+          }
+        }
+        if (body.action === "bulk-tags") {
+          try {
+            return await handleBulkTags(body as never);
+          } catch (err) {
+            console.error("[owner-tools] bulk-tags", err);
+            return json({ ok: false, error: `Edit massal gagal: ${String((err as Error)?.message || err).slice(0, 160)}` }, 500);
+          }
+        }
+        if (body.action === "share") return handleShare(body);
+        if (body.action === "upload") return handleUpload(body);
+        if (body.action === "poster-fill") {
+          try {
+            return await handlePosterFill(body);
+          } catch (err) {
+            console.error("[owner-tools] poster-fill", err);
+            return json({ ok: false, error: `poster_fill_failed: ${String((err as Error)?.message || err).slice(0, 160)}` }, 500);
+          }
+        }
+        if (body.action === "set-poster") return handleSetPoster(body);
+        if (body.action === "set-posters") return handleSetPosters(body);
+        if (body.action === "set-auto-meta") return handleSetAutoMeta(body);
+        if (body.action === "refresh-posters") return handleRefreshPosters(body);
+        return json({ ok: false, error: "bad_action" }, 400);
+      },
+    },
+  },
+});

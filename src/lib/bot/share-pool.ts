@@ -1,0 +1,97 @@
+import { listAllNewest, listCategory, listLatest } from "@/lib/catalog/local";
+import { DEFAULT_PAGE_SIZE } from "@/lib/catalog/types";
+import type { VideoCard } from "@/lib/catalog/types";
+
+export function titleKey(t: string): string {
+  return String(t || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function shuffleInPlace<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
+const SHARE_MAX = 100;
+
+export async function collectSharePool(opts: {
+  count: number;
+  category: string;
+  source: string;
+  excludeIds: string[];
+  excludeTitles?: string[];
+}): Promise<{ items: VideoCard[]; poolSize: number; freshSize: number; reset: boolean }> {
+  const all: VideoCard[] = [];
+  const seen = new Set<string>();
+  const seenTitle = new Set<string>();
+  const category = String(opts.category || "").trim();
+  const terbaruOnly = category.toLowerCase() === "terbaru";
+  const want = Math.min(SHARE_MAX, Math.max(1, opts.count));
+  const excludeIds = new Set(opts.excludeIds.map((s) => s.toLowerCase()));
+  const excludeTitles = new Set((opts.excludeTitles || []).map(titleKey));
+  const maxPages = 150;
+  let terbaruFresh = 0;
+  let catalogDone = false;
+  for (let p = 1; p <= maxPages; p++) {
+    const page = terbaruOnly
+      ? await listLatest(p, DEFAULT_PAGE_SIZE)
+      : opts.category
+        ? await listCategory(opts.category, p, 48)
+        : // All sources (Terbaru itself has no Videy / Byse / Dood / Lulu), so "lulu" shares still work.
+          await listAllNewest(p, 48);
+    for (const it of page.items) {
+      if (!it?.id || seen.has(it.id)) continue;
+      const tk = titleKey(it.title || "");
+      if (tk && seenTitle.has(tk)) continue;
+      if (opts.source) {
+        const blob = `${it.creator || ""} ${it.quality || ""} ${it.title || ""} ${it.id || ""}`.toLowerCase();
+        if (opts.source === "streamtape" && !/streamtape|strcloud|\bstream\b/.test(blob)) continue;
+        if (opts.source === "putarin" && !/putarin|puterin|jav/.test(blob)) continue;
+        if (opts.source === "lulu" && !/lulu/.test(blob)) continue;
+      }
+      seen.add(it.id);
+      if (tk) seenTitle.add(tk);
+      all.push(it);
+      if (terbaruOnly) {
+        const used = excludeIds.has(it.id.toLowerCase()) || Boolean(tk && excludeTitles.has(tk));
+        if (!used) terbaruFresh++;
+      }
+    }
+    if (!page.hasMore) {
+      catalogDone = true;
+      break;
+    }
+    if (terbaruOnly && terbaruFresh >= want) break;
+  }
+
+  let fresh = all.filter((it) => {
+    if (excludeIds.has(it.id.toLowerCase())) return false;
+    const tk = titleKey(it.title || "");
+    if (tk && excludeTitles.has(tk)) return false;
+    return true;
+  });
+  let reset = false;
+  if (terbaruOnly) {
+    if (catalogDone && fresh.length === 0 && all.length > 0) {
+      fresh = all.slice();
+      reset = true;
+    }
+  } else if (fresh.length < want && all.length >= want) {
+    fresh = all.slice();
+    reset = true;
+  }
+  if (!terbaruOnly) shuffleInPlace(fresh);
+  return {
+    items: fresh.slice(0, want),
+    poolSize: all.length,
+    freshSize: fresh.length,
+    reset,
+  };
+}

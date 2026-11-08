@@ -1,0 +1,167 @@
+// TrafficStars direct-link popunder (spot 5210859), shared by every trigger: catalog card / hero click,
+// the one-shot tap layer over iframe players (tap-popunder.tsx) and the Videy player (ts-videy-popunder.tsx).
+// In-video taps keep the per-video cap below (sessionStorage, resets when another video is opened).
+// Catalog / hero clicks are the page popunder: those also stop after PAGE_POP_MAX_PER_DAY successful
+// opens per Asia/Jakarta calendar day (localStorage + cookie, shared by every page). Videy preroll
+// is a different spot and is not counted here. A blocked window.open counts nothing.
+// Counters: popc_fire / popc_ok / popc_block in player-log (once per video+event per session).
+// Every opened tab is also logged by its position for that video (pop_n1 / pop_n2 / pop_n3, one D1
+// upsert per opened tab, same beacon as today), so /pemilik can compare ALL our opens with
+// TrafficStars' paid impressions instead of only the first tab per video.
+import { sendPlayerLog, type PlayerLogHost } from "@/lib/player-log-client";
+import { nextPagePop, pagePopAllowed, type PagePopDay } from "@/lib/page-pop-cap";
+
+const DIRECT_LINK = "https://fozekikikiminu.com/api/v1/direct/587547ff73c844b39ab9f02d1285154b";
+const HOSTS = new Set(["IndoAV", "UserBokep", "Streamtape", "Putarin", "Videy", "Arsip"]);
+
+/** Max popunders per video id. Easy to change. */
+export const POP_MAX_PER_VIDEO = 3;
+/** Minimum time between two popunders on the SAME video (a newly opened video may pop at once). */
+export const POP_MIN_GAP_MS = 20_000;
+/** Videy has its own pre-roll as well, so its popunder stops at 2 per video. */
+export const POP_MAX_VIDEY = 2;
+/** Per-video cap for a host label. */
+export function popMaxFor(host: string): number {
+  return host === "Videy" ? POP_MAX_VIDEY : POP_MAX_PER_VIDEO;
+}
+
+const KEY = "kdp_pop_v1";
+type PopState = { id: string; n: number; at: number };
+let mem: PopState = { id: "", n: 0, at: 0 };
+
+function readState(): PopState {
+  try {
+    const raw = sessionStorage.getItem(KEY);
+    if (raw) {
+      const v = JSON.parse(raw) as PopState;
+      if (v && typeof v.id === "string" && typeof v.n === "number" && typeof v.at === "number") return v;
+    }
+  } catch {
+    /* fall back to memory */
+  }
+  return mem;
+}
+
+function writeState(v: PopState): void {
+  mem = v;
+  try {
+    sessionStorage.setItem(KEY, JSON.stringify(v));
+  } catch {
+    /* in-memory only */
+  }
+}
+
+/** True when a popunder for this video is allowed right now (per-video count + global gap). */
+export function canPop(videoId: string, max: number = POP_MAX_PER_VIDEO): boolean {
+  if (typeof window === "undefined" || !videoId) return false;
+  const st = readState();
+  if (st.id !== videoId) return true; // another video: fresh count, no gap
+  return st.n < max && Date.now() - st.at >= POP_MIN_GAP_MS;
+}
+
+/** True when this video can still get a popunder later (count not used up), ignoring the gap. */
+export function popsLeft(videoId: string, max: number = POP_MAX_PER_VIDEO): boolean {
+  if (typeof window === "undefined" || !videoId) return false;
+  const st = readState();
+  return (st.id === videoId ? st.n : 0) < max;
+}
+
+/**
+ * Opens the direct link synchronously (call inside the click handler). Returns "ok" when a tab
+ * opened (counted), "block" when the browser blocked it (not counted), "skip" when the cap says no.
+ */
+export function firePop(
+  videoId: string,
+  max: number = POP_MAX_PER_VIDEO,
+  host?: PlayerLogHost,
+): "ok" | "block" | "skip" {
+  if (!canPop(videoId, max)) return "skip";
+  let w: Window | null = null;
+  try {
+    w = window.open(DIRECT_LINK, "_blank");
+    if (w) w.opener = null; // the ad tab cannot reach back into this page
+  } catch {
+    w = null;
+  }
+  if (!w) return "block";
+  const st = readState();
+  const n = (st.id === videoId ? st.n : 0) + 1;
+  writeState({ id: videoId, n, at: Date.now() });
+  if (host && n >= 1 && n <= 3) sendPlayerLog(videoId, host, `pop_n${n}` as "pop_n1" | "pop_n2" | "pop_n3");
+  return "ok";
+}
+
+export function popHost(h: string): PlayerLogHost {
+  return (HOSTS.has(h) ? h : "Lainnya") as PlayerLogHost;
+}
+
+const PAGE_POP_KEY = "kdp_page_pop_day";
+
+function parsePagePop(raw: string | null): PagePopDay | null {
+  if (!raw) return null;
+  try {
+    const v = JSON.parse(raw) as PagePopDay;
+    if (v && typeof v.day === "string" && typeof v.n === "number" && v.n >= 0) return { day: v.day, n: v.n };
+  } catch {
+    /* cookie uses day.n */
+  }
+  const m = /^(\d{4}-\d{2}-\d{2})\.(\d+)$/.exec(raw);
+  return m ? { day: m[1], n: Number(m[2]) } : null;
+}
+
+/** localStorage, with a cookie copy so the same browser still counts if storage throws. */
+function readPagePop(): PagePopDay | null {
+  let stored: PagePopDay | null = null;
+  let cookie: PagePopDay | null = null;
+  try {
+    stored = parsePagePop(localStorage.getItem(PAGE_POP_KEY));
+  } catch {
+    /* private mode */
+  }
+  try {
+    const row = document.cookie.split("; ").find((part) => part.startsWith(`${PAGE_POP_KEY}=`));
+    if (row) cookie = parsePagePop(decodeURIComponent(row.slice(PAGE_POP_KEY.length + 1)));
+  } catch {
+    /* ignore */
+  }
+  if (stored && cookie && stored.day === cookie.day) return stored.n >= cookie.n ? stored : cookie;
+  return stored || cookie;
+}
+
+function writePagePop(state: PagePopDay): void {
+  try {
+    localStorage.setItem(PAGE_POP_KEY, JSON.stringify(state));
+  } catch {
+    /* cookie still records it */
+  }
+  try {
+    document.cookie = `${PAGE_POP_KEY}=${encodeURIComponent(`${state.day}.${state.n}`)}; Max-Age=172800; Path=/; SameSite=Lax`;
+  } catch {
+    /* in-memory only for this hit; the next successful write catches up */
+  }
+}
+
+/**
+ * Catalog / hero card click (capture). This is the page popunder: at most
+ * PAGE_POP_MAX_PER_DAY successful opens per Jakarta calendar day, on every page.
+ * In-video taps and Videy preroll do not call this and are not counted here.
+ * Never prevents navigation. A blocked window.open is not counted.
+ */
+export function onCatalogCardClick(event: { target: EventTarget | null }, hostOf: (id: string) => string): void {
+  if (typeof window === "undefined") return;
+  const el = event.target instanceof Element ? event.target : null;
+  if (!el || el.closest("[data-kdp-ad]")) return;
+  const a = el.closest('a[href^="/watch/"]');
+  if (!a) return;
+  const id = decodeURIComponent((a.getAttribute("href") || "").slice("/watch/".length).split(/[?#/]/)[0] || "");
+  if (!id) return;
+  const now = Date.now();
+  const today = readPagePop();
+  if (!pagePopAllowed(today, now)) return;
+  if (!canPop(id)) return;
+  const host = popHost(hostOf(id));
+  sendPlayerLog(id, host, "popc_fire");
+  const opened = firePop(id, POP_MAX_PER_VIDEO, host) === "ok";
+  if (opened) writePagePop(nextPagePop(today, now));
+  sendPlayerLog(id, host, opened ? "popc_ok" : "popc_block");
+}

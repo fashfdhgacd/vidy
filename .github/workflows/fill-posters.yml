@@ -1,0 +1,384 @@
+# Auto poster setiap jam 00:00 WIB
+name: Fill posters
+
+on:
+  schedule:
+    - cron: "0 17 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fill-posters
+  cancel-in-progress: false
+
+jobs:
+  fill:
+    runs-on: ubuntu-latest
+    environment: PUTARIN_API_KEY
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Fill missing/dead posters
+        env:
+          STREAMTAPE_LOGIN: ${{ secrets.STREAMTAPE_LOGIN }}
+          STREAMTAPE_KEY: ${{ secrets.STREAMTAPE_KEY }}
+        run: |
+          node --input-type=commonjs <<'SCRIPT'
+          const fs = require("fs");
+          const DEAD = /cdnhlsplayer\.lat/i;
+          function embedId(embed = "") {
+            const m = String(embed).match(/\/(?:e|v|d)\/([A-Za-z0-9_-]+)/i) || String(embed).match(/[?&]id=([A-Za-z0-9_-]+)/i);
+            return m ? m[1] : "";
+          }
+          function isLivePoster(url) {
+            return typeof url === "string" && url.startsWith("http") && !DEAD.test(url);
+          }
+          function javCoverFromTitle(title = "") {
+            const m = String(title).match(/\b([A-Z]{2,8})[-_ ]?(\d{3,4})\b/i);
+            if (!m) return null;
+            const code = (m[1] + m[2]).toLowerCase();
+            return `https://pics.dmm.co.jp/digital/video/${code}/${code}pl.jpg`;
+          }
+          async function fetchEmbedPoster(code, src) {
+            const hosts = src === "userbokep"
+              ? ["https://tv1.userbokep.com", "https://tv1.indoav.app"]
+              : ["https://tv1.indoav.app", "https://tv1.userbokep.com"];
+            for (const host of hosts) {
+              try {
+                const res = await fetch(`${host}/e/${encodeURIComponent(code)}`, {
+                  headers: { accept: "text/html", "user-agent": "Mozilla/5.0 (compatible; kdp-poster/1.0)" },
+                  signal: AbortSignal.timeout(8000),
+                  redirect: "follow",
+                });
+                if (!res.ok) continue;
+                const html = await res.text();
+                const m =
+                  html.match(/poster=["'](https?:\/\/[^"']*embedan[^"']+)["']/i) ||
+                  html.match(/poster=["'](https?:\/\/[^"']+\.(?:webp|jpg|jpeg|png)[^"']*)["']/i) ||
+                  html.match(/(?:property|name)=["']og:image["']\s+content=["'](https?:\/\/[^"']+)["']/i);
+                const url = m?.[1]?.replace(/&/g, "&")?.trim();
+                if (url?.startsWith("http") && !DEAD.test(url)) return url;
+              } catch {}
+            }
+            return null;
+          }
+          async function fetchStreamtape(fileId) {
+            const login = process.env.STREAMTAPE_LOGIN || "";
+            const key = process.env.STREAMTAPE_KEY || "";
+            if (!login || !key || !fileId) return null;
+            try {
+              const u = `https://api.streamtape.com/file/getsplash?login=${encodeURIComponent(login)}&key=${encodeURIComponent(key)}&file=${encodeURIComponent(fileId)}`;
+              const res = await fetch(u, { signal: AbortSignal.timeout(8000) });
+              const data = await res.json();
+              if (data?.status === 200 && typeof data.result === "string" && data.result.startsWith("http")) return data.result;
+            } catch {}
+            return null;
+          }
+          function loadJson(p, fb) {
+            try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return fb; }
+          }
+          (async () => {
+            const postersPath = "src/lib/catalog/posters.json";
+            const javPath = "src/lib/catalog/jav-posters.json";
+            const latestPath = "data/latest-posters.json";
+            let posters = loadJson(postersPath, {});
+            if (typeof posters !== "object" || Array.isArray(posters)) posters = {};
+            let javMap = loadJson(javPath, {});
+            if (typeof javMap !== "object" || Array.isArray(javMap)) javMap = {};
+            const videos = [
+              ...require(process.cwd() + "/scripts/lib/latest-chunks.cjs").loadAll("videos-latest"),
+              ...require(process.cwd() + "/scripts/lib/latest-chunks.cjs").loadAll("putarin-latest"),
+              ...loadJson("src/lib/catalog/videos.json", []),
+              ...loadJson("src/lib/catalog/streamtape.json", []),
+              ...loadJson("src/lib/catalog/putarin.json", []),
+            ];
+            const seen = new Set();
+            const need = [];
+            for (const v of videos) {
+              if (!v?.id || seen.has(v.id)) continue;
+              seen.add(v.id);
+              const have = posters[v.id] || javMap[v.id] || v.poster || v.thumbnail;
+              if (isLivePoster(have)) continue;
+              const blob = `${v.embed||""} ${v.source||""} ${v.direct||""} ${v.category||""}`;
+              if (/indoav|userbokep|streamtape|putarin|puterin|\bjav\b/i.test(blob)) need.push(v);
+            }
+            console.log("Need posters:", need.length);
+            let ok = 0, fail = 0;
+            for (let i = 0; i < need.length; i++) {
+              const v = need[i];
+              const code = embedId(v.embed || v.direct || "") || v.id;
+              const blob = `${v.embed||""} ${v.source||""} ${v.category||""}`;
+              let url = null;
+              if (/putarin|puterin|\bjav\b/i.test(blob)) url = javCoverFromTitle(v.title || "");
+              else if (/streamtape/i.test(blob)) url = await fetchStreamtape(code);
+              else if (/userbokep/i.test(blob)) url = await fetchEmbedPoster(code, "userbokep");
+              else url = await fetchEmbedPoster(code, "indoav");
+              if (url) {
+                posters[v.id] = url;
+                if (/putarin|puterin|\bjav\b/i.test(blob)) javMap[v.id] = url;
+                if (code !== v.id) posters[code] = url;
+                ok++;
+                console.log(`OK ${v.id}`);
+              } else {
+                fail++;
+                if (fail <= 15) console.log(`FAIL ${v.id}`);
+              }
+              if (!/putarin|puterin|\bjav\b/i.test(blob)) {
+                await new Promise(r => setTimeout(r, 300));
+              }
+              if ((ok + fail) % 25 === 0) {
+                fs.writeFileSync(postersPath, JSON.stringify(posters));
+                fs.writeFileSync(javPath, JSON.stringify(javMap, null, 2) + "\n");
+              }
+            }
+            fs.mkdirSync("data", { recursive: true });
+            fs.writeFileSync(postersPath, JSON.stringify(posters));
+            fs.writeFileSync(javPath, JSON.stringify(javMap, null, 2) + "\n");
+            let latest = loadJson(latestPath, {});
+            if (typeof latest !== "object" || Array.isArray(latest)) latest = {};
+            for (const v of require(process.cwd() + "/scripts/lib/latest-chunks.cjs").loadAll("videos-latest")) {
+              if (!v?.id) continue;
+              const url = posters[v.id];
+              if (isLivePoster(url)) latest[v.id] = url;
+            }
+            fs.writeFileSync(latestPath, JSON.stringify(latest, null, 2) + "\n");
+            console.log("Done ok=", ok, "fail=", fail, "posters=", Object.keys(posters).length, "jav=", Object.keys(javMap).length);
+          })().catch(e => { console.error(e); process.exit(1); });
+          SCRIPT
+
+      - name: Owner-host posters (Byse / LuluStream / DoodStream)
+        # Byse: https://img-place.com/<code>_xt.jpg (_t.jpg fallback). Lulu: https://img.lulucdn.com/<code>_xt.jpg
+        # (_t.jpg fallback). Dood (playmogo): og:image of the public embed page (imgds.net/splash/...).
+        # Set only when the URL answers 200 with a real jpeg/png/webp; otherwise retried next run.
+        run: |
+          node --input-type=commonjs <<'SCRIPT'
+          const fs = require("fs");
+          const latestPath = "data/latest-posters.json";
+          const load = (p, fb) => { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return fb; } };
+          const asList = (d) => (Array.isArray(d) ? d : (d && Array.isArray(d.items) ? d.items : []));
+          const posters = load("src/lib/catalog/posters.json", {});
+          const latest = load(latestPath, {});
+          const real = (u) => typeof u === "string" && /^https?:\/\//i.test(u) && !/placeholder|brand-poster|data:image/i.test(u);
+          const UA = { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36" };
+          function codeOf(v) {
+            const m = String(v.embed || v.direct || "").match(/\/(?:e|d|v)\/([A-Za-z0-9]+)/);
+            const c = String(v.code || "") || (m ? m[1] : "") || String(v.id || "").replace(/^(?:by|lu|dd)-/, "");
+            return /^[A-Za-z0-9]{6,40}$/.test(c) ? c : "";
+          }
+          async function isImage(url) {
+            try {
+              const res = await fetch(url, { headers: { ...UA, accept: "image/*" }, redirect: "follow", signal: AbortSignal.timeout(10000) });
+              const type = String(res.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+              if (res.status !== 200 || !/^image\/(?:jpeg|jpg|png|webp)$/.test(type)) { await res.body?.cancel().catch(() => {}); return false; }
+              return (await res.arrayBuffer()).byteLength >= 1500;
+            } catch { return false; }
+          }
+          // Dood's embed page answers Node's fetch with 403 (bot check), curl gets the page.
+          function doodOg(code) {
+            try {
+              const html = require("child_process").execFileSync(
+                "curl",
+                ["-sL", "--max-time", "10", "-A", UA["user-agent"], `https://playmogo.com/e/${code}`],
+                { encoding: "utf8", maxBuffer: 4 << 20 },
+              );
+              const m = html.match(/(?:property|name)=["']og:image["']\s+content=["'](https?:\/\/[^"']+)["']/i);
+              return m ? m[1] : "";
+            } catch { return ""; }
+          }
+          async function candidates(kind, code) {
+            if (kind === "by") return [`https://img-place.com/${code}_xt.jpg`, `https://img-place.com/${code}_t.jpg`];
+            if (kind === "lu") return [`https://img.lulucdn.com/${code}_xt.jpg`, `https://img.lulucdn.com/${code}_t.jpg`];
+            const og = doodOg(code);
+            return og ? [og] : [];
+          }
+          (async () => {
+            const seen = new Set();
+            const need = [];
+            for (const v of [...asList(load("data/drp-bokep.json", [])), ...asList(require(process.cwd() + "/scripts/lib/latest-chunks.cjs").loadAll("videos-latest"))]) {
+              const id = String(v?.id || "");
+              const kind = (id.match(/^(by|lu|dd)-/) || [])[1];
+              if (!kind || seen.has(id)) continue;
+              seen.add(id);
+              if (real(v.poster) || real(v.thumbnail) || real(posters[id]) || real(latest[id])) continue;
+              const code = codeOf(v);
+              if (code) need.push({ id, kind, code });
+            }
+            const stat = {};
+            for (let i = 0; i < need.length; i += 6) {
+              await Promise.all(need.slice(i, i + 6).map(async ({ id, kind, code }) => {
+                stat[kind] = stat[kind] || { missing: 0, filled: 0 };
+                stat[kind].missing++;
+                for (const url of await candidates(kind, code)) {
+                  if (await isImage(url)) { latest[id] = url; stat[kind].filled++; return; }
+                }
+              }));
+            }
+            fs.writeFileSync(latestPath, JSON.stringify(latest, null, 2) + "\n");
+            console.log("Owner-host posters:", JSON.stringify(stat));
+          })().catch((e) => { console.error(e); process.exit(1); });
+          SCRIPT
+
+      - name: Putarin thumbnails (dev API)
+        # Needs the repo secret PUTARIN_API_KEY (same key the Worker bot uses). Without it this step skips.
+        # Takes the thumbnail the Putarin dev API lists for each video code that has no poster yet.
+        env:
+          PUTARIN_API_KEY: ${{ secrets.PUTARIN_API_KEY }}
+          PUTARIN_API_BASE: ${{ secrets.PUTARIN_API_BASE }}
+        run: |
+          node --input-type=commonjs <<'SCRIPT'
+          const fs = require("fs");
+          const key = process.env.PUTARIN_API_KEY || "";
+          if (!key) { console.log("Putarin thumbs: no PUTARIN_API_KEY, skipped"); process.exit(0); }
+          const base = (process.env.PUTARIN_API_BASE || "https://panel.putarin.com/api/dev").replace(/\/$/, "");
+          const load = (p, fb) => { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return fb; } };
+          const asList = (d) => (Array.isArray(d) ? d : (d && Array.isArray(d.items) ? d.items : []));
+          const latestPath = "data/latest-posters.json";
+          const latest = load(latestPath, {});
+          const maps = [load("src/lib/catalog/posters.json", {}), load("src/lib/catalog/jav-posters.json", {}), latest];
+          const real = (u) => typeof u === "string" && /^https?:\/\//i.test(u) && !/placeholder|brand-poster|data:image/i.test(u);
+          const codeOf = (v) => {
+            const m = `${v.embed || ""} ${v.direct || ""}`.match(/(?:puterin|putarin)\.[a-z]+\/(?:e|v|d)\/([A-Za-z0-9_-]+)/i);
+            return m ? m[1].toLowerCase() : "";
+          };
+          const need = new Map();
+          const seen = new Set();
+          for (const v of [...asList(require(process.cwd() + "/scripts/lib/latest-chunks.cjs").loadAll("putarin-latest")), ...asList(load("src/lib/catalog/putarin.json", [])), ...asList(require(process.cwd() + "/scripts/lib/latest-chunks.cjs").loadAll("videos-latest"))]) {
+            const id = String(v?.id || "");
+            if (!id || seen.has(id)) continue;
+            seen.add(id);
+            if (real(v.poster) || real(v.thumbnail) || maps.some((m) => real(m[id]))) continue;
+            const code = codeOf(v);
+            if (code) need.set(code, id);
+          }
+          console.log("Putarin thumbs: need", need.size);
+          const IMG_KEY = /thumb|poster|cover|image|preview|splash|snapshot/i;
+          const pickThumb = (v) => {
+            for (const [k, val] of Object.entries(v)) {
+              if (IMG_KEY.test(k) && typeof val === "string" && /^https:\/\//i.test(val) && !/\.(mp4|m3u8|webm)(\?|$)/i.test(val)) return val;
+            }
+            return "";
+          };
+          (async () => {
+            let ok = 0, shown = false;
+            for (let page = 1; page <= 200 && need.size; page++) {
+              const res = await fetch(`${base}/videos?page=${page}`, { headers: { "X-API-Key": key, accept: "application/json" }, signal: AbortSignal.timeout(20000) }).catch(() => null);
+              if (!res || !res.ok) { console.log("list page", page, "HTTP", res && res.status, "- stop"); break; }
+              const d = await res.json().catch(() => null);
+              const videos = (d && (d.videos || d.data)) || [];
+              if (!Array.isArray(videos) || !videos.length) break;
+              if (!shown) { console.log("list fields:", Object.keys(videos[0] || {}).join(",")); shown = true; }
+              for (const v of videos) {
+                const code = String(v?.code || "").toLowerCase();
+                const id = need.get(code);
+                if (!id) continue;
+                const url = pickThumb(v);
+                if (url) { latest[id] = url; need.delete(code); ok++; }
+              }
+              await new Promise((r) => setTimeout(r, 800));
+            }
+            fs.writeFileSync(latestPath, JSON.stringify(latest, null, 2) + "\n");
+            console.log("Putarin thumbs: filled", ok, "left", need.size);
+          })().catch((e) => { console.error(e); process.exit(0); });
+          SCRIPT
+
+      - name: Hentai covers (AniList)
+        # Putarin hentai episodes have no JAV code and no public poster. Cover = AniList cover for the
+        # series, accepted only when the cleaned title equals / contains one of the AniList titles.
+        run: |
+          node --input-type=commonjs <<'SCRIPT'
+          const fs = require("fs");
+          const load = (p, fb) => { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return fb; } };
+          const asList = (d) => (Array.isArray(d) ? d : (d && Array.isArray(d.items) ? d.items : []));
+          const latestPath = "data/latest-posters.json";
+          const latest = load(latestPath, {});
+          const maps = [load("src/lib/catalog/posters.json", {}), load("src/lib/catalog/jav-posters.json", {}), latest];
+          const real = (u) => typeof u === "string" && /^https?:\/\//i.test(u) && !/placeholder|brand-poster|data:image/i.test(u);
+          const JAV_CODE = /\b[A-Z]{2,8}[-_ ]?\d{3,4}\b/;
+          const clean = (t) => String(t || "")
+            .replace(/\s*-\s*(?:koleksidrpinguin\.com|videyy\.icu)\s*$/i, "")
+            .replace(/\s*[-–]?\s*\b(?:eps?|episode|ep)\.?\s*\d+\b.*$/i, "")
+            .replace(/\s+/g, " ").trim();
+          const norm = (t) => String(t || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+          const cache = new Map();
+          async function lookup(name) {
+            if (cache.has(name)) return cache.get(name);
+            let out = "";
+            for (let attempt = 0; attempt < 3 && !out; attempt++) {
+              try {
+                const res = await fetch("https://graphql.anilist.co", {
+                  method: "POST",
+                  headers: { "content-type": "application/json", accept: "application/json" },
+                  body: JSON.stringify({
+                    query: "query($s:String){Media(search:$s,type:ANIME,isAdult:true){title{romaji english native} synonyms coverImage{extraLarge large}}}",
+                    variables: { s: name },
+                  }),
+                  signal: AbortSignal.timeout(15000),
+                });
+                if (res.status === 429) { await new Promise((r) => setTimeout(r, 15000)); continue; }
+                if (res.status === 404) break;
+                const m = (await res.json())?.data?.Media;
+                if (!m) break;
+                const want = norm(name);
+                const names = [m.title?.romaji, m.title?.english, m.title?.native, ...(m.synonyms || [])].map(norm).filter((n) => n.length >= 6);
+                const hit = want.length >= 6 && names.some((n) => n === want || n.startsWith(want) || want.startsWith(n));
+                const url = m.coverImage?.extraLarge || m.coverImage?.large || "";
+                if (hit && /^https:\/\/s\d+\.anilist\.co\//.test(url)) out = url;
+                break;
+              } catch { await new Promise((r) => setTimeout(r, 2000)); }
+            }
+            cache.set(name, out);
+            await new Promise((r) => setTimeout(r, 900));
+            return out;
+          }
+          (async () => {
+            const seen = new Set();
+            const need = [];
+            for (const v of [...asList(require(process.cwd() + "/scripts/lib/latest-chunks.cjs").loadAll("putarin-latest")), ...asList(require(process.cwd() + "/scripts/lib/latest-chunks.cjs").loadAll("videos-latest"))]) {
+              const id = String(v?.id || "");
+              if (!id || seen.has(id)) continue;
+              seen.add(id);
+              if (real(v.poster) || real(v.thumbnail) || maps.some((m) => real(m[id]))) continue;
+              if (JAV_CODE.test(String(v.title || "")) || !/putarin|puterin/i.test(`${v.source || ""} ${v.embed || ""}`)) continue;
+              const name = clean(v.title);
+              if (name.length >= 6) need.push({ id, name });
+            }
+            let ok = 0, miss = 0;
+            for (const { id, name } of need.slice(0, 200)) {
+              const url = await lookup(name);
+              if (url) { latest[id] = url; ok++; } else miss++;
+            }
+            fs.writeFileSync(latestPath, JSON.stringify(latest, null, 2) + "\n");
+            console.log("Hentai covers: need=", need.length, "ok=", ok, "nomatch=", miss);
+          })().catch((e) => { console.error(e); process.exit(0); });
+          SCRIPT
+
+      - name: Commit posters
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/catalog/posters.json src/lib/catalog/jav-posters.json data/latest-posters.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No poster changes."
+            exit 0
+          fi
+          COUNT=$(node --input-type=commonjs -e "try{console.log(Object.keys(require('./src/lib/catalog/jav-posters.json')).length)}catch(e){console.log(0)}")
+          git commit -m "chore(posters): auto-fill jav+missing+owner hosts ($COUNT jav)"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main || true
+            if git push origin HEAD:main; then
+              echo "Pushed OK"
+              exit 0
+            fi
+            sleep 3
+          done
+          exit 1

@@ -1,0 +1,105 @@
+// 36 videos per page: full rows at 1, 3 and 4 columns (video-grid.tsx).
+export const DEFAULT_PAGE_SIZE = 36;
+export const MAX_PAGE_SIZE = 48;
+
+export type CatalogType =
+  | "home"
+  | "latest"
+  | "featured"
+  | "category"
+  | "search"
+  | "detail"
+  | "related"
+  | "categories"
+  | "landing";
+
+export type VideoQuality = {
+  label: string;
+  url: string;
+  format: string;
+};
+
+export type VideoCard = {
+  id: string;
+  title: string;
+  thumbnail: string;
+  description: string;
+  category: string;
+  duration: number | null;
+  durationLabel: string;
+  quality: string;
+  year: string | null;
+  creator: string | null;
+  views: number | null;
+  likes?: number | null;
+  /** Our own likes (D1 video_likes, 12-hour snapshot in site-likes.json). Cards only; the watch page reads D1 live. */
+  siteLikes?: number | null;
+  /** Uploaded within NEW_UPLOAD_MS (3 days) when the card was built; shows the "Baru" badge. */
+  isNew?: boolean;
+  /** Ranking week/month tabs only: our own pageviews in that period (siteViews cache). */
+  periodViews?: number | null;
+  /** "minggu ini" | "bulan ini" — paired with periodViews. */
+  periodLabel?: string | null;
+};
+
+export type VideoDetail = VideoCard & {
+  video_url: string | null;
+  qualities: VideoQuality[];
+  subjects: string[];
+  playable: boolean;
+  /** Videy item off lists for a missing frame: the page still opens but asks search engines not to index it. */
+  noindex?: boolean;
+  /** Every listed /kategori category this video is in (same pools as the category pages), max 10. */
+  categories?: CategoryInfo[];
+  /** Tanggal unggah asli dari katalog (createdAt ?? date); dipakai VideoObject.uploadDate. */
+  uploadDate?: string | number | null;
+  /** Up to 6 other videos of the same main category (id + raw title), for plain internal links. */
+  sameCategory?: Array<{ id: string; title: string }>;
+  /**
+   * Episodes of this video's series (current included), sorted by episode number; only for series.
+   * `label` only for a range video ("1 - 2" from "Episode 1 - 2"); otherwise the chip shows `ep`.
+   */
+  episodes?: Array<{ id: string; ep: number; label?: string }>;
+  /**
+   * Multi-server (multi-server.ts): every host copy of this video, in server order (this page's own
+   * copy included). Only set when at least 2 public copies remain. `url` is the same embed the
+   * player gets for that copy as its own page.
+   */
+  servers?: Array<{ id: string; host: string; url: string }>;
+};
+
+export type CategoryInfo = {
+  slug: string;
+  label: string;
+  /** Jumlah video (hanya diisi oleh daftar kategori /kategori). */
+  count?: number;
+  /** /kategori cover: thumbnail of the category's most-viewed video, unique across categories ("" = poster). */
+  cover?: string;
+  /** Id of the cover video (VideoThumb uses it for the cached /thumb/<id> route). */
+  coverId?: string;
+};
+
+export type PagedVideos = {
+  page: number;
+  limit: number;
+  total: number;
+  hasMore: boolean;
+  items: VideoCard[];
+};
+
+export type CatalogSuccess =
+  | ({ ok: true; type: "home"; featured: VideoCard[]; categories: CategoryInfo[] } & {
+      latest: PagedVideos;
+    })
+  | ({ ok: true; type: "latest" | "featured" | "category" | "search" | "related" | "landing" } & PagedVideos)
+  | { ok: true; type: "detail"; item: VideoDetail; related: VideoCard[] }
+  | { ok: true; type: "categories"; categories: CategoryInfo[]; specials?: CategoryInfo[] };
+
+export type CatalogError = {
+  ok: false;
+  error: string;
+  code: "bad_request" | "not_found" | "upstream" | "empty";
+  stale?: boolean;
+};
+
+export type CatalogResponse = CatalogSuccess | CatalogError;
