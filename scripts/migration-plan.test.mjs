@@ -56,14 +56,13 @@ test("non-.sql entries are dropped (readdir also yields the auth/ directory)", (
   assert.deepEqual(pendingMigrations(["auth", "README.md"], []), []);
 });
 
-test("the auth schema ships outside the globbed directory", () => {
+test("the auth schema ships as a verbatim copy in the globbed directory", () => {
+  // Auth is ON for this app: migrations/auth/0001_auth.sql is copied verbatim to
+  // migrations/0001_auth.sql so the standard migrator applies it. The byte-identity
+  // test below keeps the copy honest.
   const migrationsDir = join(projectRoot(), "migrations");
-  // Top-level migrations (e.g. 0002_analytics.sql) are globbed; the auth schema must not be.
   const globbed = pendingMigrations(readdirSync(migrationsDir), []).map((m) => m.name);
-  assert.ok(
-    !globbed.some((name) => /auth/i.test(name)),
-    `auth schema globbed: ${globbed.join(", ")}`,
-  );
+  assert.ok(globbed.includes("0001_auth.sql"));
   assert.ok(readdirSync(join(migrationsDir, "auth")).includes("0001_auth.sql"));
 });
 

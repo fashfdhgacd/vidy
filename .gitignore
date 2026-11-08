@@ -17,3 +17,6 @@ artifacts
 .grok/og-pending
 .grok/references
 .grok/skills
+
+.wrangler/
+.output/
