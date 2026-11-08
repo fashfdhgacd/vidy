@@ -14,7 +14,7 @@ function B(t) {
 function G(t) {
   const e = B(t.GITHUB_TOKEN || t.GH_TOKEN || ""),
     n = B(t.GITHUB_OWNER || t.GH_OWNER || "") || "fashfdhgacd";
-  let s = B(t.GITHUB_REPO || t.GH_REPO || "") || "videy-hub";
+  let s = B(t.GITHUB_REPO || t.GH_REPO || "") || "vidy";
   const i = B(t.GITHUB_BRANCH || t.GH_BRANCH || "main") || "main",
     c =
       B(t.GITHUB_DATA_PREFIX || t.GH_DATA_PREFIX || "data").replace(

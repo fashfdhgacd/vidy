@@ -17,8 +17,8 @@ function scrubToken(v) {
 function cfg(env) {
   const token = scrubToken(env.GITHUB_TOKEN || env.GH_TOKEN || "");
   const owner = scrubToken(env.GITHUB_OWNER || env.GH_OWNER || "") || "fashfdhgacd";
-  let repo = scrubToken(env.GITHUB_REPO || env.GH_REPO || "") || "videy-hub";
-  if (repo === "koleksi_dr_pinguin" || repo === "koleksi-dr-pinguin") repo = "videy-hub";
+  let repo = scrubToken(env.GITHUB_REPO || env.GH_REPO || "") || "vidy";
+  if (repo === "koleksi_dr_pinguin" || repo === "koleksi-dr-pinguin") repo = "vidy";
   const branch = scrubToken(env.GITHUB_BRANCH || env.GH_BRANCH || "main") || "main";
   const prefix = scrubToken(env.GITHUB_DATA_PREFIX || env.GH_DATA_PREFIX || "data").replace(/\/$/, "") || "data";
   return { token, owner, repo, branch, prefix };

@@ -76,8 +76,8 @@ export async function commitCatalogBlock(state: CatalogBlockState, id: string): 
   const token = ghToken();
   if (!token) return { ok: true, skipped: true };
   const owner = String(process.env.GITHUB_OWNER || process.env.GH_OWNER || "fashfdhgacd").trim() || "fashfdhgacd";
-  let repo = String(process.env.GITHUB_REPO || process.env.GH_REPO || "videy-hub").trim() || "videy-hub";
-  if (repo === "koleksi_dr_pinguin" || repo === "koleksi-dr-pinguin") repo = "videy-hub";
+  let repo = String(process.env.GITHUB_REPO || process.env.GH_REPO || "vidy").trim() || "vidy";
+  if (repo === "koleksi_dr_pinguin" || repo === "koleksi-dr-pinguin") repo = "vidy";
   const branch = String(process.env.GITHUB_BRANCH || process.env.GH_BRANCH || "main").trim() || "main";
   const path = "src/lib/catalog/catalog-blocklist.json";
   const api = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
