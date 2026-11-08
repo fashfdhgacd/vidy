@@ -43,7 +43,7 @@ const EVENTS = new Set([
 ]);
 const ID_RE = /^[A-Za-z0-9_-]{3,64}$/;
 const MAX_BODY = 200;
-const ALLOWED_ORIGINS = new Set(["https://videyy.icu", "https://www.videyy.icu"]);
+const ALLOWED_ORIGINS = new Set(["https://videyy.icu", "https://www.videyy.icu", "https://videy-hub.readmi559.workers.dev"]);
 
 const g = globalThis as typeof globalThis & { __adLogSchema__?: Promise<void> };
 

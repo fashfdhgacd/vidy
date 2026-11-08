@@ -66,7 +66,7 @@ export const Route = createRootRoute({
       { rel: "search", type: "application/opensearchdescription+xml", title: "Videy Hub", href: `${SITE_ORIGIN}/opensearch.xml` },
       { rel: "alternate", type: "application/rss+xml", title: "Videy Hub - Video Terbaru", href: `${SITE_ORIGIN}/rss.xml` },
       // Poster/thumbnail host (cards + preloaded hero images): open the connection with the HTML.
-      { rel: "preconnect", href: "https://img.videyy.icu" },
+      { rel: "preconnect", href: "https://img.koleksidrpinguin.com" },
       { rel: "preconnect", href: "https://tv1.indoav.app" },
       { rel: "preconnect", href: "https://tv1.userbokep.com" },
       { rel: "dns-prefetch", href: "https://tv1.indoav.app" },

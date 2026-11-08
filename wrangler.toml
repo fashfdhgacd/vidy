@@ -1,6 +1,7 @@
 name = "videy-hub"
 compatibility_date = "2026-09-27"
 compatibility_flags = [ "nodejs_compat" ]
+workers_dev = true
 
 # Custom domain utama (DNS videyy.icu harus sudah aktif di zone Cloudflare yang sama).
 [[routes]]

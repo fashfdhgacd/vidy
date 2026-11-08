@@ -20,7 +20,7 @@ const PLACEHOLDER_STYLE = {
  * stores them under (posters/typed/<id>). Oct 2026 cost cut: ~23 of ~28 Worker requests per page were
  * /thumb/<id>. A poster not in R2 yet (404) falls back to /thumb/<id>, which fetches and stores it.
  */
-const R2_POSTERS = "https://img.videyy.icu/posters/typed/";
+const R2_POSTERS = "https://img.koleksidrpinguin.com/posters/typed/";
 
 function r2PosterUrl(id: string): string {
   const key = id.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80);

@@ -59,7 +59,7 @@ const SCHEMA = [
   `create index if not exists player_errors_day on player_errors (day)`,
 ];
 
-const ALLOWED_ORIGINS = new Set(["https://videyy.icu", "https://www.videyy.icu"]);
+const ALLOWED_ORIGINS = new Set(["https://videyy.icu", "https://www.videyy.icu", "https://videy-hub.readmi559.workers.dev"]);
 const HOSTS = new Set(["IndoAV", "UserBokep", "Streamtape", "Putarin", "Videy", "Arsip", "Lainnya"]);
 /** Weight per event. v1 "start" was sampled 1/4 in the browser; v2 events are all unsampled. */
 const EVENTS: Record<string, number> = {
