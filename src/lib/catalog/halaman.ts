@@ -44,6 +44,10 @@ export function legacyPageRedirect(pathname: string, search = ""): string | null
   const pageRaw = url.searchParams.get("page");
   if (!pageRaw || url.searchParams.get("q")) return null;
   if (!/^[1-9]\d{0,4}$/.test(pageRaw)) return null;
+  // Hanya path halaman katalog yang boleh di-rewrite — /api/* dan route lain dengan
+  // ?page= (mis. /api/data?type=home&page=1) jangan disentuh.
+  const isCatalogPage = path === "/" || /^\/(kategori|cari)\/[^/]+$/.test(path);
+  if (!isCatalogPage) return null;
   const n = Number(pageRaw);
   url.searchParams.delete("page");
   const qs = url.searchParams.toString();
