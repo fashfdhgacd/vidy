@@ -33,7 +33,7 @@ export const Route = createRootRoute({
         name: "description",
         content: HOME_DESCRIPTION,
       },
-      { name: "theme-color", content: "#09090b" },
+      { name: "theme-color", content: "#0b0b14" },
       // TrafficStars Client Hints (blog "Boost Earnings with Existing Ad Formats"): delegate UA hints
       // to the TrafficStars ad servers (tsyndicate.com + our direct-link/VAST domain) for better mobile targeting.
       { httpEquiv: "Accept-CH", content: "Sec-CH-UA, Sec-CH-UA-Mobile, Sec-CH-UA-Platform, Sec-CH-UA-Model, Sec-CH-UA-Platform-Version, Sec-CH-UA-Full-Version-List" },

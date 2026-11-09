@@ -9,7 +9,7 @@ function windowPages(current: number, totalPages: number, span = 2): number[] {
 }
 
 const btn =
-  "pixel inline-flex h-11 min-w-11 touch-manipulation items-center justify-center rounded-none border border-white/55 px-2 text-sm transition-colors hover:border-white aria-disabled:pointer-events-none aria-disabled:opacity-30 sm:h-14 sm:min-w-14 sm:text-base";
+  "inline-flex h-10 min-w-10 touch-manipulation items-center justify-center rounded-full border border-border bg-surface/70 px-3 text-sm font-medium text-foreground/80 transition-all hover:border-primary/50 hover:text-foreground aria-disabled:pointer-events-none aria-disabled:opacity-30 sm:h-11 sm:min-w-11";
 
 export function CatalogPager({
   page,
@@ -34,7 +34,7 @@ export function CatalogPager({
   const totalPages = Math.max(1, Math.ceil((total || 0) / Math.max(1, limit)));
   if (totalPages <= 1) {
     return total > 0 ? (
-      <p className="pixel mt-8 text-center text-xs text-muted">{total.toLocaleString("id-ID")} judul</p>
+      <p className="mt-8 text-center text-xs text-muted">{total.toLocaleString("id-ID")} judul</p>
     ) : null;
   }
 
@@ -83,7 +83,7 @@ export function CatalogPager({
 
   return (
     <nav className="relative z-10 mt-10 flex flex-col items-center gap-5 sm:mt-14 sm:gap-7" aria-label="Halaman katalog">
-      <p className="pixel text-center text-xs text-white/85 sm:text-base">
+      <p className="text-center text-xs text-foreground/80 sm:text-base">
         Halaman {page.toLocaleString("id-ID")} dari {totalPages.toLocaleString("id-ID")}
         {" · "}
         {total.toLocaleString("id-ID")} video
@@ -91,17 +91,17 @@ export function CatalogPager({
       <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-3.5">
         <a
           {...(page > 1 ? { ...linkProps(page - 1), rel: "prev" } : { "aria-disabled": true })}
-          className={`${btn} px-3 text-white sm:px-5`}
+          className={`${btn} px-3 text-foreground sm:px-5`}
           aria-label="Halaman sebelumnya"
         >
           <span aria-hidden="true" className="text-lg leading-none sm:text-2xl">←</span>
         </a>
         {pages[0] > 1 ? (
           <>
-            <a {...linkProps(1)} className={`${btn} text-white max-sm:hidden`}>
+            <a {...linkProps(1)} className={`${btn} text-foreground max-sm:hidden`}>
               1
             </a>
-            {pages[0] > 2 ? <span className="pixel hidden px-1 text-white/50 sm:inline">…</span> : null}
+            {pages[0] > 2 ? <span className="hidden px-1 text-muted sm:inline">…</span> : null}
           </>
         ) : null}
         {pages.map((n) => (
@@ -111,7 +111,7 @@ export function CatalogPager({
             {...linkProps(n)}
             aria-current={n === page ? "page" : undefined}
             className={`${btn} max-sm:data-[far]:hidden ${
-              n === page ? "border-[#c8c8c8] bg-[#c8c8c8] text-black hover:border-[#c8c8c8]" : "text-white"
+              n === page ? "border-primary bg-primary text-primary-foreground hover:border-primary" : "text-foreground"
             }`}
           >
             {n}
@@ -119,15 +119,15 @@ export function CatalogPager({
         ))}
         {pages[pages.length - 1] < totalPages ? (
           <>
-            {pages[pages.length - 1] < totalPages - 1 ? <span className="pixel hidden px-1 text-white/50 sm:inline">…</span> : null}
-            <a {...linkProps(totalPages)} className={`${btn} text-white max-sm:hidden`}>
+            {pages[pages.length - 1] < totalPages - 1 ? <span className="hidden px-1 text-muted sm:inline">…</span> : null}
+            <a {...linkProps(totalPages)} className={`${btn} text-foreground max-sm:hidden`}>
               {totalPages}
             </a>
           </>
         ) : null}
         <a
           {...(page < totalPages ? { ...linkProps(page + 1), rel: "next" } : { "aria-disabled": true })}
-          className={`${btn} gap-2 px-3 text-white sm:gap-3 sm:px-5`}
+          className={`${btn} gap-2 px-3 text-foreground sm:gap-3 sm:px-5`}
           aria-label="Halaman berikutnya"
         >
           <span>Next</span>

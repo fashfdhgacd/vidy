@@ -132,7 +132,7 @@ export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
           aria-label={`Putar ${heroTitle}`}
         >
           <span
-            className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_0_0_1px_color-mix(in_oklab,#f3efe6_12%,transparent)]"
+            className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_0_0_1px_color-mix(in_oklab,#f2f0fa_12%,transparent)]"
             aria-hidden="true"
           >
             <Play className="size-4 fill-current" style={{ marginLeft: 2 }} />

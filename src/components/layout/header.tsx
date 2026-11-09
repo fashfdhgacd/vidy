@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
-import { BRAND_LOGO_SRC } from "@/lib/brand-logo";
 import { prefetchCatalog } from "@/lib/catalog/client";
 import { DEFAULT_PAGE_SIZE } from "@/lib/catalog/types";
 
@@ -18,6 +17,26 @@ const QUICK_CATS = [
   { slug: "videy", label: "Videy" },
   { slug: "paling-disukai", label: "Paling Banyak Disukai" },
 ] as const;
+
+function BrandMark() {
+  return (
+    <span className="flex shrink-0 items-center gap-2.5">
+      <svg
+        viewBox="0 0 32 32"
+        className="size-9 rounded-xl bg-gradient-to-br from-[#9d8cff] to-[#6d5ef0] shadow-[0_0_18px_-4px_#9d8cff88] sm:size-10"
+        aria-hidden="true"
+      >
+        <path d="M12 9.5v13l11-6.5z" fill="#0b0b14" />
+      </svg>
+      <span className="font-display text-[13px] font-bold leading-none tracking-[0.08em] text-foreground sm:text-sm">
+        VIDEY<span className="text-primary">HUB</span>
+      </span>
+      <span className="rounded-md border border-primary/50 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
+        18+
+      </span>
+    </span>
+  );
+}
 
 export function Header({
   query,
@@ -57,28 +76,15 @@ export function Header({
   }, [debounced, navigate, query]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-2 px-3 sm:h-16 sm:gap-3 sm:px-6">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+      <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-2.5 px-3 sm:h-16 sm:gap-3 sm:px-6">
         <Link
           to="/"
           search={{ q: undefined, category: undefined }}
           aria-label="Videy Hub (beranda)"
-          className="flex shrink-0 items-center gap-2"
+          className="flex shrink-0 items-center"
         >
-          <img
-            src={BRAND_LOGO_SRC}
-            alt="Videy Hub"
-            width={32}
-            height={32}
-            style={{ imageRendering: "pixelated" }}
-            className="size-8 rounded-none bg-white object-cover ring-1 ring-border [image-rendering:pixelated] sm:size-10"
-          />
-          <span className="pixel hidden text-[0.7rem] leading-none text-foreground min-[400px]:inline sm:text-xs">
-            VIDEY HUB
-          </span>
-          <span className="pixel hidden border border-foreground/40 px-1.5 py-0.5 text-[9px] text-muted sm:inline">
-            18+
-          </span>
+          <BrandMark />
         </Link>
 
         <form
@@ -92,12 +98,12 @@ export function Header({
             });
           }}
         >
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted sm:left-3" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
           <Input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Cari judul…"
-            className="pixel h-10 rounded-none border border-white/40 bg-black pl-9 pr-9 text-xs shadow-none placeholder:text-white/45 focus-visible:border-white/80 focus-visible:ring-0 sm:h-11 sm:pl-10 sm:pr-10 sm:text-sm"
+            className="h-10 rounded-full border-border bg-surface-2/80 pl-10 pr-9 text-sm shadow-none backdrop-blur transition-colors placeholder:text-muted focus-visible:border-primary/60 focus-visible:bg-surface-2 focus-visible:ring-2 focus-visible:ring-primary/25 sm:h-11"
             type="search"
             enterKeyHint="search"
             autoComplete="off"
@@ -106,7 +112,7 @@ export function Header({
           {draft ? (
             <button
               type="button"
-              className="absolute right-1.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center text-muted"
+              className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors hover:bg-white/10 hover:text-foreground"
               onClick={() => setDraft("")}
               aria-label="Hapus pencarian"
             >
@@ -115,7 +121,13 @@ export function Header({
           ) : null}
         </form>
 
-        <Button variant="ghost" size="icon" asChild aria-label="Semua kategori" className="size-10 shrink-0 rounded-none border border-white/40 hover:border-white/80 hover:bg-transparent sm:size-11">
+        <Button
+          variant="ghost"
+          size="icon"
+          asChild
+          aria-label="Semua kategori"
+          className="size-10 shrink-0 rounded-full border border-border bg-surface-2/60 hover:border-primary/50 hover:bg-surface-2 sm:size-11"
+        >
           <Link to="/kategori">
             <LayoutGrid className="size-5" />
           </Link>
@@ -123,7 +135,7 @@ export function Header({
       </div>
 
       <nav className="mx-auto max-w-[1600px] px-3 sm:px-6" aria-label="Navigasi cepat">
-        <ul className="-mx-3 flex gap-1.5 overflow-x-auto px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
+        <ul className="-mx-3 flex gap-2 overflow-x-auto px-3 py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
           <li className="shrink-0">
             <Link
               to="/"
@@ -173,7 +185,9 @@ export function Header({
 
 function chipClass(active: boolean) {
   return cn(
-    "pixel inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-none border px-3 text-[11px] transition-colors duration-150 sm:text-xs",
-    active ? "border-[#c8c8c8] bg-[#c8c8c8] text-black" : "border-white/35 text-white/75 hover:border-white/80 hover:text-white",
+    "inline-flex h-8 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-xs font-medium transition-all duration-150",
+    active
+      ? "border-primary bg-primary text-primary-foreground shadow-[0_0_16px_-4px_#9d8cff99]"
+      : "border-border bg-surface/60 text-muted hover:border-primary/40 hover:text-foreground",
   );
 }

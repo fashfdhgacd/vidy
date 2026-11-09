@@ -115,7 +115,7 @@ export function VideoComments({ videoId }: { videoId: string }) {
   }
 
   const inputCls =
-    "w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-[#2dd4bf]/50 focus:outline-none";
+    "w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-[primary]/50 focus:outline-none";
 
   return (
     <section className="mt-8 max-w-3xl space-y-4" aria-label="Komentar">
@@ -151,7 +151,7 @@ export function VideoComments({ videoId }: { videoId: string }) {
               type="button"
               disabled={busy || draft.trim().length < 2}
               onClick={() => void submit()}
-              className="rounded-lg border border-[#2dd4bf] bg-[#2dd4bf] px-4 py-1.5 text-[13px] font-medium text-zinc-950 hover:bg-[#5eead4] disabled:opacity-50"
+              className="rounded-lg border border-[primary] bg-[primary] px-4 py-1.5 text-[13px] font-medium text-zinc-950 hover:bg-[#5eead4] disabled:opacity-50"
             >
               {busy ? "Kirim…" : "Kirim"}
             </button>

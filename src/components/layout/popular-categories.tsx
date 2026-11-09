@@ -24,17 +24,17 @@ export const POPULAR_CATEGORY_LINKS: ReadonlyArray<{ slug: string; label: string
 export function PopularCategories() {
   return (
     <nav aria-label="Kategori populer" className="space-y-2">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">Kategori populer</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Kategori populer</p>
       <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm">
         {POPULAR_CATEGORY_LINKS.map((c) => (
           <li key={c.slug}>
-            <a href={`/kategori/${c.slug}`} className="text-white/80 underline-offset-2 hover:text-white hover:underline">
+            <a href={`/kategori/${c.slug}`} className="text-foreground/75 underline-offset-2 hover:text-primary hover:underline">
               {c.label}
             </a>
           </li>
         ))}
         <li>
-          <a href="/kategori" className="font-medium text-white underline-offset-2 hover:underline">
+          <a href="/kategori" className="font-medium text-foreground underline-offset-2 hover:text-primary hover:underline">
             Semua kategori →
           </a>
         </li>
