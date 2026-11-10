@@ -4,8 +4,9 @@
 // Detection, once per page load, client only, no polling:
 //  1. a bait element with ad-like class names; blockers' cosmetic filters hide it (height 0 /
 //     display none);
-//  2. a no-cors request to the ExoClick ad script we already load on grid cards
-//     (a.magsrv.com/ad-provider.js). A blocker rejects it at once; a slow network does not reject.
+//  2. a no-cors request to the TrafficStars SDK, only when a spot id is configured.
+//     A blocker rejects it at once; a slow network does not reject. With no spot id this
+//     step is skipped, so the gate never calls another ad network.
 // Network rule against false positives: a rejected ad request only counts when the browser is
 // online and a same-origin control request (/robots.txt) succeeds, and anything that is still
 // pending after DETECT_TIMEOUT_MS is treated as "not blocked". The single setTimeout is the
@@ -13,8 +14,9 @@
 // Events go to /api/ad-log (existing D1 counters, host VideyAd): ad:adblock (detected) and
 // ad:gate_pass (visitor reloaded with the blocker off), each at most once per page view.
 import { useEffect, useState, type ReactNode } from "react";
+import { slotScript } from "@/lib/ads/spots";
 
-const AD_SCRIPT = "https://a.magsrv.com/ad-provider.js";
+const AD_SCRIPT = slotScript("gridMasterspot", "ms") || slotScript("inPagePush", "p");
 const DETECT_TIMEOUT_MS = 4000;
 const FLAG = "kdp_adblock_seen";
 
@@ -46,7 +48,7 @@ function baitHidden(): boolean {
 
 /** Resolves true only when the ad request was rejected while the network clearly works. */
 function scriptBlocked(): Promise<boolean> {
-  if (!navigator.onLine) return Promise.resolve(false);
+  if (!AD_SCRIPT || !navigator.onLine) return Promise.resolve(false);
   const ad = fetch(AD_SCRIPT, { mode: "no-cors", cache: "no-store", credentials: "omit" }).then(
     () => true,
     () => false,

@@ -1,13 +1,11 @@
 // Grid: 2 / 3 / 4 kolom (mobile / tablet / desktop) for the watch page; catalog grids 1 / 3 / 4.
-// Catalog grids (home, kategori; `ads` prop): 1 / 3 / 4 columns (cards sized for a 300x250 ad),
-// card thumbs 300:250, and an ExoClick 300x250 card (ad-slot.tsx, zone 6053864) as every 8th card
-// (cells 8, 16, 24, 32; max 4), each one card footprint, lazy-loaded. Pages hold 36 videos; trailing videos are trimmed so rows stay full at 3 and 4 columns.
-// The watch page ("Tonton juga") keeps the default grid, no ads.
+// Catalog grids (`ads` prop): 1 / 3 / 4 columns, 300:250 thumbs, and a TrafficStars
+// 300x250/native master spot as every 8th card when that spot id is set.
+// The watch page ("Tonton juga") keeps the default grid unless ads is on.
 import type { VideoCard as VideoCardType } from "@/lib/catalog/types";
 import { isRealMinor } from "@/lib/minor-terms";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AdSlot } from "@/components/ad-slot";
-import { onCatalogCardClick } from "@/components/card-popunder";
+import { GridMasterspot } from "@/components/ad-slot";
 import { VideoCard } from "./video-card";
 import { useEffect } from "react";
 import { restoreCatalogScroll } from "@/lib/catalog/last-catalog";
@@ -66,15 +64,13 @@ export function VideoGrid({
   return (
     <div
       className={ads ? CATALOG_GRID + trimClass(cells) : DEFAULT_GRID}
-      // Catalog grids only: first video-card click per session also opens the popunder.
-      onClickCapture={ads ? (e) => onCatalogCardClick(e, (id) => String(shown.find((v) => v.id === id)?.creator || "")) : undefined}
     >
       {shown.map((video, index) => {
         const s = slots.find((x) => x.at === index);
         return (
           <Cell
             key={video.id}
-            ad={s ? <AdSlot key={`exo-ad-${s.slot}`} /> : null}
+            ad={s ? <GridMasterspot key={`ts-grid-${s.slot}`} /> : null}
           >
             <VideoCard video={video} eager={index < eagerCount} />
           </Cell>

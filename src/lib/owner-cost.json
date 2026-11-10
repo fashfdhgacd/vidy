@@ -35,13 +35,13 @@
     {
       "name": "TrafficStars",
       "status": "aktif",
-      "note": "popunder 5210859 (Videy, kartu, hero), iklan pembuka 5210886 (Videy)",
+      "note": "slot siap di src/lib/ads/spots.ts, ID belum diisi",
       "earningsUsd": null
     },
     {
       "name": "ExoClick",
-      "status": "aktif",
-      "note": "banner grid 6053864",
+      "status": "dihapus",
+      "note": "banner grid dihapus",
       "earningsUsd": null
     },
     {

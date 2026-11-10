@@ -9,6 +9,7 @@ import { LANDING_INDEX_PAGES, LANDING_MIN_VIDEOS, LANDING_PAGE_SIZE, findLanding
 import { queryCatalog } from "@/lib/catalog/service";
 import type { CatalogResponse, VideoCard } from "@/lib/catalog/types";
 import { jsonLdString } from "@/lib/json-ld";
+import { gridAdsOn } from "@/lib/ads/spots";
 import { DEFAULT_OG, HOME_CANONICAL, IS_VIDEQSSS, SITE_NAME, SITE_ORIGIN, TITLE_SUFFIX, breadcrumbJsonLd, collectionPageJsonLd } from "@/lib/seo";
 import { landingDocumentTitle } from "@/lib/catalog/landing";
 
@@ -119,7 +120,7 @@ export function CariExperience({
           <EmptyState title="Video segera hadir" description="Belum ada video untuk halaman ini. Cek lagi nanti ya." />
         ) : (
           <SafeBoundary>
-            <VideoGrid items={items} ads={!IS_VIDEQSSS} />
+            <VideoGrid items={items} ads={gridAdsOn()} />
           </SafeBoundary>
         )}
 

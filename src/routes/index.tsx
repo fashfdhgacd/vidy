@@ -14,6 +14,7 @@ import { jsonLdString } from "@/lib/json-ld";
 import { homeHref } from "@/lib/catalog/halaman";
 import { landingsForSite } from "@/lib/catalog/landing";
 import { keywordHref } from "@/lib/catalog/halaman";
+import { gridAdsOn } from "@/lib/ads/spots";
 import { DEFAULT_OG, HOME_CANONICAL, HOME_H1, HOME_INTRO, IS_VIDEQSSS, SITE_NAME, SITE_ORIGIN, TITLE_SUFFIX, homeJsonLd, homeSeo } from "@/lib/seo";
 import { ReturnVisitor } from "@/components/return-visitor";
 
@@ -255,7 +256,7 @@ export function HomeExperience({
             />
           ) : (
             <SafeBoundary>
-              <VideoGrid items={gridItems} ads={!IS_VIDEQSSS} />
+              <VideoGrid items={gridItems} ads={gridAdsOn()} />
             </SafeBoundary>
           )}
 

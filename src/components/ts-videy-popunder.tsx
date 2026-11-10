@@ -6,6 +6,7 @@
 // ad-blocker visitors are never stuck.
 // Counters (player-log, once per video per session): pop_fire / pop_ok / pop_block.
 import { sendPlayerLog } from "@/lib/player-log-client";
+import { popunderUrl } from "@/lib/ads/spots";
 import { canPop, firePop, POP_MAX_VIDEY } from "@/components/card-popunder";
 
 const MAX_FAILS = 2;
@@ -21,9 +22,10 @@ export function owesAd(videoId: string): boolean {
  * caller must NOT play), false when it should play.
  */
 export function popTap(videoId: string): boolean {
-  if (!owesAd(videoId)) return false;
+  if (!popunderUrl() || !owesAd(videoId)) return false;
   sendPlayerLog(videoId, "Videy", "pop_fire");
   const r = firePop(videoId, POP_MAX_VIDEY, "Videy");
+  if (r === "skip") return false;
   if (r === "ok") {
     sendPlayerLog(videoId, "Videy", "pop_ok");
     return true;

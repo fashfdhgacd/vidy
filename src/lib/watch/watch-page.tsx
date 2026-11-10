@@ -6,7 +6,6 @@ import { VideoGrid, VideoGridSkeleton } from "@/components/video/video-grid";
 import { VideoPlayer } from "@/components/video/player";
 import { PosterIdContext } from "@/components/video/thumb";
 import { VideyPlayer } from "@/components/video/videy-player";
-import { PopTapLayer } from "@/components/tap-popunder";
 import { AdblockGate } from "@/components/adblock-gate";
 import { hostLabel } from "@/lib/catalog/embed";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -427,20 +426,14 @@ export function WatchPage() {
                 <VideyPlayer key={item.id} item={item} />
               </AdblockGate>
             ) : hostLabel(catalogPlayUrl(playItem)) === "IndoAV" ? (
-              // IndoAV: never gated (host ads + IndoAV view bonus).
               <div className="relative">
                 <VideoPlayer key={playItem.id} item={playItem} />
-                <PopTapLayer key={`pop-${item.id}`} videoId={item.id} host="IndoAV" />
               </div>
             ) : (
-              // Other hosts (UserBokep, Putarin/Jav, Streamtape, ...): no adblock gate, only Videy is gated.
               <div className="relative">
-                {/* Player poster = the card's cached poster (R2 / /thumb), so a down image host
-                    (img.lulucdn.com) no longer turns it into the penguin. Iframe URLs unchanged. */}
                 <PosterIdContext.Provider value={item.id}>
                   <VideoPlayer key={playItem.id} item={playItem} />
                 </PosterIdContext.Provider>
-                <PopTapLayer key={`pop-${item.id}`} videoId={item.id} host={hostLabel(catalogPlayUrl(playItem)).replace("Puterin", "Putarin")} />
               </div>
             )}
             {server ? <ServerButtons item={item} current={server.id} /> : null}

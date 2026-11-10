@@ -1,16 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { VideoDetail } from "@/lib/catalog/types";
 import { sendPlayerLog } from "@/lib/player-log-client";
-import { popTap } from "@/components/ts-videy-popunder";
-import { PopTapLayer } from "@/components/tap-popunder";
 import { loadVast, ping, prerollDue, VAST_TIMEOUT_MS, type VastAd } from "@/components/videy-preroll";
+import { prerollUrl } from "@/lib/ads/spots";
 import { cleanDisplayTitle } from "@/lib/seo";
 
 /**
  * Videy player: the cdn mp4 plays straight from Videy in a native <video> (no crossorigin, so
  * nothing passes through our Worker).
  *
- * Pre-roll (videy-preroll.ts, TrafficStars VAST spot 5210886): on about every 2nd Videy play the
+ * Pre-roll (videy-preroll.ts): on about every 2nd Videy play, once preroll is set in src/lib/ads/spots.ts,
  * play tap first fetches the VAST (3.5 s budget) and plays the ad mp4 in the same <video>, with our
  * own Skip button after 5 s (or the VAST skipoffset if shorter); only the small corner "Info" button opens ClickThrough (a tap on the video does nothing).
  * No fill, error, timeout or an ad that does not start within 4 s goes straight to the film.
@@ -20,9 +19,8 @@ import { cleanDisplayTitle } from "@/lib/seo";
  * Fullscreen (native video button): a landscape video locks the screen to landscape where the
  * browser allows it, and unlocks on exit.
  *
- * TrafficStars popunder (ts-videy-popunder.tsx): the poster overlay is our tap-catcher; its first tap
- * (within the shared per-video cap, card-popunder.ts) opens the direct link in a new tab; the next tap
- * plays. During playback a one-shot PopTapLayer re-arms when the cap allows a later pop.
+ * Popunder is the page click in the shell (card-popunder.ts), capped at 3 per day, and only
+ * after TRAFFICSTARS.popunder is set. This player does not open its own popunder.
  *
  * Kesehatan player (/pemilik): the same /api/player-log beacons as the other hosts, once per video
  * per session (src/lib/player-log-client.ts), host "Videy":
@@ -322,12 +320,7 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
 
   const start = useCallback(() => {
     if (phase !== "idle") return;
-    // Popunder: this overlay is our own element (not an iframe), so the tap is a user gesture on
-    // our page. popTap opens the direct link synchronously; a tap used for the ad (opened, or
-    // blocked with a retry left) does nothing else and the next tap plays. After 2 blocked tries
-    // the tap plays so ad-blocker visitors are never stuck.
-    if (popTap(item.id)) return;
-    if (!prerollDue()) {
+    if (!prerollUrl() || !prerollDue()) {
       playFilm();
       return;
     }
@@ -415,18 +408,6 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
         poster={poster}
         controls={phase === "main"}
       />
-      {phase === "main" ? (
-        // Re-armed popunder tap during playback (shared per-video cap); removes itself after firing.
-        <PopTapLayer
-          videoId={item.id}
-          host="Videy"
-          mediaRef={videoRef}
-          onPass={() => {
-            const v = videoRef.current;
-            if (v) void (v.paused ? v.play().catch(() => {}) : v.pause());
-          }}
-        />
-      ) : null}
       {phase === "idle" ? (
         <button
           type="button"

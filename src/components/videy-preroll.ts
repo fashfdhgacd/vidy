@@ -1,10 +1,10 @@
-// TrafficStars VAST pre-roll for the Videy player (videy-player.tsx), spot 5210886 (mobile only).
+// TrafficStars VAST pre-roll for the Videy player. The tag is preroll in src/lib/ads/spots.ts.
 // Client-side only: the browser fetches the VAST tag straight from TrafficStars (nothing passes
 // through our Worker), follows up to 3 wrapper hops, and picks an mp4 MediaFile. Any failure
 // (no fill, network/CORS error, bad XML, 3.5 s timeout) resolves to null so the film plays.
 // Frequency: about every 2nd Videy play, counted in localStorage (no server writes).
 
-const VAST_TAG = "https://fozekikikiminu.com/do2/4c0a6f5c2b43423e95511f7b40ddf60f/vast?";
+import { prerollUrl } from "@/lib/ads/spots";
 const MAX_WRAPPERS = 3;
 export const VAST_TIMEOUT_MS = 3500;
 const COUNT_KEY = "kdp_videy_preroll_n";
@@ -93,7 +93,8 @@ function absorb(doc: Document, acc: VastAd): { next: string | null; done: boolea
 /** Fetches and resolves the pre-roll; null on no fill / error / timeout (never throws). */
 export async function loadVast(signal: AbortSignal): Promise<{ ad: VastAd | null; reason: "fill" | "empty" | "error" | "timeout" }> {
   const acc = emptyAd();
-  let url: string | null = VAST_TAG;
+  let url: string | null = prerollUrl();
+  if (!url) return { ad: null, reason: "empty" };
   try {
     for (let hop = 0; url && hop <= MAX_WRAPPERS; hop++) {
       const res: Response = await fetch(url, { signal, credentials: "omit", cache: "no-store" });
