@@ -1,6 +1,9 @@
 # Once a day. Pulls the koleksidrpinguin.com catalog (JSON only; a Cloudflare
-# challenge is ignored) and writes data/synced-catalog.json. The Worker bundles
-# that file. No Worker cron, no per-visit fetch, no KV write on this path.
+# challenge is ignored) and writes data/synced-catalog.json. The same run fills
+# data/videqsss-catalog.json: one bulk import of sites.videqsss.folderUrl when
+# that link is set, then new pemilik uploads from videos-latest. folderUrl stays
+# empty until the owner sets it. The Worker bundles both files. No Worker cron,
+# no per-visit fetch, no KV write on this path.
 # Toggles: data/videyy-sync.config.json, or the JSON at remoteConfigUrl.
 # KV key videyy:sync:config is reserved for a later panel; this job does not read it
 # unless a remoteConfigUrl is set, so a visit never touches that key.
@@ -40,7 +43,7 @@ jobs:
           set -e
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- data/synced-catalog.json src/lib/catalog/catalog-blocklist.json
+          git add -- data/synced-catalog.json data/videqsss-catalog.json src/lib/catalog/catalog-blocklist.json
           if git diff --cached --quiet; then
             echo "No catalog changes."
             exit 0

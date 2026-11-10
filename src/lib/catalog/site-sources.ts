@@ -1,8 +1,19 @@
 /** Which catalog sources a site build keeps. Read from the committed sync config, not per visit. */
 
 export type SiteSyncConfig = {
-  sites?: Record<string, { enabled?: boolean; sources?: "all" | string[] }>;
+  sites?: Record<string, { enabled?: boolean; sources?: "all" | string[]; folderUrl?: string; panelMarker?: string }>;
 };
+
+export type VideqsssCatalogFile = {
+  folderUrl?: string;
+  importedAt?: string | null;
+  items?: unknown[];
+};
+
+/** After the one-time folder import, videqsss serves that file instead of the shared catalog. */
+export function videqsssUsesOwnCatalog(catalog: VideqsssCatalogFile | null | undefined, siteId: string): boolean {
+  return siteId === "videqsss" && Boolean(catalog?.importedAt);
+}
 
 export function siteIdFromEnv(raw: string | undefined): "videyy" | "videqsss" {
   return raw === "videqsss" ? "videqsss" : "videyy";

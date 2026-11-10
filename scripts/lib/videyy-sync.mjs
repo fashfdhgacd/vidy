@@ -38,6 +38,18 @@ export function applyConfigOverlay(base, overlay) {
   if (overlay.github && typeof overlay.github === "object") {
     next.upstream.github = { ...(next.upstream.github || {}), ...overlay.github };
   }
+  if (overlay.sites && typeof overlay.sites === "object") {
+    next.sites = { ...(base.sites || {}) };
+    for (const [id, rule] of Object.entries(overlay.sites)) {
+      if (!rule || typeof rule !== "object") continue;
+      const prev = { ...(next.sites[id] || {}) };
+      if (typeof rule.enabled === "boolean") prev.enabled = rule.enabled;
+      if (rule.sources === "all" || Array.isArray(rule.sources)) prev.sources = rule.sources;
+      if (typeof rule.folderUrl === "string") prev.folderUrl = rule.folderUrl.trim();
+      if (typeof rule.panelMarker === "string" && rule.panelMarker.trim()) prev.panelMarker = rule.panelMarker.trim();
+      next.sites[id] = prev;
+    }
+  }
   return next;
 }
 
