@@ -151,7 +151,7 @@
 /kategori/videy/halaman/4 2026-10-28
 /kategori/videy/halaman/5 2026-10-28
 /kategori/viral 2026-11-05
-/kategori/wot 2026-11-05
+/kategori/wot 2026-11-06
 /kontak 2026-11-04
 /privasi 2026-10-01
 /syarat 2026-10-01
@@ -2574,7 +2574,7 @@
 /watch/GcErWDWdtcla -
 /watch/Gcb0Wj9kdJJp -
 /watch/GeameNDYBs 2026-09-04
-/watch/Gfo0RIpW3fUu 2026-11-05
+/watch/Gfo0RIpW3fUu 2026-11-06
 /watch/GgNEaD211 2026-10-17
 /watch/Gh4ylWgXHhKO -
 /watch/Gh7vw1MEmX2S -
