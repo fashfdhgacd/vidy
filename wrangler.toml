@@ -1,6 +1,6 @@
 name = "videy-hub"
-# Second site: the Workers build deploy command also runs
-# `VITE_SITE_ID=videqsss npm run build && node scripts/cf-patch-wrangler.mjs --site videqsss && npx wrangler deploy --name videqsss`.
+# Second site: after `npx wrangler deploy` (videy-hub), the build renames this
+# file to videqsss and deploys that worker with VITE_SITE_ID=videqsss.
 compatibility_date = "2026-09-27"
 compatibility_flags = [ "nodejs_compat" ]
 workers_dev = true
