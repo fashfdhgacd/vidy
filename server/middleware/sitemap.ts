@@ -10,6 +10,7 @@ import { isMinorContentTitle } from "../../src/lib/catalog/minor-detector.js";
 import { isSeoBlockedId } from "../../src/lib/catalog/seo-block";
 import { STATIC_PAGE_LASTMOD } from "../../src/lib/catalog/lastmod.js";
 import { listSitemapWatchEntries } from "../../src/lib/catalog/sitemap-entries";
+import { keywordHref, keywordRoot } from "../../src/lib/catalog/halaman";
 import { SITE_ORIGIN, cleanDisplayTitle, publicWatchDescription, seoVideoThumbnail } from "../../src/lib/seo";
 
 interface SitemapEvent {
@@ -79,11 +80,12 @@ function pageEntries(
       urlEntry(`${SITE_ORIGIN}/halaman/${i + 2}`, { changefreq: "hourly", priority: "0.8", lastmod }),
     ),
   ];
-  out.push(urlEntry(`${SITE_ORIGIN}/cari`, { changefreq: "weekly", priority: "0.6", lastmod: "2026-11-05" }));
+  const hub = keywordRoot() === "genre" ? "/genre" : "/cari";
+  out.push(urlEntry(`${SITE_ORIGIN}${hub}`, { changefreq: "weekly", priority: "0.6", lastmod: "2026-11-05" }));
   for (const landing of landings) {
-    out.push(urlEntry(`${SITE_ORIGIN}/cari/${landing.slug}`, { changefreq: "daily", priority: "0.6" }));
+    out.push(urlEntry(`${SITE_ORIGIN}${keywordHref(landing.slug, 1)}`, { changefreq: "daily", priority: "0.6" }));
     for (let n = 2; n <= landing.pages; n++) {
-      out.push(urlEntry(`${SITE_ORIGIN}/cari/${landing.slug}/halaman/${n}`, { changefreq: "daily", priority: "0.5" }));
+      out.push(urlEntry(`${SITE_ORIGIN}${keywordHref(landing.slug, n)}`, { changefreq: "daily", priority: "0.5" }));
     }
   }
   for (const path of LEGAL_PATHS) {

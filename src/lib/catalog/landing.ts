@@ -264,6 +264,19 @@ export const LANDINGS: LandingDef[] = [
   },
 ];
 
+/** Drop the hardcoded videyy.icu suffix and attach this build's domain. */
+export function landingDocumentTitle(title: string, page: number, suffix: string): string {
+  const base = String(title || "").replace(/\s*\|\s*videyy\.icu\s*$/i, "").trim();
+  const head = page > 1 ? `${base} – Halaman ${page}` : base;
+  return `${head} | ${suffix}`;
+}
+
+/** Keyword pages that belong on this site. Videy-only landings are not on videqsss. */
+export function landingsForSite(siteId: string): LandingDef[] {
+  if (siteId === "videqsss") return LANDINGS.filter((l) => l.category !== "videy");
+  return LANDINGS;
+}
+
 export function findLanding(slug: string | undefined | null): LandingDef | undefined {
   const s = String(slug || "").trim().toLowerCase();
   return LANDINGS.find((l) => l.slug === s);

@@ -1,4 +1,4 @@
-import { cleanDisplayTitle } from "@/lib/seo";
+import { IS_VIDEQSSS, cleanDisplayTitle } from "@/lib/seo";
 import { Link } from "@tanstack/react-router";
 import { Clock, Eye, Heart, Play } from "lucide-react";
 import type { VideoCard as VideoCardType } from "@/lib/catalog/types";
@@ -38,16 +38,22 @@ export function VideoCard({
       params={{ id: video.id }}
       preload={preload}
       onClick={() => rememberCatalog()}
-      className="group block rounded-xl p-1 transition-colors duration-150 ease-out hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-1.5"
+      className={
+        IS_VIDEQSSS
+          ? "group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4b942]"
+          : "group block rounded-xl p-1 transition-colors duration-150 ease-out hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-1.5"
+      }
     >
-      <div className="relative aspect-video overflow-hidden rounded-xl bg-surface-2">
+      <div className={IS_VIDEQSSS ? "relative aspect-video overflow-hidden rounded-lg bg-surface-2" : "relative aspect-video overflow-hidden rounded-xl bg-surface-2"}>
         <VideoThumb
           src={typeof video.thumbnail === "string" ? video.thumbnail : ""}
           alt={cleanDisplayTitle(video.title)}
           videoId={video.id}
           eager={eager}
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-80" />
+        {IS_VIDEQSSS ? null : (
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-80" />
+        )}
         {video.isNew ? (
           <span className="pointer-events-none absolute left-2 top-2 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground sm:text-[11px]">
             Baru

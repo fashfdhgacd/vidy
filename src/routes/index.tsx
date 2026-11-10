@@ -12,7 +12,9 @@ import { DEFAULT_PAGE_SIZE, type VideoCard } from "@/lib/catalog/types";
 import { useCatalogFeed } from "../hooks/use-catalog";
 import { jsonLdString } from "@/lib/json-ld";
 import { homeHref } from "@/lib/catalog/halaman";
-import { DEFAULT_OG, HOME_CANONICAL, HOME_H1, HOME_INTRO, SITE_NAME, SITE_ORIGIN, TITLE_SUFFIX, homeJsonLd, homeSeo } from "@/lib/seo";
+import { landingsForSite } from "@/lib/catalog/landing";
+import { keywordHref } from "@/lib/catalog/halaman";
+import { DEFAULT_OG, HOME_CANONICAL, HOME_H1, HOME_INTRO, IS_VIDEQSSS, SITE_NAME, SITE_ORIGIN, TITLE_SUFFIX, homeJsonLd, homeSeo } from "@/lib/seo";
 import { ReturnVisitor } from "@/components/return-visitor";
 
 type HomeSearch = {
@@ -227,6 +229,15 @@ export function HomeExperience({
             <h1 className="text-xl font-semibold tracking-tight text-zinc-100">{title}</h1>
             <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>
             <p className="mt-1 max-w-2xl text-sm text-zinc-600">{intro}</p>
+            {IS_VIDEQSSS && !q ? (
+              <nav aria-label="Topik" className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm">
+                {landingsForSite("videqsss").map((l) => (
+                  <a key={l.slug} href={keywordHref(l.slug, 1)} className="text-[#f4b942] underline-offset-2 hover:underline">
+                    {l.h1}
+                  </a>
+                ))}
+              </nav>
+            ) : null}
           </div>
 
           {feed.loading && !feed.items.length ? (
@@ -244,7 +255,7 @@ export function HomeExperience({
             />
           ) : (
             <SafeBoundary>
-              <VideoGrid items={gridItems} ads />
+              <VideoGrid items={gridItems} ads={!IS_VIDEQSSS} />
             </SafeBoundary>
           )}
 
