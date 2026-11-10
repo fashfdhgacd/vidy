@@ -145,15 +145,10 @@ function writePagePop(state: PagePopDay): void {
 export function onPagePopClick(event: { target: EventTarget | null }): void {
   if (typeof window === "undefined" || !popunderUrl()) return;
   const el = event.target instanceof Element ? event.target : null;
-  if (!el || el.closest("[data-kdp-ad], input, textarea, select")) return;
+  if (!el || el.closest("[data-kdp-ad], [data-videy-skip], input, textarea, select")) return;
   const now = Date.now();
   const today = readPagePop();
   if (!pagePopAllowed(today, now)) return;
-  const a = el.closest('a[href^="/watch/"]');
-  const id = a
-    ? decodeURIComponent((a.getAttribute("href") || "").slice("/watch/".length).split(/[?#/]/)[0] || "")
-    : "";
-  if (id && !canPop(id)) return;
   let w: Window | null = null;
   try {
     w = window.open(popunderUrl(), "_blank");
@@ -162,13 +157,6 @@ export function onPagePopClick(event: { target: EventTarget | null }): void {
     w = null;
   }
   if (!w) return;
-  if (id) {
-    const st = readState();
-    const n = (st.id === id ? st.n : 0) + 1;
-    writeState({ id, n, at: now });
-    const host = popHost("");
-    if (n >= 1 && n <= 3) sendPlayerLog(id, host, `pop_n${n}` as "pop_n1" | "pop_n2" | "pop_n3");
-  }
   writePagePop(nextPagePop(today, now));
 }
 

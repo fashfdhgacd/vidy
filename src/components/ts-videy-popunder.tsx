@@ -1,37 +1,63 @@
-// Videy player popunder: the Videy player (videy-player.tsx, our own HTML5 player) calls popTap()
-// synchronously in a tap handler (poster tap, or the re-armed tap layer during playback). The cap
-// (POP_MAX_VIDEY = 2 per Videy video, POP_MIN_GAP_MS between pops) lives in card-popunder.ts and is shared
-// with the catalog cards and the watch-page tap layer. Opened -> the tap does nothing else (next tap
-// plays); blocked -> the next tap retries, and after 2 blocked tries per video the tap plays so
-// ad-blocker visitors are never stuck.
-// Counters (player-log, once per video per session): pop_fire / pop_ok / pop_block.
+// Videy player skip popunder. Clicks on the player overlay and the pre-roll Skip
+// button open TRAFFICSTARS.popunder, up to 3 times per visitor per video id.
+// This count is not the page/card cap. An empty spot opens nothing.
+// IndoAV iframes never call this.
 import { sendPlayerLog } from "@/lib/player-log-client";
 import { popunderUrl } from "@/lib/ads/spots";
-import { canPop, firePop, POP_MAX_VIDEY } from "@/components/card-popunder";
+import { noteSkipPop, readSkipCounts, skipPopOpen } from "@/lib/ads/videy-skip-pop";
 
-const MAX_FAILS = 2;
-const failures = new Map<string, number>();
+const KEY = "kdp_videy_skip_pop";
+const MAX_BLOCKS = 2;
+const blocks = new Map<string, number>();
 
-/** True while a tap on this video should go to the ad first. */
-export function owesAd(videoId: string): boolean {
-  return canPop(videoId, POP_MAX_VIDEY) && (failures.get(videoId) || 0) < MAX_FAILS;
+function load(): Record<string, number> {
+  try {
+    return readSkipCounts(localStorage.getItem(KEY));
+  } catch {
+    return {};
+  }
+}
+
+function save(counts: Record<string, number>): void {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(counts));
+  } catch {
+    /* in-memory only for this hit */
+  }
+}
+
+/** True when another skip click on this Videy id should open the popunder. */
+export function videySkipArmed(videoId: string): boolean {
+  if (!popunderUrl() || !videoId) return false;
+  if ((blocks.get(videoId) || 0) >= MAX_BLOCKS) return false;
+  return skipPopOpen(load(), videoId);
 }
 
 /**
- * Call synchronously from the tap handler. Returns true when this tap was used for the ad (the
- * caller must NOT play), false when it should play.
+ * Open the popunder from a Videy player or Skip click.
+ * Returns true when the click was used for the ad (do not also start playback).
+ * Returns false when playback should continue (no spot, cap full, or the browser blocked twice).
  */
-export function popTap(videoId: string): boolean {
-  if (!popunderUrl() || !owesAd(videoId)) return false;
-  sendPlayerLog(videoId, "Videy", "pop_fire");
-  const r = firePop(videoId, POP_MAX_VIDEY, "Videy");
-  if (r === "skip") return false;
-  if (r === "ok") {
-    sendPlayerLog(videoId, "Videy", "pop_ok");
-    return true;
+export function takeVideySkipPop(videoId: string): boolean {
+  if (!videySkipArmed(videoId)) return false;
+  const url = popunderUrl();
+  let opened: Window | null = null;
+  try {
+    opened = window.open(url, "_blank");
+    if (opened) opened.opener = null;
+  } catch {
+    opened = null;
   }
-  sendPlayerLog(videoId, "Videy", "pop_block");
-  const n = (failures.get(videoId) || 0) + 1;
-  failures.set(videoId, n);
-  return n < MAX_FAILS;
+  if (!opened) {
+    const n = (blocks.get(videoId) || 0) + 1;
+    blocks.set(videoId, n);
+    sendPlayerLog(videoId, "Videy", "pop_block");
+    return n < MAX_BLOCKS;
+  }
+  const counts = load();
+  const next = noteSkipPop(counts, videoId);
+  save(next);
+  const n = next[videoId] || 1;
+  if (n >= 1 && n <= 3) sendPlayerLog(videoId, "Videy", `pop_n${n}` as "pop_n1" | "pop_n2" | "pop_n3");
+  return true;
 }

@@ -5,7 +5,7 @@
  * spot id and the slot builds the TrafficStars URL.
  */
 export const TRAFFICSTARS = {
-  /** Direct-link popunder. Max 3 opens per visitor per Asia/Jakarta day, on page and card clicks. */
+  /** Direct-link popunder. Page and card clicks: 3 per visitor per day. Videy player/skip: 3 per video id. */
   popunder: "",
   /** VAST tag for the video pre-roll. */
   preroll: "",

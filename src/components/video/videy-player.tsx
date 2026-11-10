@@ -3,6 +3,7 @@ import type { VideoDetail } from "@/lib/catalog/types";
 import { sendPlayerLog } from "@/lib/player-log-client";
 import { loadVast, ping, prerollDue, VAST_TIMEOUT_MS, type VastAd } from "@/components/videy-preroll";
 import { prerollUrl } from "@/lib/ads/spots";
+import { takeVideySkipPop, videySkipArmed } from "@/components/ts-videy-popunder";
 import { cleanDisplayTitle } from "@/lib/seo";
 
 /**
@@ -19,8 +20,9 @@ import { cleanDisplayTitle } from "@/lib/seo";
  * Fullscreen (native video button): a landscape video locks the screen to landscape where the
  * browser allows it, and unlocks on exit.
  *
- * Popunder is the page click in the shell (card-popunder.ts), capped at 3 per day, and only
- * after TRAFFICSTARS.popunder is set. This player does not open its own popunder.
+ * Skip popunder (ts-videy-popunder.tsx): clicks on this player and on Lewati open
+ * TRAFFICSTARS.popunder, up to 3 times for this video id. That count is not the
+ * daily page/card cap. IndoAV iframes are unchanged.
  *
  * Kesehatan player (/pemilik): the same /api/player-log beacons as the other hosts, once per video
  * per session (src/lib/player-log-client.ts), host "Videy":
@@ -86,6 +88,7 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
   const adRef = useRef<{ ad: VastAd; fired: Set<string>; token: number } | null>(null);
   const tokenRef = useRef(0);
   const [skipIn, setSkipIn] = useState<number | null>(null);
+  const [skipTick, setSkipTick] = useState(0);
 
   const settle = useCallback(
     (event: "slow2" | "fail2") => {
@@ -411,7 +414,13 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
       {phase === "idle" ? (
         <button
           type="button"
-          onClick={start}
+          data-videy-skip=""
+          onClick={(event) => {
+            event.stopPropagation();
+            takeVideySkipPop(item.id);
+            setSkipTick((n) => n + 1);
+            start();
+          }}
           aria-label={`Putar ${cleanDisplayTitle(item.title)}`}
           className="absolute inset-0 flex items-center justify-center bg-black/30"
         >
@@ -419,6 +428,24 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
             <svg viewBox="0 0 24 24" className="ml-0.5 size-6 fill-current" aria-hidden="true">
               <polygon points="6 3 20 12 6 21 6 3" />
             </svg>
+          </span>
+        </button>
+      ) : null}
+      {phase === "main" && skipTick >= 0 && videySkipArmed(item.id) ? (
+        <button
+          type="button"
+          data-videy-skip=""
+          aria-label="Lewati"
+          className="absolute inset-0 z-10 cursor-pointer bg-transparent"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            takeVideySkipPop(item.id);
+            setSkipTick((n) => n + 1);
+          }}
+        >
+          <span className="pointer-events-none absolute bottom-3 right-0 rounded-l-md bg-black/75 px-4 py-2 text-sm text-white">
+            Lewati
           </span>
         </button>
       ) : null}
@@ -454,8 +481,14 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
           {skipIn !== null ? (
             <button
               type="button"
+              data-videy-skip=""
               disabled={skipIn > 0}
-              onClick={() => endAd("skip")}
+              onClick={(event) => {
+                event.stopPropagation();
+                takeVideySkipPop(item.id);
+                setSkipTick((n) => n + 1);
+                endAd("skip");
+              }}
               className="absolute bottom-3 right-0 rounded-l-md border border-white/30 bg-black/75 px-4 py-2 text-sm text-white disabled:opacity-80"
             >
               {skipIn > 0 ? `Lewati dalam ${skipIn}` : "Lewati iklan ▸"}
