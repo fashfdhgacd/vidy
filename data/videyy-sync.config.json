@@ -7,7 +7,12 @@
   "excludeSources": [],
   "sites": {
     "videyy": { "enabled": true, "sources": "all" },
-    "videqsss": { "enabled": true, "sources": ["indoav", "userbokep"] }
+    "videqsss": {
+      "enabled": true,
+      "sources": ["indoav", "userbokep"],
+      "folderUrl": "",
+      "panelMarker": "videqsss"
+    }
   },
   "upstream": {
     "httpOrigin": "https://koleksidrpinguin.com",

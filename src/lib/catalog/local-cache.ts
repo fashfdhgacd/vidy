@@ -71,8 +71,9 @@ import putarinFeedSnapshot from "./putarin-feed-20261007.json";
 // Extra videos written by the daily sync (scripts/videyy-sync.mjs). Empty until the upstream
 // catalog has an id that is not already bundled. Never fetched per visit.
 import syncedCatalog from "../../../data/synced-catalog.json";
+import videqsssCatalog from "../../../data/videqsss-catalog.json";
 import syncConfig from "../../../data/videyy-sync.config.json";
-import { allowsSource, siteIdFromEnv, type SiteSyncConfig } from "./site-sources";
+import { allowsSource, siteIdFromEnv, videqsssUsesOwnCatalog, type SiteSyncConfig, type VideqsssCatalogFile } from "./site-sources";
 import { restoreBuild, serializeBuild } from "./build-snapshot";
 import { keepAlive, readSnapshot, snapshotKey, writeSnapshot } from "./build-snapshot-store";
 import {
@@ -901,11 +902,15 @@ export function assembleLocal(): { items: RawItem[]; posters: Record<string, str
   // First, like the live feed it replaces (remote items used to be merged in front of the bundle).
   const feed = withIds(asList(putarinFeedSnapshot)).filter(isUsable);
   const synced = withIds(asList(syncedCatalog)).filter(isUsable);
+  // Folder bulk import + later /pemilik uploads. Empty until folderUrl is set and the daily sync runs.
+  const videqsssOwn = withIds(asList(videqsssCatalog)).filter(isUsable);
   const posters: Record<string, string> = localPosters();
   const siteId = siteIdFromEnv((import.meta.env as { VITE_SITE_ID?: string }).VITE_SITE_ID);
-  const items = mergeById([...synced, ...feed, ...latest, ...pl, ...st, ...st2, ...pu, ...local, ...fb, ...drp]).filter((it) =>
-    allowsSource(it, siteId, syncConfig as SiteSyncConfig),
-  );
+  const cfg = syncConfig as SiteSyncConfig;
+  const pool = videqsssUsesOwnCatalog(videqsssCatalog as VideqsssCatalogFile, siteId)
+    ? videqsssOwn
+    : mergeById([...videqsssOwn, ...synced, ...feed, ...latest, ...pl, ...st, ...st2, ...pu, ...local, ...fb, ...drp]);
+  const items = pool.filter((it) => allowsSource(it, siteId, cfg));
   return { items, posters };
 }
 

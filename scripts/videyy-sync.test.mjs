@@ -67,6 +67,17 @@ test("overlay from a later panel only changes the toggles", () => {
   assert.equal("ignored" in next, false);
 });
 
+test("overlay can set the videqsss folder link without touching other sites", () => {
+  const next = applyConfigOverlay(
+    { enabled: true, sites: { videyy: { sources: "all" }, videqsss: { sources: ["indoav", "userbokep"], folderUrl: "" } }, upstream: {} },
+    { sites: { videqsss: { folderUrl: "https://tv1.indoav.app/f/AbC123", ignored: true } } },
+  );
+  assert.equal(next.sites.videqsss.folderUrl, "https://tv1.indoav.app/f/AbC123");
+  assert.equal(next.sites.videqsss.sources[0], "indoav");
+  assert.equal(next.sites.videyy.sources, "all");
+  assert.equal("ignored" in next.sites.videqsss, false);
+});
+
 test("challenge HTML is not a catalog", () => {
   assert.equal(isJsonDocument("<!DOCTYPE html><title>Just a moment"), false);
   assert.equal(isJsonDocument('[{"id":"a"}]'), true);

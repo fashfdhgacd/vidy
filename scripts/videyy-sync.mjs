@@ -4,6 +4,10 @@
  * Reads data/videyy-sync.config.json (and an optional remote/KV overlay).
  * Pulls koleksidrpinguin.com catalog files when they answer JSON, drops the blocklist,
  * and writes only the new rows to data/synced-catalog.json. The Worker bundles that file.
+ *
+ * videqsss also gets data/videqsss-catalog.json: a one-time import of
+ * sites.videqsss.folderUrl (empty until the owner sets it) plus later rows from
+ * the pemilik upload feeds. No fetch happens when folderUrl is empty.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -16,6 +20,7 @@ import {
   mergeBlocklist,
   planSync,
 } from "./lib/videyy-sync.mjs";
+import { folderPageUrl, parseFolderCatalog, parseFolderUrl, planVideqsssCatalog } from "./lib/videqsss-catalog.mjs";
 
 const root = process.cwd();
 
@@ -95,9 +100,22 @@ async function main() {
   const files = config.upstream?.files || [];
   const localItems = loadLocalItems(files);
   const upstreamItems = [];
+  const panelItems = [];
   let upstreamBlock = null;
   for (const rel of files) {
     const data = await pullJson(config, rel);
+    const panelFeed = /videos-latest/i.test(rel) && !rel.endsWith("-index.json");
+    if (panelFeed) {
+      let doc = data;
+      if (!doc) {
+        try {
+          doc = readJson(rel);
+        } catch {
+          doc = null;
+        }
+      }
+      panelItems.push(...itemsFromUnknown(doc));
+    }
     if (!data) continue;
     if (rel.endsWith("catalog-blocklist.json")) upstreamBlock = data;
     else upstreamItems.push(...itemsFromUnknown(data));
@@ -123,15 +141,105 @@ async function main() {
   const nextKey = JSON.stringify(plan.items);
   if (plan.skipped || prevKey === nextKey) {
     console.log("no snapshot change", { local: localItems.length, upstream: upstreamItems.length, added: plan.added, dropped: plan.dropped });
+  } else {
+    writeJson(output, {
+      syncedAt: new Date().toISOString(),
+      source: upstreamItems.length ? "upstream" : "bundled",
+      added: plan.added,
+      items: plan.items,
+    });
+    console.log("wrote", output, "added", plan.added, "dropped", plan.dropped);
+  }
+  await syncVideqsss(config, blockIds, panelItems);
+}
+
+const FOLDER_UA =
+  "Mozilla/5.0 (Linux; Android 13; SM-A536E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36";
+
+function isChallenge(text) {
+  return /just a moment|cf-browser-verification|attention required/i.test(String(text || "").slice(0, 800));
+}
+
+/** All pages of the configured folder. null = unread (keep the previous import). */
+async function crawlFolder(folder) {
+  const items = [];
+  const seen = new Set();
+  let empty = 0;
+  const date = new Date().toISOString().slice(0, 10);
+  for (let page = 1; page <= 200; page++) {
+    const url = folderPageUrl(folder, page);
+    let got;
+    try {
+      got = await fetchText(url, { "User-Agent": FOLDER_UA, Accept: "text/html" });
+    } catch (err) {
+      console.log("videqsss folder fail", url, err instanceof Error ? err.message : err);
+      return null;
+    }
+    if (got.status === 404) {
+      empty++;
+      if (empty >= 2) break;
+      continue;
+    }
+    if (!got.ok || isChallenge(got.text)) {
+      console.log("videqsss folder unread", url, got.status);
+      return null;
+    }
+    const rows = parseFolderCatalog(got.text, folder, date);
+    if (!rows.length) {
+      empty++;
+      if (empty >= 2) break;
+    } else {
+      empty = 0;
+      for (const row of rows) {
+        if (seen.has(row.id)) continue;
+        seen.add(row.id);
+        items.push(row);
+      }
+    }
+  }
+  return items;
+}
+
+async function syncVideqsss(config, blockIds, panelItems) {
+  const rule = config.sites?.videqsss;
+  if (!rule || rule.enabled === false) {
+    console.log("videqsss catalog skipped");
     return;
   }
-  writeJson(output, {
-    syncedAt: new Date().toISOString(),
-    source: upstreamItems.length ? "upstream" : "bundled",
-    added: plan.added,
-    items: plan.items,
+  const output = "data/videqsss-catalog.json";
+  const previous = (() => {
+    try {
+      return readJson(output);
+    } catch {
+      return { folderUrl: "", importedAt: null, items: [] };
+    }
+  })();
+  const folderUrl = String(rule.folderUrl || "").trim();
+  const parsed = parseFolderUrl(folderUrl);
+  const same = Boolean(parsed && previous.importedAt && previous.folderUrl === folderUrl);
+  let folderItems = null;
+  if (parsed && !same) {
+    console.log("videqsss folder import", folderUrl);
+    folderItems = await crawlFolder(parsed);
+  } else if (!parsed && folderUrl) {
+    console.log("videqsss folderUrl ignored (want https://<indoav|userbokep>/f/<id>)");
+  }
+  const next = planVideqsssCatalog({
+    previous,
+    folderItems,
+    panelItems,
+    blockIds,
+    config,
+    now: new Date().toISOString(),
   });
-  console.log("wrote", output, "added", plan.added, "dropped", plan.dropped);
+  const prevKey = JSON.stringify({ folderUrl: previous.folderUrl || "", importedAt: previous.importedAt || null, items: itemsFromUnknown(previous) });
+  const nextKey = JSON.stringify({ folderUrl: next.folderUrl || "", importedAt: next.importedAt || null, items: next.items });
+  if (prevKey === nextKey) {
+    console.log("videqsss catalog unchanged", { items: next.items.length, crawled: next.crawled });
+    return;
+  }
+  writeJson(output, { folderUrl: next.folderUrl, importedAt: next.importedAt, items: next.items });
+  console.log("wrote", output, "items", next.items.length, "crawled", next.crawled);
 }
 
 main().catch((err) => {
