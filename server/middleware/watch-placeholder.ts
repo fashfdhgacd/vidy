@@ -8,6 +8,7 @@
  * (video tidak dihapus; salinannya jadi tombol server di halaman utama).
  */
 import { isPublicHidden, mergedMainOf } from "../../src/lib/catalog/local-cache";
+import { SITE_ORIGIN } from "../../src/lib/seo";
 
 interface WatchPlaceholderEvent {
   url: URL;
@@ -57,7 +58,7 @@ export default async function watchPlaceholderMiddleware(
     const clean = path.replace(/\/+$/, "") || "/";
     return new Response(null, {
       status: 301,
-      headers: { location: `https://videyy.icu${clean}${event.url.search}` },
+      headers: { location: `${SITE_ORIGIN}${clean}${event.url.search}` },
     });
   }
   const m = event.url.pathname.match(WATCH_ID_RE);
@@ -69,7 +70,7 @@ export default async function watchPlaceholderMiddleware(
         return new Response(null, {
           status: 301,
           headers: {
-            location: `https://videyy.icu/watch/${encodeURIComponent(main)}`,
+            location: `${SITE_ORIGIN}/watch/${encodeURIComponent(main)}`,
             "cache-control": "public, max-age=3600",
           },
         });
