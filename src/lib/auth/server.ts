@@ -33,9 +33,8 @@ import { betterAuth } from "better-auth";
 import { bearer, genericOAuth } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { getCookie } from "@tanstack/react-start/server";
-import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
-import { ensureDbReady, getPglite } from "../db";
+import { getPglite } from "../db";
 import { emailAndPasswordEnabled } from "./email-password";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { GROK_PROVIDERS } from "./providers";
@@ -47,21 +46,19 @@ import {
   PREVIEW_CLIENT_SECRET,
 } from "./preview";
 
-// Kick (and share) PGLite bootstrap as soon as the auth server module loads.
-void ensureDbReady().catch(() => {});
-
 /**
  * Preview secret must outlive module reloads: PGLite (and its session rows) is
  * stored on `globalThis`, so an HMR re-eval of this file must NOT mint a new
  * signing secret or every existing session becomes invalid mid-dev. Process
  * restart clears both the secret and PGLite together.
+ *
+ * Do not call `randomBytes` here. This runs while the module is evaluated, and
+ * Cloudflare Workers reject crypto (and other I/O) in that global scope. A
+ * fixed fallback is only used when the deploy did not inject BETTER_AUTH_SECRET.
  */
-const globalAuthRef = globalThis as typeof globalThis & {
-  __grokAuthPreviewSecret__?: string;
-};
+const PREVIEW_AUTH_SECRET = "preview-auth-secret-not-for-production";
 function previewAuthSecret(): string {
-  globalAuthRef.__grokAuthPreviewSecret__ ??= randomBytes(32).toString("hex");
-  return globalAuthRef.__grokAuthPreviewSecret__;
+  return PREVIEW_AUTH_SECRET;
 }
 
 /** Read an env var, treating empty/whitespace as unset. */
