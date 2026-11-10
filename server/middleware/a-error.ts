@@ -4,9 +4,12 @@ interface ErrEvent {
 }
 
 export default async function errorMiddleware(
-  _event: ErrEvent,
+  event: ErrEvent,
   next: () => unknown | Promise<unknown>,
 ): Promise<unknown> {
+  if (event.url.pathname === "/__mw") {
+    return new Response("mw-live", { status: 200, headers: { "content-type": "text/plain", "cache-control": "no-store" } });
+  }
   try {
     return await next();
   } catch (err) {
