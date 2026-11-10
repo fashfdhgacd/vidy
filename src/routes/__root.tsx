@@ -15,11 +15,6 @@ function shouldRedirectHost(host: string) {
 }
 
 export const Route = createRootRoute({
-  errorComponent: ({ error }) => (
-    <pre style={{ whiteSpace: "pre-wrap", padding: 16 }}>
-      {error instanceof Error ? `${error.name}: ${error.message}\n${error.stack || ""}` : String(error)}
-    </pre>
-  ),
   beforeLoad: () => {
     if (typeof window === "undefined") return;
     if (!shouldRedirectHost(window.location.hostname)) return;

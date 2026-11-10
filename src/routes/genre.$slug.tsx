@@ -1,5 +1,4 @@
-import { createFileRoute, notFound, redirect, useNavigate } from "@tanstack/react-router";
-import { keywordHref } from "@/lib/catalog/halaman";
+import { Outlet, createFileRoute, notFound, redirect, useMatches, useNavigate } from "@tanstack/react-router";
 import { findLanding } from "@/lib/catalog/landing";
 import { IS_VIDEQSSS, SITE_ORIGIN } from "@/lib/seo";
 import { CariExperience, landingHead, loadLanding } from "./cari.$slug";
@@ -14,14 +13,19 @@ export const Route = createFileRoute("/genre/$slug")({
     if (params.slug && findLanding(params.slug)?.category === "videy") throw notFound();
   },
   loader: ({ params }) => loadLanding(params.slug, 1),
-  head: ({ params, loaderData }) => landingHead(params.slug, 1, loaderData),
+  head: ({ params, loaderData, matches }) => {
+    if (matches?.some((m) => String(m.routeId).includes("halaman"))) return { meta: [], links: [] };
+    return landingHead(params.slug, 1, loaderData);
+  },
   component: GenrePage,
 });
 
 function GenrePage() {
+  const matches = useMatches();
   const { slug } = Route.useParams();
   const data = Route.useLoaderData();
   const navigate = useNavigate({ from: "/genre/$slug" });
+  if (matches.some((m) => String(m.routeId).includes("halaman"))) return <Outlet />;
   return (
     <CariExperience
       slug={slug}
