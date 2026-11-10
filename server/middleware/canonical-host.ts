@@ -1,4 +1,6 @@
-const COM_HOST = "videyy.icu";
+import { SITE_ORIGIN } from "../../src/lib/seo";
+
+const COM_HOST = new URL(SITE_ORIGIN).host;
 
 /** Host yang wajib 301 ke https://videyy.icu (path + query dipertahankan). */
 const REDIRECT_HOSTS = new Set([`www.${COM_HOST}`]);

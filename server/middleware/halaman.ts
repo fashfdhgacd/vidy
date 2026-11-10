@@ -3,6 +3,7 @@
  * /halaman/1 collapses to the bare URL. Site search (?q=) is left alone.
  */
 import { legacyPageRedirect } from "../../src/lib/catalog/halaman";
+import { SITE_ORIGIN } from "../../src/lib/seo";
 
 interface HalamanEvent {
   url: URL;
@@ -20,7 +21,7 @@ export default function halamanMiddleware(
   return new Response(null, {
     status: 301,
     headers: {
-      location: `https://videyy.icu${target}`,
+      location: `${SITE_ORIGIN}${target}`,
       "cache-control": "public, max-age=3600",
     },
   });

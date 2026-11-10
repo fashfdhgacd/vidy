@@ -3,19 +3,25 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
+import { IS_VIDEQSSS } from "@/lib/seo";
 
 function BrandMark() {
   return (
     <span className="flex shrink-0 items-center gap-2.5">
       <svg
         viewBox="0 0 32 32"
-        className="size-9 rounded-xl bg-gradient-to-br from-[#9d8cff] to-[#6d5ef0] shadow-[0_0_18px_-4px_#9d8cff88] sm:size-10"
+        className={
+          IS_VIDEQSSS
+            ? "size-9 rounded-md bg-gradient-to-br from-[#f4b942] to-[#0f766e] shadow-[0_0_18px_-4px_#f4b94288] sm:size-10"
+            : "size-9 rounded-xl bg-gradient-to-br from-[#9d8cff] to-[#6d5ef0] shadow-[0_0_18px_-4px_#9d8cff88] sm:size-10"
+        }
         aria-hidden="true"
       >
         <path d="M12 9.5v13l11-6.5z" fill="#0b0b14" />
       </svg>
       <span className="font-display text-[13px] font-bold leading-none tracking-[0.08em] text-foreground sm:text-sm">
-        VIDEY<span className="text-primary">HUB</span>
+        {IS_VIDEQSSS ? "VIDEQ" : "VIDEY"}
+        <span className={IS_VIDEQSSS ? "text-[#f4b942]" : "text-primary"}>{IS_VIDEQSSS ? "SSS" : "HUB"}</span>
       </span>
       <span className="rounded-md border border-primary/50 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
         18+

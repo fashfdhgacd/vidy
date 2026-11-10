@@ -12,7 +12,7 @@ import { DEFAULT_PAGE_SIZE, type VideoCard } from "@/lib/catalog/types";
 import { useCatalogFeed } from "../hooks/use-catalog";
 import { jsonLdString } from "@/lib/json-ld";
 import { homeHref } from "@/lib/catalog/halaman";
-import { DEFAULT_OG, HOME_CANONICAL, HOME_H1, HOME_INTRO, SITE_ORIGIN, homeJsonLd, homeSeo } from "@/lib/seo";
+import { DEFAULT_OG, HOME_CANONICAL, HOME_H1, HOME_INTRO, SITE_NAME, SITE_ORIGIN, TITLE_SUFFIX, homeJsonLd, homeSeo } from "@/lib/seo";
 import { ReturnVisitor } from "@/components/return-visitor";
 
 type HomeSearch = {
@@ -124,8 +124,8 @@ export const Route = createFileRoute("/")({
     const q = typeof match.search.q === "string" ? match.search.q : undefined;
     const page = typeof match.search.page === "number" ? match.search.page : 1;
     const seo = homeSeo(q);
-    const title = !q && page > 1 ? `Bokep Indo Terbaru Halaman ${page} | Videy Hub` : seo.title;
-    const description = !q && page > 1 ? `Halaman ${page}: bokep indo terbaru, update setiap hari, streaming tanpa VPN di videyy.icu. Khusus 18+.` : seo.description;
+    const title = !q && page > 1 ? `Bokep Indo Terbaru Halaman ${page} | ${SITE_NAME}` : seo.title;
+    const description = !q && page > 1 ? `Halaman ${page}: bokep indo terbaru, update setiap hari, streaming di ${TITLE_SUFFIX}. Khusus 18+.` : seo.description;
     const url = q ? HOME_CANONICAL : `${SITE_ORIGIN}${homeHref(page)}`;
     const indexable = !q && page <= DEEP_PAGE_NOINDEX;
     return {

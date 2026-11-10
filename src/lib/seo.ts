@@ -1,32 +1,40 @@
 import { findCategory } from "@/lib/catalog/categories";
 
+/** Set at build time. videyy is the default worker; videqsss is a second build. */
+export const SITE_ID = import.meta.env.VITE_SITE_ID === "videqsss" ? "videqsss" : "videyy";
+export const IS_VIDEQSSS = SITE_ID === "videqsss";
+
 // Domain placeholder — ganti dengan domain asli videy-hub sebelum deploy.
-export const SITE_ORIGIN = "https://videyy.icu";
-export const SITE_NAME = "Videy Hub";
+export const SITE_ORIGIN = IS_VIDEQSSS ? "https://videqsss.icu" : "https://videyy.icu";
+export const SITE_NAME = IS_VIDEQSSS ? "Videqsss" : "Videy Hub";
 /** Nama brand persis seperti yang dicari orang di Google. */
-export const BRAND_NAME = "Videy Hub";
+export const BRAND_NAME = SITE_NAME;
 /** og:site_name: nama situs di kartu share / sinyal nama situs. */
-export const OG_SITE_NAME = "Videy Hub";
+export const OG_SITE_NAME = SITE_NAME;
 /** Suffix judul halaman: domain, contoh "Judul | videyy.icu". */
-export const TITLE_SUFFIX = "videyy.icu";
+export const TITLE_SUFFIX = IS_VIDEQSSS ? "videqsss.icu" : "videyy.icu";
 /** Kartu share: logo situs. Query v= bust cache Telegram/X. */
 export const DEFAULT_OG = `${SITE_ORIGIN}/og-v2.jpg?v=14`;
 /** Logo persegi (ikon pinguin pixel 512x512, dilayani middleware brand-icons). */
 export const SITE_LOGO = `${SITE_ORIGIN}/icon-512.png`;
 
 /** Snippet beranda: update harian + streaming tanpa VPN (pola growth, teks sendiri). */
-export const HOME_DESCRIPTION =
-  "Nonton video terbaru, update setiap hari, di videyy.icu. Streaming lancar di HP tanpa VPN dan tanpa daftar akun. Khusus dewasa 18+.";
+export const HOME_DESCRIPTION = IS_VIDEQSSS
+  ? "IndoAV dan UserBokep terbaru di videqsss.icu, dicampur jadi satu tanpa kategori. Streaming di HP, khusus 18+."
+  : "Nonton video terbaru, update setiap hari, di videyy.icu. Streaming lancar di HP tanpa VPN dan tanpa daftar akun. Khusus dewasa 18+.";
 
 /** Judul beranda. Brand di depan, frasa update harian, tetap di bawah 60 karakter. */
-export const HOME_TITLE = "Videy Hub - Video Terbaru Update Setiap Hari";
+export const HOME_TITLE = IS_VIDEQSSS
+  ? "Videqsss - Indo dan UserBokep Terbaru"
+  : "Videy Hub - Video Terbaru Update Setiap Hari";
 
 /** H1 beranda, selaras dengan judul tab. */
-export const HOME_H1 = "Video Terbaru Update Setiap Hari";
+export const HOME_H1 = IS_VIDEQSSS ? "Indo dan UserBokep Terbaru" : "Video Terbaru Update Setiap Hari";
 
 /** Kalimat pendek di bawah H1 beranda. */
-export const HOME_INTRO =
-  "Video terbaru di Videy Hub, ditambah setiap hari dari katalog sendiri. Putar langsung di HP tanpa VPN, tanpa aplikasi, dan tanpa login. Konten khusus 18+.";
+export const HOME_INTRO = IS_VIDEQSSS
+  ? "Hanya video IndoAV dan UserBokep, urut dari yang terbaru. Tidak ada halaman kategori. Putar langsung di HP, khusus 18+."
+  : "Video terbaru di Videy Hub, ditambah setiap hari dari katalog sendiri. Putar langsung di HP tanpa VPN, tanpa aplikasi, dan tanpa login. Konten khusus 18+.";
 
 function categoryLabel(slugOrLabel?: string | null): string {
   const key = (slugOrLabel || "").trim().toLowerCase();
