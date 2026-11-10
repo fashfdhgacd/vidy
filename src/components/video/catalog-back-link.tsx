@@ -1,14 +1,9 @@
 import { useEffect, useState } from "react";
 import { backToCatalog, lastCatalogHref } from "@/lib/catalog/last-catalog";
-import { findCategory } from "@/lib/catalog/categories";
 import type { VideoDetail } from "@/lib/catalog/types";
 
-function fallbackHref(item: VideoDetail): string {
-  const raw = String(item.category || item.creator || "").trim().toLowerCase();
-  if (/jav|putarin|puterin/.test(raw)) return "/kategori/jav";
-  if (/ai\+|ai-plus|streamtape/.test(raw)) return "/kategori/ai-plus";
-  const cat = findCategory(raw.replace(/\s+/g, "-")) || findCategory(raw);
-  return cat?.slug ? `/kategori/${cat.slug}` : "/";
+function fallbackHref(_item: VideoDetail): string {
+  return "/";
 }
 
 export function CatalogBackLink({ item }: { item: VideoDetail }) {

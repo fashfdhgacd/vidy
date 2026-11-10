@@ -7,7 +7,6 @@ import { CatalogPager } from "@/components/video/catalog-pager";
 import { Hero } from "@/components/video/hero";
 import { RecentlyWatched } from "@/components/video/recently-watched";
 import { VideoGrid, VideoGridSkeleton } from "@/components/video/video-grid";
-import { findCategory } from "@/lib/catalog/categories";
 import { queryCatalog } from "@/lib/catalog/service";
 import { DEFAULT_PAGE_SIZE, type VideoCard } from "@/lib/catalog/types";
 import { useCatalogFeed } from "../hooks/use-catalog";
@@ -89,15 +88,7 @@ export const Route = createFileRoute("/")({
       throw redirect({ href: HOME_CANONICAL, statusCode: 301 });
     }
     if (search.category) {
-      const cat = findCategory(search.category);
-      if (cat) {
-        throw redirect({
-          to: "/kategori/$slug",
-          params: { slug: cat.slug },
-          search: search.page && search.page > 1 ? { page: search.page } : {},
-          statusCode: 301,
-        });
-      }
+      throw redirect({ href: HOME_CANONICAL, statusCode: 301 });
     }
   },
   loader: async ({ location }) => {
@@ -108,7 +99,7 @@ export const Route = createFileRoute("/")({
         typeof raw.category === "string" && raw.category.trim() ? raw.category.trim() : undefined,
       page: parsePage(raw.page),
     };
-    if (isSchemaPlaceholder(search.q)) {
+    if (isSchemaPlaceholder(search.q) || search.category) {
       throw redirect({ href: HOME_CANONICAL, statusCode: 301 });
     }
     const res = await loadHome({ search });
@@ -161,26 +152,23 @@ export const Route = createFileRoute("/")({
 
 export function HomeExperience({
   q,
-  category,
   page,
   loaderData,
   onPage,
 }: {
   q?: string;
-  category?: string;
   page: number;
   loaderData: Awaited<ReturnType<typeof loadHome>>;
   onPage: (next: number) => void;
 }) {
   const seed = seedFromLoader(loaderData);
-  const mode = q ? "search" : category ? "category" : "home";
-  const feed = useCatalogFeed({ mode, q, category, page }, seed);
-  const cat = findCategory(category);
-  const heroVideos = !q && !category && page === 1 ? feed.featured : [];
+  const mode = q ? "search" : "home";
+  const feed = useCatalogFeed({ mode, q, page }, seed);
+  const heroVideos = !q && page === 1 ? feed.featured : [];
   const heroIds = new Set(heroVideos.map((v) => v.id));
   const gridItems = heroIds.size ? feed.items.filter((item) => !heroIds.has(item.id)) : feed.items;
 
-  const title = q ? `Hasil untuk “${q}”` : cat ? cat.label : HOME_H1;
+  const title = q ? `Hasil untuk “${q}”` : HOME_H1;
   const subtitle = q
     ? feed.loading && !feed.items.length
       ? "Mencari…"
@@ -239,26 +227,6 @@ export function HomeExperience({
             <h1 className="text-xl font-semibold tracking-tight text-zinc-100">{title}</h1>
             <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>
             <p className="mt-1 max-w-2xl text-sm text-zinc-600">{intro}</p>
-            {q ? null : (
-              // Plain crawlable links to the categories that bring search traffic (SEO internal linking).
-              <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                <a href="/kategori/videy" className="font-medium text-zinc-200 underline underline-offset-2 hover:text-white">
-                  Video viral Videy terbaru →
-                </a>
-                <a href="/kategori/ai-plus" className="font-medium text-zinc-200 underline underline-offset-2 hover:text-white">
-                  Bokep AI+ terbaru →
-                </a>
-                <a href="/kategori/malaysia" className="font-medium text-zinc-200 underline underline-offset-2 hover:text-white">
-                  Bokep Malaysia viral →
-                </a>
-                <a href="/kategori/ai-indo" className="font-medium text-zinc-200 underline underline-offset-2 hover:text-white">
-                  Bokep Indo AI →
-                </a>
-                <a href="/kategori/paling-ditonton" className="font-medium text-zinc-200 underline underline-offset-2 hover:text-white">
-                  Paling ditonton →
-                </a>
-              </p>
-            )}
           </div>
 
           {feed.loading && !feed.items.length ? (
@@ -270,7 +238,7 @@ export function HomeExperience({
               title={q ? `Belum ada video untuk “${q}”` : "Kosong"}
               description={
                 q
-                  ? "Coba kata kunci yang lebih pendek atau umum, misalnya “jilbab”, “indo”, atau “jav”. Bisa juga cek kategori di menu."
+                  ? "Coba kata kunci yang lebih pendek atau umum, misalnya “jilbab”, “indo”, atau “jav”."
                   : "Belum ada video."
               }
             />
@@ -303,14 +271,13 @@ export function HomeExperience({
 }
 
 function HomePage() {
-  const { q, category, page: pageSearch } = Route.useSearch();
+  const { q, page: pageSearch } = Route.useSearch();
   const loaderData = Route.useLoaderData();
   const navigate = useNavigate({ from: "/" });
   const page = pageSearch || 1;
   return (
     <HomeExperience
       q={q}
-      category={category}
       page={page}
       loaderData={loaderData}
       onPage={(next) => {

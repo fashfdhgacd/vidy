@@ -60,11 +60,6 @@ function SearchHub() {
             </li>
           ))}
         </ul>
-        <p className="text-sm">
-          <a href="/kategori" className="text-teal-200 hover:underline">
-            Lihat semua kategori
-          </a>
-        </p>
       </section>
     </Shell>
   );

@@ -462,20 +462,7 @@ export function WatchPage() {
           </div>
           <header className="max-w-3xl space-y-3">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
-              {isVideyItem(item) ? (
-                <a href="/kategori/videy" className="hover:text-foreground hover:underline">
-                  {VIDEY_LABEL}
-                </a>
-              ) : (() => {
-                const slug = categorySlugFor(item.category);
-                return slug ? (
-                  <a href={`/kategori/${slug}`} className="hover:text-foreground hover:underline">
-                    {item.category}
-                  </a>
-                ) : (
-                  item.category
-                );
-              })()}
+              {isVideyItem(item) ? VIDEY_LABEL : item.category}
               {item.year ? ` \u00b7 ${item.year}` : ""}
               {item.creator && !isVideyItem(item) ? ` \u00b7 ${item.creator}` : ""}
               <span className="ml-3 align-middle text-muted">
@@ -490,42 +477,18 @@ export function WatchPage() {
             <h1 className="font-display text-3xl leading-tight text-foreground sm:text-5xl">{cleanDisplayTitle(item.title)}</h1>
             {item.episodes && item.episodes.length > 1 ? <EpisodeStrip episodes={item.episodes} currentId={item.id} /> : null}
             <p className="text-sm leading-relaxed text-muted">{publicWatchDescription(item)}</p>
-            <nav aria-label="Kategori dan pencarian" className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <nav aria-label="Pencarian" className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
               {(() => {
                 const slug = categorySlugFor(item.category);
                 const landing = slug ? landingForCategory(slug) : undefined;
                 return (
-                  <>
-                    {slug ? (
-                      <a href={`/kategori/${slug}`} className="underline underline-offset-2 hover:text-foreground">
-                        Kategori {item.category}
-                      </a>
-                    ) : null}
-                    <a href={landing ? `/cari/${landing.slug}` : "/cari"} className="underline underline-offset-2 hover:text-foreground">
-                      {landing ? landing.h1 : "Pencarian populer"}
-                    </a>
-                  </>
+                  <a href={landing ? `/cari/${landing.slug}` : "/cari"} className="underline underline-offset-2 hover:text-foreground">
+                    {landing ? landing.h1 : "Pencarian populer"}
+                  </a>
                 );
               })()}
             </nav>
             <PushButton />
-            {item.categories && item.categories.length ? (
-              <nav aria-label="Kategori" className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Kategori</p>
-                <ul className="flex flex-wrap gap-2">
-                  {item.categories.map((c) => (
-                    <li key={c.slug}>
-                      <a
-                        href={`/kategori/${c.slug}`}
-                        className="inline-flex h-9 items-center rounded-full bg-secondary px-4 text-sm font-medium text-foreground hover:bg-primary hover:text-primary-foreground"
-                      >
-                        {c.label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            ) : null}
             {item.sameCategory && item.sameCategory.length ? (
               <nav aria-label="Video lain di kategori ini" className="space-y-2">
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">

@@ -4,8 +4,7 @@
  * New videos only exist on the site after the GitHub commit is built and deployed, so pinging a
  * batch's own URLs right away would send crawlers to a 404. Instead each batch:
  *   1. reads the ids queued by earlier batches (KV `seo:indexnow:pending`),
- *   2. submits the ones that are now live in this deployed catalog, plus their category pages and
- *      the homepage, in ONE POST,
+ *   2. submits the ones that are now live in this deployed catalog, plus the homepage, in ONE POST,
  *   3. queues this batch's new ids (and anything not live yet) for the next batch.
  * So a batch's videos are announced on the next upload batch. Videos also stay in the sitemap,
  * which search engines read on their own; nothing here is required for them to be indexed.
@@ -89,19 +88,16 @@ export function buildIndexNow(
   }
   const submittedIds: string[] = [];
   const pending: Pending[] = [];
-  const cats = new Set<string>();
   for (const p of queue) {
     if (blockedId(p.id)) continue;
     const hit = live.get(p.id);
-    if (hit && submittedIds.length < MAX_URLS - 40) {
+    if (hit && submittedIds.length < MAX_URLS - 1) {
       submittedIds.push(p.id);
-      if (hit.category) cats.add(hit.category);
     } else pending.push(p);
   }
   const urls: string[] = [];
   if (submittedIds.length) {
     urls.push(`${SITE_ORIGIN}/`);
-    for (const c of cats) urls.push(`${SITE_ORIGIN}/kategori/${encodeURIComponent(c)}`);
     for (const id of submittedIds) urls.push(`${SITE_ORIGIN}/watch/${encodeURIComponent(id)}`);
   }
   return { urls: urls.slice(0, MAX_URLS), submittedIds, pending: pending.slice(-MAX_PENDING) };

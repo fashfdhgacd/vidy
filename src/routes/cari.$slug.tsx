@@ -4,7 +4,6 @@ import { EmptyState, ErrorState } from "@/components/states/feed-states";
 import { SafeBoundary } from "@/components/safe-boundary";
 import { CatalogPager } from "@/components/video/catalog-pager";
 import { VideoGrid } from "@/components/video/video-grid";
-import { findCategory } from "@/lib/catalog/categories";
 import { cariHref } from "@/lib/catalog/halaman";
 import { LANDINGS, LANDING_INDEX_PAGES, LANDING_MIN_VIDEOS, LANDING_PAGE_SIZE, findLanding } from "@/lib/catalog/landing";
 import { queryCatalog } from "@/lib/catalog/service";
@@ -32,7 +31,6 @@ export function landingHead(slug: string, page: number, loaderData: unknown) {
   const indexable = enough && page <= LANDING_INDEX_PAGES;
   const title = page > 1 ? def.title.replace(/ \| videyy\.icu$/, ` – Halaman ${page} | videyy.icu`) : def.title;
   const description = page > 1 ? `Halaman ${page}: ${def.description}` : def.description;
-  const cat = findCategory(def.category);
   const last = ld && ld.ok && typeof ld.total === "number" ? Math.max(1, Math.ceil(ld.total / LANDING_PAGE_SIZE)) : 1;
   const pageLinks = [
     ...(page > 1 ? [{ rel: "prev", href: `${SITE_ORIGIN}${cariHref(def.slug, page - 1)}` }] : []),
@@ -63,7 +61,6 @@ export function landingHead(slug: string, page: number, loaderData: unknown) {
             children: jsonLdString(
               breadcrumbJsonLd([
                 { name: SITE_NAME, url: HOME_CANONICAL },
-                { name: cat?.label || "Kategori", url: `${SITE_ORIGIN}/kategori/${def.category}` },
                 { name: def.h1, url },
               ]),
             ),
@@ -97,7 +94,6 @@ export function CariExperience({
 }) {
   const def = findLanding(slug);
   if (!def) return null;
-  const cat = findCategory(def.category);
   const items = data && data.ok && data.type === "landing" ? (data.items as VideoCard[]) : [];
   const total = data && data.ok && data.type === "landing" ? data.total : 0;
   const page = data && data.ok && data.type === "landing" ? data.page : 1;
@@ -126,12 +122,6 @@ export function CariExperience({
         <CatalogPager page={page} total={total} limit={limit} onPage={onPage} pageHref={(n) => cariHref(def.slug, n)} />
 
         <div className="mt-6 space-y-3">
-          <a
-            href={`/kategori/${def.category}`}
-            className="inline-flex h-9 items-center rounded-full border border-teal-400/50 px-4 text-sm text-teal-300 hover:border-teal-300 hover:text-teal-200"
-          >
-            Lihat semua video {cat?.label || def.category} (terbaru) →
-          </a>
           <nav aria-label="Pencarian populer lain">
             <p className="mb-2 text-xs text-zinc-500">Pencarian populer lain</p>
             <div className="flex flex-wrap gap-2">

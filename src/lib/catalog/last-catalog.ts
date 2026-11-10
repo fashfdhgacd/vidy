@@ -29,7 +29,7 @@ function isSafeCatalogPath(path: unknown): path is string {
   if (!path.startsWith("/") || path.startsWith("//")) return false;
   if (path.includes("://") || path.includes("\\")) return false;
   if (path.startsWith("/watch") || path.startsWith("/api") || path.startsWith("/pemilik")) return false;
-  return path === "/" || path.startsWith("/?") || path.startsWith("/kategori/");
+  return path === "/" || path.startsWith("/?") || path.startsWith("/halaman/");
 }
 
 export function rememberCatalog(href?: unknown): void {

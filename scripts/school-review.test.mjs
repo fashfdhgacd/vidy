@@ -3,7 +3,7 @@ import test from "node:test";
 import { isJavStudioFalsePositive, lockedMinorReason, reviewHitReason } from "../src/lib/catalog/minor-lock.js";
 
 test("school and minor flags are review hits, not a JAV studio false positive", () => {
-  assert.equal(reviewHitReason("SISWI *** COLMEK"), "school");
+  assert.equal(reviewHitReason("SISWI *** COLMEK"), "school-obfuscated");
   assert.equal(reviewHitReason("anak sma ngewe"), "minor");
   assert.equal(reviewHitReason(""), "");
 });

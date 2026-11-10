@@ -2,28 +2,22 @@ import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { AgeGate } from "@/components/age-gate";
 import { Header } from "./header";
-import { PopularCategories } from "./popular-categories";
 
 export function Shell({
   children,
   query,
-  category,
 }: {
   children: ReactNode;
   query?: string;
-  category?: string;
 }) {
   return (
     <AgeGate>
       <div className="flex min-h-dvh flex-col bg-background text-foreground">
-        <Header query={query} category={category} />
+        <Header query={query} />
         <main className="mx-auto w-full max-w-[1600px] flex-1 px-3 pb-16 pt-4 sm:px-6 sm:pb-14 sm:pt-6">
           {children}
         </main>
         <footer className="mt-auto border-t border-border/60 pb-[env(safe-area-inset-bottom)]">
-          <div className="mx-auto max-w-[1600px] border-b border-border/40 px-4 py-6 sm:px-8">
-            <PopularCategories />
-          </div>
           <div className="mx-auto flex max-w-[1600px] flex-col gap-5 px-4 py-7 text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-9">
             <div className="space-y-2">
               <p className="font-display text-sm font-bold tracking-[0.08em] text-foreground sm:text-lg">

@@ -1,6 +1,5 @@
 import { curatedSeoTitle } from "@/lib/catalog/video-descriptions";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
-import { categorySlugFor } from "@/lib/catalog/category-seo";
 import { queryCatalog } from "@/lib/catalog/service";
 import { jsonLdString } from "@/lib/json-ld";
 import {
@@ -29,12 +28,12 @@ function shareCardImage(thumbnail: string | null | undefined): string {
   return absolute;
 }
 
-/** BreadcrumbList (Beranda > Kategori > Video) so Google can show the path in the result. */
-function watchBreadcrumb(category: string | null | undefined, title: string, url: string) {
-  const slug = categorySlugFor(category);
-  const crumbs: Array<{ name: string; url: string }> = [{ name: "Beranda", url: SITE_ORIGIN }];
-  if (slug && category) crumbs.push({ name: String(category), url: `${SITE_ORIGIN}/kategori/${slug}` });
-  crumbs.push({ name: title, url });
+/** BreadcrumbList (Beranda > Video) so Google can show the path in the result. */
+function watchBreadcrumb(title: string, url: string) {
+  const crumbs: Array<{ name: string; url: string }> = [
+    { name: "Beranda", url: SITE_ORIGIN },
+    { name: title, url },
+  ];
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -164,7 +163,7 @@ export const Route = createFileRoute("/watch/$id")({
             { type: "application/ld+json", children: jsonLdString(jsonLd) },
             {
               type: "application/ld+json",
-              children: jsonLdString(watchBreadcrumb(item!.category, cleanDisplayTitle(item!.title), url)),
+              children: jsonLdString(watchBreadcrumb(cleanDisplayTitle(item!.title), url)),
             },
           ]
         : [],

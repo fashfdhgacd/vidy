@@ -82,7 +82,7 @@ describe("watch page", () => {
     assert.match(html, /href="\/cari"/);
     assert.match(html, /durasi 1 menit/);
     assert.equal(html.split("ada di kategori").length - 1, 1);
-    assert.equal(html.split("Judul Contoh").length - 1, 2);
+    assert.equal(html.split("Judul Contoh").length - 1, 3);
     assert.match(html, /Bagikan/);
     assert.match(html, /1m 0s/);
     assert.doesNotMatch(html, /Pertanyaan Umum/);

@@ -1,0 +1,57 @@
+# Once a day. Pulls the koleksidrpinguin.com catalog (JSON only; a Cloudflare
+# challenge is ignored) and writes data/synced-catalog.json. The Worker bundles
+# that file. No Worker cron, no per-visit fetch, no KV write on this path.
+# Toggles: data/videyy-sync.config.json, or the JSON at remoteConfigUrl.
+# KV key videyy:sync:config is reserved for a later panel; this job does not read it
+# unless a remoteConfigUrl is set, so a visit never touches that key.
+name: Videy catalog sync
+
+on:
+  schedule:
+    - cron: "30 17 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: videyy-catalog-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Pull catalog into the static snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VIDEY_SYNC_TOKEN: ${{ secrets.VIDEY_SYNC_TOKEN }}
+        run: node scripts/videyy-sync.mjs
+
+      - name: Commit snapshot when the catalog changed
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- data/synced-catalog.json src/lib/catalog/catalog-blocklist.json
+          if git diff --cached --quiet; then
+            echo "No catalog changes."
+            exit 0
+          fi
+          git commit -m "chore(sync): daily koleksidrpinguin catalog snapshot"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main || true
+            if git push origin HEAD:main; then
+              echo "Pushed OK"
+              exit 0
+            fi
+            sleep 3
+          done
+          exit 1

@@ -13,7 +13,10 @@ test("halaman paths replace query pagination", () => {
   assert.equal(parseHalamanParam("2"), 2);
   assert.equal(parseHalamanParam("1"), null);
   assert.equal(legacyPageRedirect("/", "?page=2"), "/halaman/2");
-  assert.equal(legacyPageRedirect("/kategori/jilbab", "?page=3&periode=minggu"), "/kategori/jilbab/halaman/3?periode=minggu");
+  assert.equal(legacyPageRedirect("/kategori/jilbab", "?page=3&periode=minggu"), "/");
+  assert.equal(legacyPageRedirect("/kategori/jilbab/halaman/3", ""), "/");
+  assert.equal(legacyPageRedirect("/kategori", ""), "/");
+  assert.equal(legacyPageRedirect("/kategori/$slug", ""), null);
   assert.equal(legacyPageRedirect("/cari/bokep-ojol", "?page=2"), "/cari/bokep-ojol/halaman/2");
   assert.equal(legacyPageRedirect("/", "?q=jilbab&page=2"), null);
   assert.equal(legacyPageRedirect("/halaman/1", ""), "/");

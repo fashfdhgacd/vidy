@@ -57,7 +57,7 @@ export type CatalogCache = {
   byId: Map<string, RawItem>;
   bySlug: Map<string, RawItem[]>;
   mainSorted: RawItem[];
-  /** Terbaru order: page 1 IndoAV-only, then 3 IndoAV : 1 UserBokep; no Videy, no Byse/Dood/Lulu. */
+  /** Home feed: every video, newest first, not grouped by source or category. */
   terbaruSorted: RawItem[];
   /** Mixed page order for some categories (bokep: H,H,IndoAV; jav: 2 IndoAV/UserBokep : 1 Puterin). */
   listOrder: Map<string, RawItem[]>;

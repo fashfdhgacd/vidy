@@ -1,0 +1,31 @@
+{
+  "enabled": true,
+  "kvKey": "videyy:sync:config",
+  "remoteConfigUrl": "",
+  "mix": "newest",
+  "excludeIds": [],
+  "excludeSources": [],
+  "upstream": {
+    "httpOrigin": "https://koleksidrpinguin.com",
+    "tryHttp": true,
+    "github": {
+      "owner": "fashfdhgacd",
+      "repo": "vidy",
+      "ref": "main"
+    },
+    "files": [
+      "data/videos-latest.json",
+      "data/videos-latest-p02.json",
+      "data/videos-latest-p03.json",
+      "src/lib/catalog/videos.json",
+      "data/drp-bokep.json",
+      "src/lib/catalog/putarin.json",
+      "src/lib/catalog/putarin-feed-20261007.json",
+      "src/lib/catalog/folder-batch-20261007.json",
+      "src/lib/catalog/streamtape-batch-20260925.json",
+      "src/lib/catalog/catalog-blocklist.json"
+    ]
+  },
+  "blocklist": "src/lib/catalog/catalog-blocklist.json",
+  "output": "data/synced-catalog.json"
+}

@@ -81,16 +81,6 @@ function Page() {
             Video terbaru
           </Link>
         </li>
-        <li>
-          <Link className="underline" to="/kategori">
-            Semua kategori
-          </Link>
-        </li>
-        <li>
-          <a className="underline" href="/kategori/paling-ditonton">
-            Paling banyak ditonton
-          </a>
-        </li>
       </ul>
       <h2 className="pt-2 text-lg font-semibold text-foreground">Aturan konten</h2>
       <p>

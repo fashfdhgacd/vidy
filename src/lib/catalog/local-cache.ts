@@ -1,4 +1,3 @@
-import { DEFAULT_PAGE_SIZE } from "./types";
 import { popularIds, tagOptions, titleTags } from "./title-tags";
 import { isIndoAiTitle } from "./title-text";
 import { findCategory } from "./categories";
@@ -69,6 +68,9 @@ import { isGenericTitle } from "./generic-title.js";
 // Frozen copy of the old repo's live feed (koleksi_dr_pinguin data/putarin.json, last change Oct 7 2026),
 // bundled so no request ever fetches it from raw.githubusercontent.com again (see BOT_FEEDS).
 import putarinFeedSnapshot from "./putarin-feed-20261007.json";
+// Extra videos written by the daily sync (scripts/videyy-sync.mjs). Empty until the upstream
+// catalog has an id that is not already bundled. Never fetched per visit.
+import syncedCatalog from "../../../data/synced-catalog.json";
 import { restoreBuild, serializeBuild } from "./build-snapshot";
 import { keepAlive, readSnapshot, snapshotKey, writeSnapshot } from "./build-snapshot-store";
 import {
@@ -627,37 +629,14 @@ function withStats(it: RawItem): RawItem {
 }
 
 /**
- * Terbaru (homepage list, /api/data?type=latest) ordering, deterministic for pagination/SEO
- * (owner rule 2026-10-19):
- *  - page 1 (positions 1..36): IndoAV only
- *  - from page 2: every 4th card is UserBokep (newest first), the rest IndoAV = 27 IndoAV + 9
- *    UserBokep per 36; when one of the two runs out, the other continues.
- *  - ONLY IndoAV and its sister site UserBokep. Videy, Koleksi Dr. Pinguin Bokep (Byse / DoodStream /
- *    LuluStream), Puterin, Streamtape and every other source live only in their own categories.
- * Built once per catalog build (buildIndexes). Category pages keep their own ordering (listOrder).
+ * Home feed (/ and /api/data?type=latest). Every playable video, newest first, not grouped by
+ * source or category. Ties (same upload day) break on id so one source cannot fill a page.
+ * Built once per catalog build (buildIndexes).
  */
-const TERBARU_FIRST_PAGE = DEFAULT_PAGE_SIZE;
-const TERBARU_UB_EVERY = 4;
 export function terbaruOrder(sorted: RawItem[]): RawItem[] {
-  const indo: RawItem[] = [];
-  const ub: RawItem[] = [];
-  for (const it of sorted) {
-    if (isVidey(it) || isDrpBokep(it) || isPutarin(it)) continue;
-    if (isIndoAv(it)) indo.push(it);
-    else if (isUserBokep(it)) ub.push(it);
-  }
-  const out: RawItem[] = indo.slice(0, TERBARU_FIRST_PAGE);
-  let i = TERBARU_FIRST_PAGE;
-  let u = 0;
-  let slot = 0;
-  while (u < ub.length && i < indo.length) {
-    if (slot % TERBARU_UB_EVERY === TERBARU_UB_EVERY - 1) out.push(ub[u++]);
-    else out.push(indo[i++]);
-    slot++;
-  }
-  while (u < ub.length) out.push(ub[u++]);
-  while (i < indo.length) out.push(indo[i++]);
-  return out;
+  const keyed = sorted.map((it) => ({ it, t: timeKey(it) }));
+  keyed.sort((a, b) => b.t - a.t || (a.it.id < b.it.id ? -1 : a.it.id > b.it.id ? 1 : 0));
+  return keyed.map((k) => k.it);
 }
 
 /**
@@ -919,8 +898,9 @@ export function assembleLocal(): { items: RawItem[]; posters: Record<string, str
   const drp = withIds(asList(drpBokepBatch)).filter(isUsable);
   // First, like the live feed it replaces (remote items used to be merged in front of the bundle).
   const feed = withIds(asList(putarinFeedSnapshot)).filter(isUsable);
+  const synced = withIds(asList(syncedCatalog)).filter(isUsable);
   const posters: Record<string, string> = localPosters();
-  return { items: mergeById([...feed, ...latest, ...pl, ...st, ...st2, ...pu, ...local, ...fb, ...drp]), posters };
+  return { items: mergeById([...synced, ...feed, ...latest, ...pl, ...st, ...st2, ...pu, ...local, ...fb, ...drp]), posters };
 }
 
 export async function refreshRemote(base: { items: RawItem[]; posters: Record<string, string> }): Promise<CatalogCache> {

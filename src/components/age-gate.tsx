@@ -58,8 +58,7 @@ export function AgeGate({ children }: { children: ReactNode }) {
       <noscript>
         <p>
           Katalog video dewasa 18+ Videy Hub. Aktifkan JavaScript untuk menonton.{" "}
-          <a href="/kategori/jav">JAV</a> · <a href="/kategori/jilbab">Jilbab</a> ·{" "}
-          <a href="/syarat">Syarat</a> · <a href="/privasi">Privasi</a> · <a href="/dmca">DMCA</a> ·{" "}
+          <a href="/">Beranda</a> · <a href="/syarat">Syarat</a> · <a href="/privasi">Privasi</a> · <a href="/dmca">DMCA</a> ·{" "}
           <a href="/2257">2257</a> · <a href="/kontak">Kontak</a>
         </p>
       </noscript>
