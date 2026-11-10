@@ -53,6 +53,16 @@ for (const p of paths) {
   // This is a binding (the version id Cloudflare gives each deploy), not an env var.
   if (!j.version_metadata) j.version_metadata = { binding: "CF_VERSION_METADATA" };
 
+  // PR previews run `wrangler preview`, which refuses to start without this block.
+  // Same resource ids as production so the preview can boot; production deploy ignores it.
+  j.previews = {
+    kv_namespaces: j.kv_namespaces,
+    d1_databases: j.d1_databases,
+    r2_buckets: j.r2_buckets,
+    version_metadata: j.version_metadata,
+    ...(j.assets ? { assets: j.assets } : {}),
+  };
+
   // Cron trigger for the upload-queue flush (scripts/cf-worker-entry.mjs `scheduled`). A trigger, not
   // an env var. Hourly: heartbeat + upload-queue flush (KV flag bot:queue:on, kill switch "0").
   j.triggers = { ...(j.triggers || {}), crons: ["7 * * * *"] };
