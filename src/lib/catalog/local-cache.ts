@@ -72,6 +72,8 @@ import putarinFeedSnapshot from "./putarin-feed-20261007.json";
 // catalog has an id that is not already bundled. Never fetched per visit.
 import syncedCatalog from "../../../data/synced-catalog.json";
 import syncConfig from "../../../data/videyy-sync.config.json";
+// /pemilik per-site lists (hide / upload exclude) and the catalog blocklist, copied by the daily sync.
+import satelitConfig from "../../../data/satelit-config.json";
 import { allowsSource, siteIdFromEnv, type SiteSyncConfig } from "./site-sources";
 import { restoreBuild, serializeBuild } from "./build-snapshot";
 import { keepAlive, readSnapshot, snapshotKey, writeSnapshot } from "./build-snapshot-store";
@@ -903,8 +905,10 @@ export function assembleLocal(): { items: RawItem[]; posters: Record<string, str
   const synced = withIds(asList(syncedCatalog)).filter(isUsable);
   const posters: Record<string, string> = localPosters();
   const siteId = siteIdFromEnv((import.meta.env as { VITE_SITE_ID?: string }).VITE_SITE_ID);
-  const items = mergeById([...synced, ...feed, ...latest, ...pl, ...st, ...st2, ...pu, ...local, ...fb, ...drp]).filter((it) =>
-    allowsSource(it, siteId, syncConfig as SiteSyncConfig),
+  const panel = satelitConfig as { blockedIds?: string[]; sites?: Record<string, { skipIds?: string[] }> };
+  const skip = new Set([...(panel.blockedIds || []), ...(panel.sites?.[siteId]?.skipIds || [])].map(String));
+  const items = mergeById([...synced, ...feed, ...latest, ...pl, ...st, ...st2, ...pu, ...local, ...fb, ...drp]).filter(
+    (it) => allowsSource(it, siteId, syncConfig as SiteSyncConfig) && !skip.has(String(it.id)),
   );
   return { items, posters };
 }

@@ -78,8 +78,67 @@ function loadLocalItems(files) {
   return items;
 }
 
+const HOSTS = { "videyy.icu": "videyy", "videqsss.icu": "videqsss" };
+
+/** Per-site panel settings from /api/satelit/config.json, reduced to what the build needs. */
+function siteSettingsFrom(remote) {
+  const out = { blockedIds: [], sites: {} };
+  if (!remote || typeof remote !== "object") return out;
+  out.blockedIds = [...new Set((remote.blockedIds || []).map(String))].sort();
+  for (const site of Array.isArray(remote.sites) ? remote.sites : []) {
+    const id = HOSTS[site?.host];
+    if (!id) continue;
+    out.sites[id] = {
+      sync: site.sync !== false,
+      skipIds: [...new Set((site.skipIds || []).map(String))].sort(),
+      syncRequestedAt: site.syncRequestedAt || null,
+    };
+  }
+  return out;
+}
+
+function readStatus(rel) {
+  try {
+    return readJson(rel);
+  } catch {
+    return {};
+  }
+}
+
+/** Poll mode (frequent cron): only sync when the /pemilik "Sync sekarang" request is newer than the last sync. */
+function pendingRequest(settings, status) {
+  const last = Date.parse(String(status?.syncedAt || "")) || 0;
+  return Object.entries(settings.sites).some(([, s]) => (Date.parse(String(s.syncRequestedAt || "")) || 0) > last);
+}
+
 async function main() {
   let config = readJson("data/videyy-sync.config.json");
+  const statusRel = config.statusOutput || "public/sync-status.json";
+  let siteSettings = null;
+  if (config.siteConfigUrl) {
+    try {
+      const got = await fetchText(config.siteConfigUrl, { "User-Agent": "videyy-daily-sync", Accept: "application/json" });
+      if (got.ok && isJsonDocument(got.text)) siteSettings = siteSettingsFrom(JSON.parse(got.text));
+      else console.log("site config miss", got.status);
+    } catch (err) {
+      console.log("site config fail", err instanceof Error ? err.message : err);
+    }
+  }
+  if (process.env.SYNC_MODE === "poll") {
+    if (!siteSettings || !pendingRequest(siteSettings, readStatus(statusRel))) {
+      console.log("poll: no pending sync request");
+      return;
+    }
+    console.log("poll: pending /pemilik sync request, syncing now");
+  }
+  if (siteSettings && config.siteConfigOutput) {
+    // Keep the owner's per-site hide/exclude lists (no request stamps, so the file only changes with them).
+    const keep = {
+      blockedIds: siteSettings.blockedIds,
+      sites: Object.fromEntries(Object.entries(siteSettings.sites).map(([id, s]) => [id, { sync: s.sync, skipIds: s.skipIds }])),
+    };
+    writeJson(config.siteConfigOutput, keep);
+  }
   if (config.remoteConfigUrl) {
     try {
       const got = await fetchText(config.remoteConfigUrl, { "User-Agent": "videyy-daily-sync", Accept: "application/json" });
@@ -123,8 +182,22 @@ async function main() {
   })();
   const prevKey = JSON.stringify(itemsFromUnknown(prev));
   const nextKey = JSON.stringify(plan.items);
+  const prevIds = new Set(itemsFromUnknown(prev).map((it) => String(it.id)));
+  const runUrl = process.env.GITHUB_RUN_ID
+    ? `${process.env.GITHUB_SERVER_URL || "https://github.com"}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+    : null;
+  const status = (changed) => ({
+    syncedAt: new Date().toISOString(),
+    trigger: process.env.SYNC_TRIGGER || "manual",
+    upstream: upstreamItems.length,
+    added: changed ? plan.items.filter((it) => !prevIds.has(String(it.id))).length : 0,
+    snapshotItems: changed ? plan.items.length : itemsFromUnknown(prev).length,
+    ok: upstreamItems.length > 0,
+    runUrl,
+  });
   if (plan.skipped || prevKey === nextKey) {
     console.log("no snapshot change", { local: localItems.length, upstream: upstreamItems.length, added: plan.added, dropped: plan.dropped });
+    writeJson(statusRel, status(false));
     return;
   }
   writeJson(output, {
@@ -133,6 +206,7 @@ async function main() {
     added: plan.added,
     items: plan.items,
   });
+  writeJson(statusRel, status(true));
   console.log("wrote", output, "added", plan.added, "dropped", plan.dropped);
 }
 
