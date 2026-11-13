@@ -1,13 +1,10 @@
-// TrafficStars popunder. The URL is TRAFFICSTARS.popunder in src/lib/ads/spots.ts (empty = off).
-// Page and card clicks share PAGE_POP_MAX_PER_DAY successful opens per Asia/Jakarta day.
-// A blocked window.open is not counted. The pre-roll is a different slot.
-// Counters: popc_fire / popc_ok / popc_block in player-log (once per video+event per session).
-// Every opened tab is also logged by its position for that video (pop_n1 / pop_n2 / pop_n3, one D1
-// upsert per opened tab, same beacon as today), so /pemilik can compare ALL our opens with
-// TrafficStars' paid impressions instead of only the first tab per video.
+// ExoClick popunder link (spots.ts popunderUrl). Page and card clicks do not open a window here:
+// exo-popunder-dom.ts loads the embed only while the Jakarta-day cap still allows it.
+// firePop is the per-video opener (iframe tap layer). IndoAV never opens. A blocked window.open
+// is not counted. Counters: pop_n1 / pop_n2 / pop_n3 in player-log.
 import { sendPlayerLog, type PlayerLogHost } from "@/lib/player-log-client";
 import { popunderUrl } from "@/lib/ads/spots";
-import { nextPagePop, pagePopAllowed, type PagePopDay } from "@/lib/page-pop-cap";
+import { type PagePopDay } from "@/lib/page-pop-cap";
 const HOSTS = new Set(["IndoAV", "UserBokep", "Streamtape", "Putarin", "Videy", "Arsip"]);
 
 /** Max popunders per video id. Easy to change. */
@@ -71,6 +68,7 @@ export function firePop(
   max: number = POP_MAX_PER_VIDEO,
   host?: PlayerLogHost,
 ): "ok" | "block" | "skip" {
+  if (host === "IndoAV") return "skip";
   const url = popunderUrl();
   if (!url || !canPop(videoId, max)) return "skip";
   let w: Window | null = null;
@@ -107,7 +105,7 @@ function parsePagePop(raw: string | null): PagePopDay | null {
 }
 
 /** localStorage, with a cookie copy so the same browser still counts if storage throws. */
-function readPagePop(): PagePopDay | null {
+export function readPagePopState(): PagePopDay | null {
   let stored: PagePopDay | null = null;
   let cookie: PagePopDay | null = null;
   try {
@@ -125,7 +123,7 @@ function readPagePop(): PagePopDay | null {
   return stored || cookie;
 }
 
-function writePagePop(state: PagePopDay): void {
+export function writePagePopState(state: PagePopDay): void {
   try {
     localStorage.setItem(PAGE_POP_KEY, JSON.stringify(state));
   } catch {
@@ -138,28 +136,3 @@ function writePagePop(state: PagePopDay): void {
   }
 }
 
-/**
- * Page and card clicks. At most PAGE_POP_MAX_PER_DAY opens per Jakarta day.
- * Off until TRAFFICSTARS.popunder is set. Never prevents the click.
- */
-export function onPagePopClick(event: { target: EventTarget | null }): void {
-  if (typeof window === "undefined" || !popunderUrl()) return;
-  const el = event.target instanceof Element ? event.target : null;
-  if (!el || el.closest("[data-kdp-ad], [data-videy-skip], input, textarea, select")) return;
-  const now = Date.now();
-  const today = readPagePop();
-  if (!pagePopAllowed(today, now)) return;
-  let w: Window | null = null;
-  try {
-    w = window.open(popunderUrl(), "_blank");
-    if (w) w.opener = null;
-  } catch {
-    w = null;
-  }
-  if (!w) return;
-  writePagePop(nextPagePop(today, now));
-}
-
-export function onCatalogCardClick(event: { target: EventTarget | null }, _hostOf?: (id: string) => string): void {
-  onPagePopClick(event);
-}

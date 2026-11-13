@@ -1,6 +1,6 @@
-// TrafficStars VAST pre-roll for the Videy player. The tag is preroll in src/lib/ads/spots.ts.
-// Client-side only: the browser fetches the VAST tag straight from TrafficStars (nothing passes
-// through our Worker), follows up to 3 wrapper hops, and picks an mp4 MediaFile. Any failure
+// VAST pre-roll for the Videy player. The tag is preroll in src/lib/ads/spots.ts (empty while
+// that slot is disabled, so this fetches nothing). Client-side only: the browser fetches the
+// tag straight from the network (nothing passes through our Worker), follows up to 3 wrapper hops, and picks an mp4 MediaFile. Any failure
 // (no fill, network/CORS error, bad XML, 3.5 s timeout) resolves to null so the film plays.
 // Frequency: about every 2nd Videy play, counted in localStorage (no server writes).
 

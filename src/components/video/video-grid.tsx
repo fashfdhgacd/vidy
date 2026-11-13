@@ -1,6 +1,6 @@
 // Grid: 2 / 3 / 4 kolom (mobile / tablet / desktop) for the watch page; catalog grids 1 / 3 / 4.
-// Catalog grids (`ads` prop): 1 / 3 / 4 columns, 300:250 thumbs, and a TrafficStars
-// 300x250/native master spot as every 8th card when that spot id is set.
+// Catalog grids (`ads` prop): 1 / 3 / 4 columns, 300:250 thumbs, and a 300x250
+// banner spot as every 8th card when that spot is enabled.
 // The watch page ("Tonton juga") keeps the default grid unless ads is on.
 import type { VideoCard as VideoCardType } from "@/lib/catalog/types";
 import { isRealMinor } from "@/lib/minor-terms";

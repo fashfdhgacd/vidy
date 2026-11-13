@@ -1,3 +1,4 @@
+import { isIndoAvCreator, NO_POP_CLASS } from "@/lib/ads/exo-popunder";
 import { IS_VIDEQSSS, cleanDisplayTitle } from "@/lib/seo";
 import { Link } from "@tanstack/react-router";
 import { Clock, Eye, Heart, Play } from "lucide-react";
@@ -39,9 +40,10 @@ export function VideoCard({
       preload={preload}
       onClick={() => rememberCatalog()}
       className={
-        IS_VIDEQSSS
+        (isIndoAvCreator(video.creator) ? `${NO_POP_CLASS} ` : "") +
+        (IS_VIDEQSSS
           ? "group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4b942]"
-          : "group block rounded-xl p-1 transition-colors duration-150 ease-out hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-1.5"
+          : "group block rounded-xl p-1 transition-colors duration-150 ease-out hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-1.5")
       }
     >
       <div className={IS_VIDEQSSS ? "relative aspect-video overflow-hidden rounded-lg bg-surface-2" : "relative aspect-video overflow-hidden rounded-xl bg-surface-2"}>

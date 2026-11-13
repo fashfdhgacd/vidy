@@ -4,9 +4,9 @@
 // Detection, once per page load, client only, no polling:
 //  1. a bait element with ad-like class names; blockers' cosmetic filters hide it (height 0 /
 //     display none);
-//  2. a no-cors request to the TrafficStars SDK, only when a spot id is configured.
-//     A blocker rejects it at once; a slow network does not reject. With no spot id this
-//     step is skipped, so the gate never calls another ad network.
+//  2. a no-cors request to a display-slot script, only when that slot is enabled.
+//     A blocker rejects it at once; a slow network does not reject. While those slots
+//     are off this step is skipped, so the gate does not call an ad network.
 // Network rule against false positives: a rejected ad request only counts when the browser is
 // online and a same-origin control request (/robots.txt) succeeds, and anything that is still
 // pending after DETECT_TIMEOUT_MS is treated as "not blocked". The single setTimeout is the
@@ -16,7 +16,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { slotScript } from "@/lib/ads/spots";
 
-const AD_SCRIPT = slotScript("gridMasterspot", "ms") || slotScript("inPagePush", "p");
+const AD_SCRIPT = slotScript("banner300x250") || slotScript("inPagePush") || slotScript("videoSlider");
 const DETECT_TIMEOUT_MS = 4000;
 const FLAG = "kdp_adblock_seen";
 
