@@ -4,12 +4,13 @@
  *
  * Reads the LIVE sitemap index (so every URL sent is already deployed), compares each
  * `<loc> <lastmod>` with data/indexnow-urls.txt, and POSTs only new, changed or removed URLs to
- * api.indexnow.org (max 10,000 per POST). Removed URLs (merged / redirected) are sent too so the
+ * api.indexnow.org in small POSTs (100 URL each, max 500 per run, new /watch pages first). Removed URLs (merged / redirected) are sent too so the
  * engines recrawl them and pick up the 301. Then it rewrites the state file.
  *
  * Runs in GitHub Actions (.github/workflows/indexnow.yml): no Worker env, no KV, no Cloudflare cost
  * beyond a normal crawl of the sitemap (~12 requests per run).
  *
+ *   node scripts/indexnow-sync.mjs --site=videqsss   same for videqsss.icu (own key + state)
  *   node scripts/indexnow-sync.mjs            submit the diff, update state
  *   node scripts/indexnow-sync.mjs --all      submit every sitemap URL once, update state
  *   node scripts/indexnow-sync.mjs --dry-run  print what would be sent, change nothing
@@ -17,20 +18,39 @@
  * Google does not use IndexNow; it reads the sitemap from robots.txt / Search Console.
  */
 import { readFile, rename, writeFile } from "node:fs/promises";
-import { parseIndexNowState, planIndexNowSync } from "./lib/indexnow-sync-lib.mjs";
+import { parseIndexNowState, planIndexNowSync, prioritizeIndexNow } from "./lib/indexnow-sync-lib.mjs";
 
-const ORIGIN = "https://videyy.icu";
+/**
+ * One script, one state file per satellite host (`--site videyy|videqsss`, default videyy).
+ * Each host has its own public key file in public/ (both builds serve all of public/).
+ */
+const SITES = {
+  videyy: { origin: "https://videyy.icu", key: "73356680884e9de90f845b0907eb4053", state: "../data/indexnow-urls.txt" },
+  videqsss: { origin: "https://videqsss.icu", key: "34776cb0e75d82e12409aa3b3c9b5eea", state: "../data/indexnow-urls-videqsss.txt" },
+};
+const siteArg = process.argv.find((a) => a.startsWith("--site="))?.slice("--site=".length) || "videyy";
+const SITE = SITES[siteArg];
+if (!SITE) throw new Error(`--site tidak dikenal: ${siteArg}`);
+const ORIGIN = SITE.origin;
 const HOST = new URL(ORIGIN).host;
-/** Same public key as src/lib/bot/indexnow.ts; the file public/<key>.txt is already live. */
-const KEY = "73356680884e9de90f845b0907eb4053";
+const KEY = SITE.key;
 const ENDPOINTS = ["https://api.indexnow.org/indexnow", "https://yandex.com/indexnow"];
-const STATE = new URL("../data/indexnow-urls.txt", import.meta.url);
-const MAX_PER_POST = 10000;
+const STATE = new URL(SITE.state, import.meta.url);
+/**
+ * Small submissions: Bing Webmaster flags big "batch mode" dumps. Each POST carries at most
+ * MAX_PER_POST URLs with a pause between POSTs, and one run sends at most MAX_PER_RUN URLs;
+ * the rest stay out of state so the next run (every 6 h / after the next upload) sends them.
+ */
+const MAX_PER_POST = 100;
+const MAX_PER_RUN = 500;
+const POST_GAP_MS = 3000;
 /** Cap on removed URLs per run, so a broken sitemap can never flood the engines. */
 const MAX_REMOVED = 2000;
 
 const args = new Set(process.argv.slice(2));
-const ALL = args.has("--all");
+let ALL = args.has("--all");
+/** --seed-if-empty: with no state file yet, drip-submit the whole sitemap (MAX_PER_RUN per run). */
+const SEED = args.has("--seed-if-empty");
 const DRY = args.has("--dry-run");
 
 async function getText(url) {
@@ -95,6 +115,7 @@ async function readState() {
 
 async function submit(urls) {
   for (let i = 0; i < urls.length; i += MAX_PER_POST) {
+    if (i > 0) await new Promise((res) => setTimeout(res, POST_GAP_MS));
     const urlList = urls.slice(i, i + MAX_PER_POST);
     const payload = JSON.stringify({ host: HOST, key: KEY, keyLocation: `${ORIGIN}/${KEY}.txt`, urlList });
     for (const [i, endpoint] of ENDPOINTS.entries()) {
@@ -115,6 +136,7 @@ async function submit(urls) {
 
 const live = await liveUrls();
 const prev = await readState();
+if (!prev && SEED) ALL = true;
 console.log(`sitemap live: ${live.size} URL; state: ${prev ? prev.size : "belum ada"}`);
 if (prev && prev.size > 100 && live.size < prev.size * 0.5) {
   throw new Error(
@@ -129,7 +151,15 @@ if (prev && !ALL) {
   console.log(`baru/berubah: ${send.length - removedCount}; hilang dari sitemap: ${removedCount}`);
   if (next.size > live.size) console.log(`sisa URL hilang dalam antrean: ${next.size - live.size}`);
 }
-const urls = [...new Set(send)].map((p) => ORIGIN + p);
+// New /watch pages first, then everything else; anything over MAX_PER_RUN waits for the next run.
+const ordered = prioritizeIndexNow([...new Set(send)], prev);
+const deferred = ordered.slice(MAX_PER_RUN);
+for (const path of deferred) {
+  if (prev?.has(path)) next.set(path, prev.get(path));
+  else next.delete(path);
+}
+if (deferred.length) console.log(`ditunda ke run berikutnya: ${deferred.length} URL`);
+const urls = ordered.slice(0, MAX_PER_RUN).map((p) => ORIGIN + p);
 if (DRY) {
   console.log(`[dry-run] akan dikirim ${urls.length} URL`, urls.slice(0, 10));
   process.exit(0);
