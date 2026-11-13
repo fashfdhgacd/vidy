@@ -145,6 +145,19 @@ function seoBaseTitle(raw?: string | null): string {
   return withoutDomainSuffix(cleanDisplayTitle(withoutDomainSuffix(raw)));
 }
 
+/** Ekor judul tonton per situs: videyy pakai kata kunci "Videy", videqsss pakai "Bokep Indo". */
+function siteTitleTails(base: string, label: string, hasLabel: boolean, hasBokep: boolean): string[] {
+  if (IS_VIDEQSSS) {
+    const hasIndo = /\bindo(nesia)?\b/i.test(base);
+    if (hasBokep && hasIndo) return [" – Videqsss"];
+    if (hasBokep) return [" – Indo Terbaru", " – Indo"];
+    return hasLabel || hasIndo ? [" – Bokep Indo Terbaru", " – Bokep Indo"] : [` – Bokep Indo ${label}`, " – Bokep Indo"];
+  }
+  const hasVidey = /\bvidey\b/i.test(base);
+  if (hasVidey) return hasBokep ? [" – Viral"] : [" – Bokep Viral", " – Viral"];
+  return [" – Videy Viral", " – Videy"];
+}
+
 export function videoSeoTitle(title: string, category?: string | null): string {
   const base = seoBaseTitle(title);
   const label = videoTextLabel(category);
@@ -152,10 +165,14 @@ export function videoSeoTitle(title: string, category?: string | null): string {
   const hasLabel = new RegExp(`(?:^|[^\\p{L}\\p{N}])${esc}(?![\\p{L}\\p{N}])`, "iu").test(base);
   const hasBokep = /\bbokep\b/i.test(base);
   // Kategori hanya ditempel kalau muat utuh; tidak pernah jadi potongan seperti "– Bo…".
-  const tails = hasLabel ? (hasBokep ? [] : [" – Bokep"]) : hasBokep ? [` – ${label}`] : [` – Bokep ${label}`, " – Bokep"];
+  // Ekor judul beda per situs supaya judul satelit tidak identik dengan koleksidrpinguin.com.
+  const tails = siteTitleTails(base, label, hasLabel, hasBokep);
   for (const tail of tails) {
     if (base.length + tail.length <= VIDEO_TITLE_HEAD_MAX) return pageTitle([`${base}${tail}`]);
   }
+  // Judul panjang: potong judul supaya ekor situs tetap muat (judul tetap beda dari situs utama).
+  const last = tails[tails.length - 1];
+  if (last) return pageTitle([`${clipTitleText(base, VIDEO_TITLE_HEAD_MAX - last.length)}${last}`]);
   return pageTitle([clipTitleText(base, VIDEO_TITLE_HEAD_MAX)]);
 }
 
@@ -230,7 +247,10 @@ export function publicWatchDescription(item: SeoVideoInput, max = 0): string {
   const dur = durationPhrase(item.duration);
   const name = title ? `“${clipTitleText(title, 80)}”` : "Koleksi ini";
   const durBit = dur ? `, durasi ${dur}` : "";
-  const text = `${name} ada di kategori ${label}${durBit}. Putar langsung di videyy.icu tanpa daftar akun. Khusus 18+.`;
+  // Template per situs: meta satelit tidak sama persis dengan koleksidrpinguin.com (konten duplikat).
+  const text = IS_VIDEQSSS
+    ? `${name}: bokep Indo ${label}${durBit} di Videqsss. IndoAV & UserBokep terbaru, nonton tanpa daftar di videqsss.icu. 18+.`
+    : `Nonton ${name} di Videy Hub, video ${label}${durBit}. Videy viral update tiap hari, tanpa VPN di videyy.icu. 18+.`;
   return max > 0 ? clipAtWord(text, max) : text;
 }
 
@@ -275,7 +295,7 @@ function buildSentences(item: SeoVideoInput): { lead: string; detail: string; cl
   const year = (item.year || "").trim();
   const tags = safeTags(item, label);
   const tagTxt = tags.length ? tags.join(" & ") : "";
-  const seed = `${item.id || ""}|${rawTitle}`;
+  const seed = `${SITE_ID}|${item.id || ""}|${rawTitle}`;
   const pick = <T,>(arr: T[], salt: string) => arr[stablePick(seed + salt, arr.length)]!;
 
   const subj = t ? `“${t}”` : "video ini";
