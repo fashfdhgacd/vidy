@@ -1,5 +1,5 @@
 // Poster SW disabled.
-// Posters are served from R2 (img.videyy.icu) with /thumb and brand fallbacks.
+// Posters are served from R2 (img.koleksidrpinguin.com) with /thumb and brand fallbacks.
 // Aggressive Cache Storage was causing large visitor disk usage.
 // This file now only cleans up old caches and unregisters itself.
 

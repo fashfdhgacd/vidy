@@ -19,7 +19,7 @@ const runner = `
     const url = new URL(String(input));
     const id = url.pathname.split("/").pop();
     calls.push({ host: url.hostname, id });
-    if (url.hostname === "img.videyy.icu") {
+    if (url.hostname === "img.koleksidrpinguin.com") {
       if (process.env.THUMB_TEST_SCENARIO === "challenge") {
         return new Response(null, { status: 403, headers: { "cf-mitigated": "challenge" } });
       }
@@ -113,7 +113,7 @@ for (const scenario of ["challenge", "repair-challenge"]) {
       assert.ok(Array.isArray(calls) && calls.length > 0 && calls.length <= 20);
       if (scenario === "challenge") {
         assert.ok(calls.length <= 10);
-        assert.ok(calls.every((call) => call.host === "img.videyy.icu"));
+        assert.ok(calls.every((call) => call.host === "img.koleksidrpinguin.com"));
       } else {
         assert.ok(calls.some((call) => call.host === "videyy.icu"));
       }
