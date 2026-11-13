@@ -1,4 +1,4 @@
-# IndexNow tiap 6 jam (07:45, 13:45, 19:45, 01:45 WIB) + otomatis ~8 menit sesudah Daily video sync selesai.
+# IndexNow (videyy.icu + videqsss.icu) tiap 6 jam (07:45, 13:45, 19:45, 01:45 WIB) + otomatis ~8 menit sesudah Daily video sync selesai.
 # scripts/indexnow-sync.mjs baca sitemap LIVE, kirim cuma URL baru/berubah/hilang ke api.indexnow.org
 # (Bing, Yandex, Seznam, Naver; DuckDuckGo pakai index Bing), lalu commit data/indexnow-urls.txt.
 # Gratis di GitHub Actions: tanpa secret, tanpa env Worker, tanpa KV. Commit pakai [skip ci] supaya
@@ -10,7 +10,7 @@ on:
     - cron: "45 0,6,12,18 * * *"
   # Right after the daily upload sync, so new videos reach Bing/Yandex the same night.
   workflow_run:
-    workflows: ["Daily video sync"]
+    workflows: ["Daily video sync", "Videy catalog sync"]
     types: [completed]
   workflow_dispatch:
     inputs:
@@ -44,14 +44,20 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Submit new/changed URLs
-        run: node scripts/indexnow-sync.mjs ${{ inputs.all && '--all' || '' }}
+      - name: Submit new/changed URLs (videyy.icu)
+        run: node scripts/indexnow-sync.mjs --site=videyy ${{ inputs.all && '--all' || '' }}
+
+      # videqsss.icu: own key + state. First run (no state yet) drip-submits the sitemap, 500 URLs per run.
+      - name: Submit new/changed URLs (videqsss.icu)
+        if: always()
+        run: node scripts/indexnow-sync.mjs --site=videqsss --seed-if-empty ${{ inputs.all && '--all' || '' }}
 
       - name: Commit state (only if changed)
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
-          git add data/indexnow-urls.txt
+          git add data/indexnow-urls.txt data/indexnow-urls-videqsss.txt 2>/dev/null || git add data/indexnow-urls.txt
           git diff --cached --quiet && { echo "Tidak ada perubahan."; exit 0; }
           git commit -m "chore: IndexNow state ($(date -u '+%Y-%m-%d %H:%M') UTC) [skip ci]"
           for i in 1 2 3; do
