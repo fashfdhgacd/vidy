@@ -93,7 +93,9 @@ async function main() {
     return;
   }
   const files = config.upstream?.files || [];
-  const localItems = loadLocalItems(files);
+  // Bundled copies to dedupe against; `files` are the upstream paths (koleksidrpinguin.com
+  // /api/satelit/catalog.json — the main repo is private, so its raw files are unreachable here).
+  const localItems = loadLocalItems(config.upstream?.localFiles || files);
   const upstreamItems = [];
   let upstreamBlock = null;
   for (const rel of files) {
