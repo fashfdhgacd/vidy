@@ -47,7 +47,7 @@ export function VideoGrid({
 }: {
   items: VideoCardType[];
   eagerCount?: number;
-  /** Catalog layout (1 / 3 / 4 columns, 300:250 thumbs). Also enables the TrafficStars grid card. */
+  /** Catalog layout (1 / 3 / 4 columns, 300:250 thumbs). Also enables the 300x250 grid banner. */
   ads?: boolean;
 }) {
   const shown = visibleCards(items);

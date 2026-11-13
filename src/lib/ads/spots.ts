@@ -1,8 +1,8 @@
 /**
  * Ad slots for this build. videyy.icu and videqsss.icu each get their own zones.
- * network is exoclick. Only the popunder is enabled. Banner, slider, push, and VAST
- * keep their zone id (and the VAST URL) but script stays empty and enabled is false,
- * so nothing else loads. There is no 300x100 zone.
+ * network is exoclick. Popunder, 300x250 banner, and in-page push are on.
+ * Slider and VAST keep their zone id (and the VAST URL) but stay disabled.
+ * There is no 300x100 zone.
  */
 import { activeScript, activeVast, buildAds, popunderLink, videqsssZones, videyyZones } from "./ads-config.ts";
 
@@ -22,7 +22,7 @@ export function prerollUrl(): string {
   return activeVast(ADS.preroll);
 }
 
-/** Display-slot script. Empty while the slot is disabled, so the page loads nothing. */
+/** Display-slot script URL. Empty while the slot is disabled, so the page loads nothing. */
 export function slotScript(slot: "banner300x250" | "videoSlider" | "inPagePush"): string {
   return activeScript(ADS[slot]);
 }

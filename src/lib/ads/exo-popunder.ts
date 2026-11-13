@@ -50,3 +50,12 @@ export function pagePopDecision(input: { pageAd: PageAdMark; allowed: boolean; e
   if (input.pageAd === "off" || input.pageAd === "wait") return "hold";
   return "arm";
 }
+
+/**
+ * Banner and in-page push may load only when this page is not an IndoAV watch
+ * page. Catalog pages have no marker (null) and are allowed. "wait" means the
+ * watch page has not yet said which host it is.
+ */
+export function displayAdsAllowed(pageAd: PageAdMark): boolean {
+  return pageAd !== "off" && pageAd !== "wait";
+}
