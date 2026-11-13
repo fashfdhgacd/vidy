@@ -4,7 +4,8 @@ import { EmptyState, ErrorState } from "@/components/states/feed-states";
 import { SafeBoundary } from "@/components/safe-boundary";
 import { CatalogPager } from "@/components/video/catalog-pager";
 import { VideoGrid } from "@/components/video/video-grid";
-import { keywordHref } from "@/lib/catalog/halaman";
+import { enHref, keywordHref } from "@/lib/catalog/halaman";
+import { enSlugForId, hreflangLinks } from "@/lib/catalog/en-landing";
 import { LANDING_INDEX_PAGES, LANDING_MIN_VIDEOS, LANDING_PAGE_SIZE, findLanding, landingsForSite } from "@/lib/catalog/landing";
 import { queryCatalog } from "@/lib/catalog/service";
 import type { CatalogResponse, VideoCard } from "@/lib/catalog/types";
@@ -38,6 +39,8 @@ export function landingHead(slug: string, page: number, loaderData: unknown) {
     ...(page > 1 ? [{ rel: "prev", href: `${SITE_ORIGIN}${keywordHref(def.slug, page - 1)}` }] : []),
     ...(page < last ? [{ rel: "next", href: `${SITE_ORIGIN}${keywordHref(def.slug, page + 1)}` }] : []),
   ];
+  const enSlug = page === 1 && IS_VIDEQSSS ? enSlugForId(def.slug) : undefined;
+  const hreflang = enSlug ? hreflangLinks(keywordHref(def.slug, 1), enHref(enSlug, 1), SITE_ORIGIN) : [];
   return {
     meta: [
       { title },
@@ -51,7 +54,7 @@ export function landingHead(slug: string, page: number, loaderData: unknown) {
       { name: "robots", content: indexable ? "index,follow" : "noindex,follow" },
       ...(!indexable ? [{ name: "googlebot", content: "noindex,follow" }] : []),
     ],
-    links: [{ rel: "canonical", href: url }, ...pageLinks],
+    links: [{ rel: "canonical", href: url }, ...pageLinks, ...hreflang],
     scripts: indexable
       ? [
           {

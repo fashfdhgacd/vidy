@@ -3,7 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { blockedIdSet, isBlockedId } from "./catalog-block.js";
 import { acceptLandingCard } from "./landing.ts";
-import { categoryHref, cariHref, genreHref, homeHref, landingPath, legacyPageRedirect, parseHalamanParam } from "./halaman.ts";
+import { categoryHref, cariHref, enHref, genreHref, homeHref, landingPath, legacyPageRedirect, parseHalamanParam } from "./halaman.ts";
 
 test("halaman paths replace query pagination", () => {
   assert.equal(homeHref(1), "/");
@@ -11,7 +11,9 @@ test("halaman paths replace query pagination", () => {
   assert.equal(categoryHref("jilbab", 3), "/kategori/jilbab/halaman/3");
   assert.equal(cariHref("bokep-ojol", 2), "/cari/bokep-ojol/halaman/2");
   assert.equal(genreHref("bokep-jilbab-indo", 2), "/genre/bokep-jilbab-indo/halaman/2");
+  assert.equal(enHref("indo-hijab", 2), "/en/indo-hijab/halaman/2");
   assert.equal(landingPath("genre", "bokep-jilbab-indo", 1), "/genre/bokep-jilbab-indo");
+  assert.equal(legacyPageRedirect("/en/indonesian-amateur", "?page=3"), "/en/indonesian-amateur/halaman/3");
   assert.equal(legacyPageRedirect("/genre/bokep-jilbab-indo", "?page=2"), "/genre/bokep-jilbab-indo/halaman/2");
   assert.equal(parseHalamanParam("2"), 2);
   assert.equal(parseHalamanParam("1"), null);

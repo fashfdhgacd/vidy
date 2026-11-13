@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { AgeGate } from "@/components/age-gate";
 import { InPagePush, VideoSlider } from "@/components/ad-slot";
 import { ExoPagePopunder } from "@/components/exo-page-popunder";
-import { SITE_NAME, TITLE_SUFFIX } from "@/lib/seo";
+import { IS_VIDEQSSS, SITE_NAME, TITLE_SUFFIX } from "@/lib/seo";
 import { Header } from "./header";
 
 export function Shell({
@@ -64,6 +64,11 @@ export function Shell({
                 <Link to="/teman" className="hover:text-foreground hover:underline">
                   Teman
                 </Link>
+                {IS_VIDEQSSS ? (
+                  <a href="/en" hrefLang="en" lang="en" className="hover:text-foreground hover:underline">
+                    English
+                  </a>
+                ) : null}
               </nav>
               <a
                 href="https://www.rtalabel.org/"
