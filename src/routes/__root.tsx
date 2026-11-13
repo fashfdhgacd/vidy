@@ -3,6 +3,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { PresencePing } from "@/components/presence-ping";
 import { SwCleanup } from "@/components/sw-cleanup";
+import { EXOCLICK_META_NAME, exoclickToken } from "@/lib/exoclick-verify";
 import { DEFAULT_OG, HOME_DESCRIPTION, HOME_TITLE, OG_SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
 import appCss from "../styles.css?url";
 import figtreeFont from "../assets/fonts/figtree-latin.woff2?url";
@@ -44,6 +45,8 @@ export const Route = createRootRoute({
       { name: "googlebot", content: "index,follow,max-image-preview:large" },
       // TrafficStars site verification (publisher account).
       { name: "Trafficstars", content: "91976" },
+      // ExoClick site-ownership. Token is baked per worker (videyy vs videqsss).
+      { name: EXOCLICK_META_NAME, content: exoclickToken() },
       { property: "og:site_name", content: OG_SITE_NAME },
       { property: "og:title", content: HOME_TITLE },
       { property: "og:type", content: "website" },
