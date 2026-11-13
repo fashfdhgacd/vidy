@@ -2,13 +2,13 @@ import { createFileRoute, notFound, redirect, useNavigate } from "@tanstack/reac
 import { enHref, parseHalamanParam } from "@/lib/catalog/halaman";
 import { findEnLanding } from "@/lib/catalog/en-landing";
 import { listEnLandingPage } from "@/lib/catalog/en-landing-query";
-import { IS_VIDEQSSS, SITE_ORIGIN } from "@/lib/seo";
+import { SITE_ORIGIN } from "@/lib/seo";
 import { EnExperience, enLandingHead } from "./en.$slug";
 
 /** /en/<slug>/halaman/N */
 export const Route = createFileRoute("/en/$slug/halaman/$page")({
   beforeLoad: ({ params }) => {
-    if (!IS_VIDEQSSS || !findEnLanding(params.slug)) throw notFound();
+    if (!findEnLanding(params.slug)) throw notFound();
     if (params.page === "1") {
       throw redirect({ href: `${SITE_ORIGIN}${enHref(params.slug, 1)}`, statusCode: 301 });
     }

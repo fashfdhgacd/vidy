@@ -39,7 +39,7 @@ export function landingHead(slug: string, page: number, loaderData: unknown) {
     ...(page > 1 ? [{ rel: "prev", href: `${SITE_ORIGIN}${keywordHref(def.slug, page - 1)}` }] : []),
     ...(page < last ? [{ rel: "next", href: `${SITE_ORIGIN}${keywordHref(def.slug, page + 1)}` }] : []),
   ];
-  const enSlug = page === 1 && IS_VIDEQSSS ? enSlugForId(def.slug) : undefined;
+  const enSlug = page === 1 ? enSlugForId(def.slug) : undefined;
   const hreflang = enSlug ? hreflangLinks(keywordHref(def.slug, 1), enHref(enSlug, 1), SITE_ORIGIN) : [];
   return {
     meta: [
