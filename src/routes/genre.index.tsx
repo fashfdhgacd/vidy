@@ -3,6 +3,7 @@ import { Shell } from "@/components/layout/shell";
 import { keywordHref } from "@/lib/catalog/halaman";
 import { landingsForSite } from "@/lib/catalog/landing";
 import { jsonLdString } from "@/lib/json-ld";
+import { hreflangLinks } from "@/lib/catalog/en-landing";
 import { DEFAULT_OG, HOME_CANONICAL, IS_VIDEQSSS, SITE_NAME, SITE_ORIGIN, breadcrumbJsonLd, collectionPageJsonLd } from "@/lib/seo";
 
 const TITLE = "Genre Video IndoAV dan UserBokep | videqsss.icu";
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/genre/")({
         { name: "twitter:card", content: "summary_large_image" },
         { name: "robots", content: "index,follow" },
       ],
-      links: [{ rel: "canonical", href: url }],
+      links: [{ rel: "canonical", href: url }, ...hreflangLinks("/genre", "/en", SITE_ORIGIN)],
       scripts: [
         { type: "application/ld+json", children: jsonLdString(collectionPageJsonLd({ name: TITLE, url, description: DESCRIPTION })) },
         {
@@ -52,6 +53,12 @@ function GenreIndex() {
       <section className="space-y-4">
         <h1 className="text-xl font-semibold text-zinc-100">Genre</h1>
         <p className="max-w-2xl text-sm text-zinc-400">{DESCRIPTION}</p>
+        <p className="text-sm text-zinc-500">
+          English collections:{" "}
+          <a href="/en" hrefLang="en" className="text-[#f4b942] underline-offset-2 hover:underline">
+            /en
+          </a>
+        </p>
         <ul className="grid gap-2 sm:grid-cols-2">
           {pages.map((l) => (
             <li key={l.slug}>

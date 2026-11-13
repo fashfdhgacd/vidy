@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
+import { langSwitchForPath } from "@/lib/catalog/en-landing";
 import { IS_VIDEQSSS } from "@/lib/seo";
 
 function BrandMark() {
@@ -27,6 +28,35 @@ function BrandMark() {
         18+
       </span>
     </span>
+  );
+}
+
+function LangSwitcher() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { lang, idHref, enHref } = langSwitchForPath(pathname);
+  const item = (href: string, label: string, current: boolean, hrefLang: string) => (
+    <a
+      href={href}
+      hrefLang={hrefLang}
+      lang={hrefLang}
+      aria-current={current ? "page" : undefined}
+      className={
+        current
+          ? "rounded px-1.5 py-0.5 text-[11px] font-semibold text-foreground"
+          : "rounded px-1.5 py-0.5 text-[11px] font-medium text-muted hover:text-foreground"
+      }
+    >
+      {label}
+    </a>
+  );
+  return (
+    <nav aria-label="Language" className="flex shrink-0 items-center gap-0.5 border-l border-border/60 pl-2 sm:pl-3">
+      {item(idHref, "ID", lang === "id", "id")}
+      <span aria-hidden="true" className="text-[11px] text-muted">
+        /
+      </span>
+      {item(enHref, "EN", lang === "en", "en")}
+    </nav>
   );
 }
 
@@ -103,6 +133,7 @@ export function Header({ query }: { query?: string }) {
             </button>
           ) : null}
         </form>
+        {IS_VIDEQSSS ? <LangSwitcher /> : null}
       </div>
     </header>
   );
