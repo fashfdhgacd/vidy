@@ -7,6 +7,7 @@ import { VideoPlayer } from "@/components/video/player";
 import { PosterIdContext } from "@/components/video/thumb";
 import { VideyPlayer } from "@/components/video/videy-player";
 import { AdblockGate } from "@/components/adblock-gate";
+import { Banner300x250 } from "@/components/ad-slot";
 import { isIndoAvPlayback } from "@/lib/ads/exo-popunder";
 import { syncExoPagePopunder } from "@/lib/ads/exo-popunder-dom";
 import { hostLabel } from "@/lib/catalog/embed";
@@ -445,6 +446,9 @@ export function WatchPage() {
               </div>
             )}
             {server ? <ServerButtons item={item} current={server.id} /> : null}
+            {adMode === "on" ? (
+              <Banner300x250 className="mx-auto mt-3 w-[300px] max-w-full overflow-hidden rounded-xl bg-surface-2" />
+            ) : null}
             {(() => {
               const src = catalogPlayUrl(item);
               if (!src || /\.(mp4|webm|mov)($|\?)/i.test(src)) return null;

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { AgeGate } from "@/components/age-gate";
-import { Banner300x100, InPagePush, VideoSlider } from "@/components/ad-slot";
+import { InPagePush, VideoSlider } from "@/components/ad-slot";
 import { ExoPagePopunder } from "@/components/exo-page-popunder";
 import { SITE_NAME, TITLE_SUFFIX } from "@/lib/seo";
 import { Header } from "./header";
@@ -21,7 +21,6 @@ export function Shell({
         <VideoSlider />
         <Header query={query} />
         <main className="mx-auto w-full max-w-[1600px] flex-1 px-3 pb-16 pt-4 sm:px-6 sm:pb-14 sm:pt-6">
-          <Banner300x100 className="mx-auto mb-4 w-[300px] max-w-full" />
           {children}
         </main>
         <footer className="mt-auto border-t border-border/60 pb-[env(safe-area-inset-bottom)]">

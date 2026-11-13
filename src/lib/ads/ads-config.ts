@@ -6,13 +6,25 @@ import { popunderScriptBody } from "./exo-popunder.ts";
 
 export type AdNetwork = "exoclick";
 
+/** Official ExoClick ad-provider script (banner, in-page push, slider). */
+export const EXO_AD_PROVIDER = "https://a.magsrv.com/ad-provider.js";
+
+/** `ins` class names from the official ExoClick embeds. */
+export const EXO_INS_CLASS = {
+  banner300x250: "eas6a97888e2",
+  inPagePush: "eas6a97888e42",
+  videoSlider: "eas6a97888e31",
+} as const;
+
 export type AdSpot = {
   zoneId: string;
-  /** Inline embed or script URL. Empty: this slot loads nothing. */
+  /** Script URL or inline popunder body. Empty: this slot loads nothing. */
   script: string;
   /** VAST tag. The player requests it only when the spot is enabled. */
   vastUrl: string;
   enabled: boolean;
+  /** ExoClick <ins> class for display slots. Empty for popunder/VAST. */
+  insClass: string;
 };
 
 export type AdsConfig = {
@@ -53,7 +65,17 @@ export const videqsssZones: ZoneSet = {
 };
 
 function off(zoneId: string, vastUrl = ""): AdSpot {
-  return { zoneId, script: "", vastUrl, enabled: false };
+  return { zoneId, script: "", vastUrl, enabled: false, insClass: "" };
+}
+
+function displaySpot(zoneId: string, insClass: string, enabled: boolean): AdSpot {
+  return {
+    zoneId,
+    script: enabled && zoneId ? EXO_AD_PROVIDER : "",
+    vastUrl: "",
+    enabled: Boolean(enabled && zoneId),
+    insClass,
+  };
 }
 
 export function buildAds(zone: ZoneSet): AdsConfig {
@@ -66,10 +88,11 @@ export function buildAds(zone: ZoneSet): AdsConfig {
       script: own ? script : "",
       vastUrl: "",
       enabled: own,
+      insClass: "",
     },
-    banner300x250: off(zone.banner300x250),
-    videoSlider: off(zone.videoSlider),
-    inPagePush: off(zone.inPagePush),
+    banner300x250: displaySpot(zone.banner300x250, EXO_INS_CLASS.banner300x250, true),
+    videoSlider: displaySpot(zone.videoSlider, EXO_INS_CLASS.videoSlider, false),
+    inPagePush: displaySpot(zone.inPagePush, EXO_INS_CLASS.inPagePush, true),
     preroll: off(zone.preroll, zone.vastUrl),
   };
 }
