@@ -43,5 +43,8 @@
     ]
   },
   "blocklist": "src/lib/catalog/catalog-blocklist.json",
-  "output": "data/synced-catalog.json"
+  "output": "data/synced-catalog.json",
+  "siteConfigUrl": "https://koleksidrpinguin.com/api/satelit/config.json",
+  "statusOutput": "public/sync-status.json",
+  "siteConfigOutput": "data/satelit-config.json"
 }
