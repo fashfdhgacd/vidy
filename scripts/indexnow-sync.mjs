@@ -113,12 +113,14 @@ async function readState() {
   }
 }
 
+/** Returns how many URLs were accepted; stops early while a new key is still being verified. */
 async function submit(urls) {
+  let sent = 0;
   for (let i = 0; i < urls.length; i += MAX_PER_POST) {
     if (i > 0) await new Promise((res) => setTimeout(res, POST_GAP_MS));
     const urlList = urls.slice(i, i + MAX_PER_POST);
     const payload = JSON.stringify({ host: HOST, key: KEY, keyLocation: `${ORIGIN}/${KEY}.txt`, urlList });
-    for (const [i, endpoint] of ENDPOINTS.entries()) {
+    for (const [n, endpoint] of ENDPOINTS.entries()) {
       const r = await fetch(endpoint, {
         method: "POST",
         headers: { "content-type": "application/json; charset=utf-8" },
@@ -126,12 +128,20 @@ async function submit(urls) {
       });
       const body = (await r.text()).slice(0, 300);
       console.log(`IndexNow ${new URL(endpoint).host} POST ${urlList.length} URL -> HTTP ${r.status} ${body}`);
-      // Shared endpoint must accept (200/202). Yandex is the same body; a Yandex blip does not
-      // fail the run because the shared endpoint already fans out, but we still call Yandex directly.
-      if (i === 0 && r.status !== 200 && r.status !== 202) throw new Error(`IndexNow HTTP ${r.status}`);
-      if (i > 0 && r.status !== 200 && r.status !== 202) console.warn(`Yandex IndexNow HTTP ${r.status}`);
+      const ok = r.status === 200 || r.status === 202;
+      // New key: the shared endpoint answers 403 SiteVerificationNotCompleted until it has read the
+      // key file. Not an error: stop; the unsent URLs stay out of state and go out on a later run.
+      if (n === 0 && r.status === 403 && body.includes("SiteVerificationNotCompleted")) {
+        console.log("Verifikasi key IndexNow belum selesai; sisa URL dikirim run berikutnya.");
+        return sent;
+      }
+      // Shared endpoint must accept (200/202). A Yandex blip does not fail the run.
+      if (n === 0 && !ok) throw new Error(`IndexNow HTTP ${r.status}`);
+      if (n > 0 && !ok) console.warn(`Yandex IndexNow HTTP ${r.status}`);
     }
+    sent += urlList.length;
   }
+  return sent;
 }
 
 const live = await liveUrls();
@@ -164,8 +174,15 @@ if (DRY) {
   console.log(`[dry-run] akan dikirim ${urls.length} URL`, urls.slice(0, 10));
   process.exit(0);
 }
-if (urls.length) await submit(urls);
-else console.log("tidak ada URL baru");
+if (urls.length) {
+  const sent = await submit(urls);
+  // Unsent URLs (key still being verified): keep them out of state so a later run sends them.
+  for (const url of urls.slice(sent)) {
+    const path = url.slice(ORIGIN.length);
+    if (prev?.has(path)) next.set(path, prev.get(path));
+    else next.delete(path);
+  }
+} else console.log("tidak ada URL baru");
 
 const lines = [...next]
   .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
