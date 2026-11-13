@@ -133,7 +133,7 @@ export function Header({ query }: { query?: string }) {
             </button>
           ) : null}
         </form>
-        {IS_VIDEQSSS ? <LangSwitcher /> : null}
+        <LangSwitcher />
       </div>
     </header>
   );

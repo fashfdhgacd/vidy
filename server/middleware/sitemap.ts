@@ -12,7 +12,7 @@ import { STATIC_PAGE_LASTMOD } from "../../src/lib/catalog/lastmod.js";
 import { listSitemapWatchEntries } from "../../src/lib/catalog/sitemap-entries";
 import { enHref, keywordHref, keywordRoot } from "../../src/lib/catalog/halaman";
 import { indexableEnLandings } from "../../src/lib/catalog/en-landing-query";
-import { IS_VIDEQSSS, SITE_ORIGIN, cleanDisplayTitle, publicWatchDescription, seoVideoThumbnail } from "../../src/lib/seo";
+import { SITE_ORIGIN, cleanDisplayTitle, publicWatchDescription, seoVideoThumbnail } from "../../src/lib/seo";
 
 interface SitemapEvent {
   url: URL;
@@ -90,13 +90,11 @@ function pageEntries(
       out.push(urlEntry(`${SITE_ORIGIN}${keywordHref(landing.slug, n)}`, { changefreq: "daily", priority: "0.5" }));
     }
   }
-  if (IS_VIDEQSSS) {
-    out.push(urlEntry(`${SITE_ORIGIN}/en`, { changefreq: "weekly", priority: "0.6", lastmod: "2026-11-13" }));
-    for (const landing of enLandings) {
-      out.push(urlEntry(`${SITE_ORIGIN}${enHref(landing.slug, 1)}`, { changefreq: "daily", priority: "0.6" }));
-      for (let n = 2; n <= landing.pages; n++) {
-        out.push(urlEntry(`${SITE_ORIGIN}${enHref(landing.slug, n)}`, { changefreq: "daily", priority: "0.5" }));
-      }
+  out.push(urlEntry(`${SITE_ORIGIN}/en`, { changefreq: "weekly", priority: "0.6", lastmod: "2026-11-13" }));
+  for (const landing of enLandings) {
+    out.push(urlEntry(`${SITE_ORIGIN}${enHref(landing.slug, 1)}`, { changefreq: "daily", priority: "0.6" }));
+    for (let n = 2; n <= landing.pages; n++) {
+      out.push(urlEntry(`${SITE_ORIGIN}${enHref(landing.slug, n)}`, { changefreq: "daily", priority: "0.5" }));
     }
   }
   for (const path of LEGAL_PATHS) {
@@ -182,7 +180,7 @@ async function buildPagesXml(): Promise<string> {
   const [entries, landings, enLandings, latest] = await Promise.all([
     listSitemapWatchEntries(),
     indexableLandings(),
-    IS_VIDEQSSS ? indexableEnLandings() : Promise.resolve([]),
+    indexableEnLandings(),
     listLatest(1, 1).catch(() => ({ total: 0 })),
   ]);
   const homePages = Math.min(5, Math.max(1, Math.ceil((latest.total || 0) / DEFAULT_PAGE_SIZE)));

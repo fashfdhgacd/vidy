@@ -64,13 +64,13 @@ describe("english videqsss landings", () => {
   });
 
   it("points the language switcher at matching pages, never auto-redirects", () => {
-    assert.deepEqual(langSwitchForPath("/en"), { lang: "en", idHref: "/genre", enHref: "/en" });
-    assert.deepEqual(langSwitchForPath("/en/indonesian-amateur"), {
+    assert.deepEqual(langSwitchForPath("/en", "genre"), { lang: "en", idHref: "/genre", enHref: "/en" });
+    assert.deepEqual(langSwitchForPath("/en/indonesian-amateur", "genre"), {
       lang: "en",
       idHref: "/genre/bokep-indo-amatir",
       enHref: "/en/indonesian-amateur",
     });
-    assert.deepEqual(langSwitchForPath("/en/indo-viral/halaman/2"), {
+    assert.deepEqual(langSwitchForPath("/en/indo-viral/halaman/2", "genre"), {
       lang: "en",
       idHref: "/genre",
       enHref: "/en/indo-viral",
@@ -81,6 +81,17 @@ describe("english videqsss landings", () => {
       enHref: "/en/indo-hijab",
     });
     assert.deepEqual(langSwitchForPath("/watch/abc"), { lang: "id", idHref: "/watch/abc", enHref: "/en" });
+    assert.deepEqual(langSwitchForPath("/en", "cari"), { lang: "en", idHref: "/cari", enHref: "/en" });
+    assert.deepEqual(langSwitchForPath("/en/indo-hijab", "cari"), {
+      lang: "en",
+      idHref: "/cari/bokep-jilbab-indo",
+      enHref: "/en/indo-hijab",
+    });
+    assert.deepEqual(langSwitchForPath("/cari/bokep-jilbab-indo"), {
+      lang: "id",
+      idHref: "/cari/bokep-jilbab-indo",
+      enHref: "/en/indo-hijab",
+    });
   });
 
   it("emits reciprocal hreflang with x-default on the Indonesian URL", () => {

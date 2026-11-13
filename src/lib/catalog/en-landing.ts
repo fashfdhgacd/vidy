@@ -8,7 +8,7 @@
  * Kept free of heavy imports so node --test can load it directly.
  */
 import { LANDING_MIN_VIDEOS, hasBannedWord } from "./landing.ts";
-import { enHref, genreHref } from "./halaman.ts";
+import { enHref, keywordRoot, landingPath } from "./halaman.ts";
 
 export { LANDING_MIN_VIDEOS, LANDING_PAGE_SIZE, LANDING_INDEX_PAGES } from "./landing.ts";
 
@@ -335,20 +335,26 @@ export function acceptEnLandingCard(
   return def.match.test(blob);
 }
 
-/** Plain-link targets for the ID/EN switcher. No cookies, no auto-redirect. */
-export function langSwitchForPath(pathname: string): { lang: "id" | "en"; idHref: string; enHref: string } {
+/** Plain-link targets for the ID/EN switcher. No cookies, no auto-redirect.
+ * `idRoot` is /genre on videqsss and /cari on videyy. */
+export function langSwitchForPath(
+  pathname: string,
+  idRoot: "cari" | "genre" = keywordRoot(),
+): { lang: "id" | "en"; idHref: string; enHref: string } {
   const path = String(pathname || "/").replace(/\/+$/, "") || "/";
-  if (path === "/en") return { lang: "en", idHref: "/genre", enHref: "/en" };
+  const hub = `/${idRoot}`;
+  if (path === "/en") return { lang: "en", idHref: hub, enHref: "/en" };
   const enPage = /^\/en\/([^/]+)(?:\/halaman\/[1-9]\d*)?$/.exec(path);
   if (enPage) {
     const id = idSlugForEn(enPage[1]);
-    return { lang: "en", idHref: id ? genreHref(id, 1) : "/genre", enHref: enHref(enPage[1], 1) };
+    return { lang: "en", idHref: id ? landingPath(idRoot, id, 1) : hub, enHref: enHref(enPage[1], 1) };
   }
-  if (path === "/genre") return { lang: "id", idHref: "/genre", enHref: "/en" };
-  const genrePage = /^\/genre\/([^/]+)(?:\/halaman\/[1-9]\d*)?$/.exec(path);
-  if (genrePage) {
-    const en = enSlugForId(genrePage[1]);
-    return { lang: "id", idHref: genreHref(genrePage[1], 1), enHref: en ? enHref(en, 1) : "/en" };
+  if (path === "/genre" || path === "/cari") return { lang: "id", idHref: path, enHref: "/en" };
+  const idPage = /^\/(cari|genre)\/([^/]+)(?:\/halaman\/[1-9]\d*)?$/.exec(path);
+  if (idPage) {
+    const root = idPage[1] as "cari" | "genre";
+    const en = enSlugForId(idPage[2]);
+    return { lang: "id", idHref: landingPath(root, idPage[2], 1), enHref: en ? enHref(en, 1) : "/en" };
   }
   return { lang: "id", idHref: path, enHref: "/en" };
 }

@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Shell } from "@/components/layout/shell";
 import { LANDINGS } from "@/lib/catalog/landing";
 import { jsonLdString } from "@/lib/json-ld";
+import { hreflangLinks } from "@/lib/catalog/en-landing";
 import { DEFAULT_OG, HOME_CANONICAL, IS_VIDEQSSS, SITE_NAME, SITE_ORIGIN, breadcrumbJsonLd, collectionPageJsonLd } from "@/lib/seo";
 
 const TITLE = "Pencarian Populer Video Indo 18+ | videyy.icu";
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/cari/")({
         { name: "twitter:card", content: "summary_large_image" },
         { name: "robots", content: "index,follow" },
       ],
-      links: [{ rel: "canonical", href: url }],
+      links: [{ rel: "canonical", href: url }, ...hreflangLinks("/cari", "/en", SITE_ORIGIN)],
       scripts: [
         { type: "application/ld+json", children: jsonLdString(collectionPageJsonLd({ name: TITLE, url, description: DESCRIPTION })) },
         {
@@ -52,6 +53,12 @@ function SearchHub() {
         <h1 className="font-display text-4xl leading-none text-foreground sm:text-6xl">Pencarian Populer</h1>
         <p className="text-sm text-zinc-400">
           Topik yang paling sering dicari pengunjung. Semua konten khusus dewasa 18+; video yang belum terverifikasi tidak ditampilkan.
+        </p>
+        <p className="text-sm text-zinc-500">
+          English collections:{" "}
+          <a href="/en" hrefLang="en" className="text-teal-200 underline-offset-2 hover:underline">
+            /en
+          </a>
         </p>
         <ul className="grid gap-3 sm:grid-cols-2">
           {LANDINGS.map((l) => (

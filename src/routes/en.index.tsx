@@ -1,19 +1,16 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Shell } from "@/components/layout/shell";
-import { enHref } from "@/lib/catalog/halaman";
+import { enHref, keywordRoot } from "@/lib/catalog/halaman";
 import { EN_LANDINGS, LANDING_MIN_VIDEOS, hreflangLinks } from "@/lib/catalog/en-landing";
 import { enLandingCounts } from "@/lib/catalog/en-landing-query";
 import { jsonLdString } from "@/lib/json-ld";
-import { DEFAULT_OG, HOME_CANONICAL, IS_VIDEQSSS, SITE_NAME, SITE_ORIGIN, breadcrumbJsonLd, collectionPageJsonLd } from "@/lib/seo";
+import { DEFAULT_OG, HOME_CANONICAL, SITE_NAME, SITE_ORIGIN, TITLE_SUFFIX, breadcrumbJsonLd, collectionPageJsonLd } from "@/lib/seo";
 
-const TITLE = "English Indonesian Video Collections | videqsss.icu";
+const TITLE = `English Indonesian Video Collections | ${TITLE_SUFFIX}`;
 const DESCRIPTION =
-  "English-language collections of Indonesian amateur videos on videqsss.icu: hijab, couples, homemade, Malay, and more. 18+ only.";
+  `English-language collections of Indonesian amateur videos on ${TITLE_SUFFIX}: hijab, couples, homemade, Malay, and more. 18+ only.`;
 
 export const Route = createFileRoute("/en/")({
-  beforeLoad: () => {
-    if (!IS_VIDEQSSS) throw notFound();
-  },
   loader: async () => {
     const counts = await enLandingCounts();
     return {
@@ -39,7 +36,7 @@ export const Route = createFileRoute("/en/")({
         { name: "twitter:card", content: "summary_large_image" },
         { name: "robots", content: "index,follow" },
       ],
-      links: [{ rel: "canonical", href: url }, ...hreflangLinks("/genre", "/en", SITE_ORIGIN)],
+      links: [{ rel: "canonical", href: url }, ...hreflangLinks(`/${keywordRoot()}`, "/en", SITE_ORIGIN)],
       scripts: [
         { type: "application/ld+json", children: jsonLdString(collectionPageJsonLd({ name: TITLE, url, description: DESCRIPTION })) },
         {
@@ -66,8 +63,8 @@ function EnIndex() {
         <p className="max-w-2xl text-sm text-zinc-400">{DESCRIPTION}</p>
         <p className="text-sm text-zinc-500">
           Looking for the Indonesian pages?{" "}
-          <a href="/genre" hrefLang="id" className="text-[#f4b942] underline-offset-2 hover:underline">
-            Open the genre list
+          <a href={`/${keywordRoot()}`} hrefLang="id" className="text-[#f4b942] underline-offset-2 hover:underline">
+            Open the Indonesian keyword list
           </a>
           .
         </p>

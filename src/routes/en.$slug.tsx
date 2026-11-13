@@ -4,7 +4,7 @@ import { EmptyState, ErrorState } from "@/components/states/feed-states";
 import { SafeBoundary } from "@/components/safe-boundary";
 import { CatalogPager } from "@/components/video/catalog-pager";
 import { VideoGrid } from "@/components/video/video-grid";
-import { enHref, genreHref } from "@/lib/catalog/halaman";
+import { enHref, keywordHref } from "@/lib/catalog/halaman";
 import {
   EN_LANDINGS,
   LANDING_INDEX_PAGES,
@@ -18,7 +18,7 @@ import { listEnLandingPage } from "@/lib/catalog/en-landing-query";
 import type { CatalogResponse, VideoCard } from "@/lib/catalog/types";
 import { jsonLdString } from "@/lib/json-ld";
 import { gridAdsOn } from "@/lib/ads/spots";
-import { DEFAULT_OG, HOME_CANONICAL, IS_VIDEQSSS, SITE_NAME, SITE_ORIGIN, TITLE_SUFFIX, breadcrumbJsonLd, collectionPageJsonLd } from "@/lib/seo";
+import { DEFAULT_OG, HOME_CANONICAL, SITE_NAME, SITE_ORIGIN, TITLE_SUFFIX, breadcrumbJsonLd, collectionPageJsonLd } from "@/lib/seo";
 
 export function enLandingHead(slug: string, page: number, loaderData: unknown) {
   const def = findEnLanding(slug);
@@ -41,7 +41,7 @@ export function enLandingHead(slug: string, page: number, loaderData: unknown) {
     ...(page > 1 ? [{ rel: "prev", href: `${SITE_ORIGIN}${enHref(def.slug, page - 1)}` }] : []),
     ...(page < last ? [{ rel: "next", href: `${SITE_ORIGIN}${enHref(def.slug, page + 1)}` }] : []),
   ];
-  const hreflang = page === 1 && def.idSlug ? hreflangLinks(genreHref(def.idSlug, 1), enHref(def.slug, 1), SITE_ORIGIN) : [];
+  const hreflang = page === 1 && def.idSlug ? hreflangLinks(keywordHref(def.idSlug, 1), enHref(def.slug, 1), SITE_ORIGIN) : [];
   return {
     meta: [
       { title },
@@ -81,7 +81,7 @@ export function enLandingHead(slug: string, page: number, loaderData: unknown) {
 /** /en/<slug>: English keyword page on videqsss. */
 export const Route = createFileRoute("/en/$slug")({
   beforeLoad: ({ params }) => {
-    if (!IS_VIDEQSSS || !findEnLanding(params.slug)) throw notFound();
+    if (!findEnLanding(params.slug)) throw notFound();
   },
   loader: ({ params }) => listEnLandingPage(params.slug, 1),
   head: ({ params, loaderData, matches }) => {
@@ -118,7 +118,7 @@ export function EnExperience({
           {def.idSlug ? (
             <p className="mt-2 text-sm text-zinc-500">
               Indonesian page:{" "}
-              <a href={genreHref(def.idSlug, 1)} hrefLang="id" className="text-[#f4b942] underline-offset-2 hover:underline">
+              <a href={keywordHref(def.idSlug, 1)} hrefLang="id" className="text-[#f4b942] underline-offset-2 hover:underline">
                 open the Bahasa Indonesia version
               </a>
             </p>
