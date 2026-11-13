@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Sinkron statistik publisher TrafficStars (14 hari UTC terakhir) ke public/data/trafficstars.json.
-// Dipanggil oleh .github/workflows/trafficstars-sync.yml. Butuh secret TRAFFICSTARS_API_KEY
+// The scheduled workflow was removed: TrafficStars rejected these sites.
+// Left for a manual run only. Butuh secret TRAFFICSTARS_API_KEY
 // (API key dari https://admin.trafficstars.com/profile/). File cuma ditulis kalau angka hariannya berubah.
 // API: POST /v1/auth/token (grant_type=refresh_token, refresh_token=API key) -> access_token,
 //      GET /v1.1/publisher/custom/report/by-day?date_from&date_to (docs.trafficstars.com/_reports.md).

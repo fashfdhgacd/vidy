@@ -21,8 +21,8 @@ import { cleanDisplayTitle } from "@/lib/seo";
  * browser allows it, and unlocks on exit.
  *
  * Skip popunder (ts-videy-popunder.tsx): clicks on this player and on Lewati open
- * TRAFFICSTARS.popunder, up to 3 times for this video id. That count is not the
- * daily page/card cap. IndoAV iframes are unchanged.
+ * this host's ExoClick popunder, up to 3 times for this video id. That count is
+ * not the daily page/card cap. IndoAV iframes are unchanged.
  *
  * Kesehatan player (/pemilik): the same /api/player-log beacons as the other hosts, once per video
  * per session (src/lib/player-log-client.ts), host "Videy":
@@ -422,7 +422,7 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
             start();
           }}
           aria-label={`Putar ${cleanDisplayTitle(item.title)}`}
-          className="absolute inset-0 flex items-center justify-center bg-black/30"
+          className="kdp-no-pop absolute inset-0 flex items-center justify-center bg-black/30"
         >
           <span className="flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground sm:size-16">
             <svg viewBox="0 0 24 24" className="ml-0.5 size-6 fill-current" aria-hidden="true">
@@ -436,7 +436,7 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
           type="button"
           data-videy-skip=""
           aria-label="Lewati"
-          className="absolute inset-0 z-10 cursor-pointer bg-transparent"
+          className="kdp-no-pop absolute inset-0 z-10 cursor-pointer bg-transparent"
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -489,7 +489,7 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
                 setSkipTick((n) => n + 1);
                 endAd("skip");
               }}
-              className="absolute bottom-3 right-0 rounded-l-md border border-white/30 bg-black/75 px-4 py-2 text-sm text-white disabled:opacity-80"
+              className="kdp-no-pop absolute bottom-3 right-0 rounded-l-md border border-white/30 bg-black/75 px-4 py-2 text-sm text-white disabled:opacity-80"
             >
               {skipIn > 0 ? `Lewati dalam ${skipIn}` : "Lewati iklan ▸"}
             </button>

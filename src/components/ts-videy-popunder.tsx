@@ -1,7 +1,7 @@
 // Videy player skip popunder. Clicks on the player overlay and the pre-roll Skip
-// button open TRAFFICSTARS.popunder, up to 3 times per visitor per video id.
-// This count is not the page/card cap. An empty spot opens nothing.
-// IndoAV iframes never call this.
+// button open this host's ExoClick popunder link, up to 3 times per visitor per
+// video id. This count is not the page/card cap. An empty spot opens nothing.
+// IndoAV pages never call this.
 import { sendPlayerLog } from "@/lib/player-log-client";
 import { popunderUrl } from "@/lib/ads/spots";
 import { noteSkipPop, readSkipCounts, skipPopOpen } from "@/lib/ads/videy-skip-pop";
@@ -26,9 +26,13 @@ function save(counts: Record<string, number>): void {
   }
 }
 
+function pageBlocksAds(): boolean {
+  return typeof document !== "undefined" && Boolean(document.querySelector("[data-kdp-page-ad='off']"));
+}
+
 /** True when another skip click on this Videy id should open the popunder. */
 export function videySkipArmed(videoId: string): boolean {
-  if (!popunderUrl() || !videoId) return false;
+  if (pageBlocksAds() || !popunderUrl() || !videoId) return false;
   if ((blocks.get(videoId) || 0) >= MAX_BLOCKS) return false;
   return skipPopOpen(load(), videoId);
 }
@@ -41,6 +45,7 @@ export function videySkipArmed(videoId: string): boolean {
 export function takeVideySkipPop(videoId: string): boolean {
   if (!videySkipArmed(videoId)) return false;
   const url = popunderUrl();
+  if (!url) return false;
   let opened: Window | null = null;
   try {
     opened = window.open(url, "_blank");
