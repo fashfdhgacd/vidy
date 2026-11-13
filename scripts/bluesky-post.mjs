@@ -118,6 +118,12 @@ async function syncProfile(token, did, state) {
 }
 
 async function main() {
+  // Satellite repo has no Bluesky secrets; skip instead of failing every 4h.
+  // Dry-run still runs without secrets (it never logs in).
+  if (!DRY && (!(process.env.BLUESKY_HANDLE || "").trim() || !(process.env.BLUESKY_APP_PASSWORD || "").trim())) {
+    console.log("BLUESKY_HANDLE / BLUESKY_APP_PASSWORD belum di-set. Lewati. Akun Bluesky cukup di repo utama koleksi_dr_pinguinn.");
+    return;
+  }
   const state = await readJson(STATE, { posted: [] });
   state.posted ||= [];
   const now = Date.now();
@@ -152,7 +158,10 @@ async function main() {
 
   const identifier = process.env.BLUESKY_HANDLE;
   const password = process.env.BLUESKY_APP_PASSWORD;
-  if (!identifier || !password) throw new Error("BLUESKY_HANDLE / BLUESKY_APP_PASSWORD belum di-set.");
+  if (!identifier || !password) {
+    console.log("BLUESKY_HANDLE / BLUESKY_APP_PASSWORD belum di-set. Lewati.");
+    return;
+  }
   const session = await xrpc("com.atproto.server.createSession", { body: { identifier, password } });
   const token = session.accessJwt;
   const did = session.did;
