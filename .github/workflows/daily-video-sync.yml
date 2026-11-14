@@ -359,6 +359,9 @@ jobs:
           console.log("Done posters ok=", ok, "fail=", fail, "map=", Object.keys(posters).length);
           SCRIPT
 
+      - name: Probe which poster URLs exist
+        run: node scripts/poster-probe.mjs
+
       - name: Commit changes
         run: |
           set -e
@@ -368,6 +371,7 @@ jobs:
           git add -- data/videos-latest.json data/videos-latest-p*.json 2>/dev/null || true
           git add \
             data/latest-posters.json \
+            data/poster-probe.json \
             src/lib/catalog/posters.json \
             src/lib/catalog/streamtape-batch-20260925.json \
             2>/dev/null || true

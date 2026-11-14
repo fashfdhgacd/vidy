@@ -8,6 +8,8 @@ import { LANDING_INDEX_PAGES, LANDING_MIN_VIDEOS, LANDING_PAGE_SIZE, OWN_CATALOG
 import { EN_LANDINGS, findEnLanding } from "./en-landing";
 import { loadItems } from "./local-cache";
 import { slugOf, sourceLabel, toCard, type RawItem } from "./local-shared";
+import { realPosterFirst, videyFrameReady } from "./poster-status";
+import { posterProbeOk } from "./poster-known";
 import { titleTags } from "./title-tags";
 import type { CatalogResponse, VideoCard } from "./types";
 
@@ -56,7 +58,13 @@ function cardsForAllEn(
   for (const def of EN_LANDINGS) {
     const rows = buckets.get(def.slug) || [];
     rows.sort((a, b) => (b.card.views || 0) - (a.card.views || 0) || a.i - b.i);
-    out.set(def.slug, rows.map((r) => r.card));
+    out.set(
+      def.slug,
+      realPosterFirst(
+        rows.map((r) => r.card),
+        (c) => posterProbeOk(c.id) || videyFrameReady(c.id),
+      ),
+    );
   }
   memo.set(items, out);
   return out;

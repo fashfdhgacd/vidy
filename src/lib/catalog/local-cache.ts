@@ -24,6 +24,8 @@ import {
   toCard,
   videyNoThumbHideAt,
 } from "./local-shared";
+import { realPosterFirst, videyFrameReady } from "./poster-status";
+import { posterProbeOk } from "./poster-known";
 import localCatalog from "./videos.json";
 import streamtapeBatch from "./streamtape.json";
 import streamtapeBatchSep25 from "./streamtape-batch-20260925.json";
@@ -692,17 +694,17 @@ function categoryOrders(bySlug: Map<string, RawItem[]>, mainSorted: RawItem[]): 
   return out;
 }
 
-function hasDataPoster(it: RawItem, posters: Record<string, string>): boolean {
-  const p = String(it.poster || it.thumbnail || posters[it.id] || "").trim();
-  return /^https?:\/\//i.test(p);
+/** Confirmed R2 poster, or a Videy frame file this build actually has. */
+function hasListedPoster(it: RawItem): boolean {
+  return posterProbeOk(it.id) || (isVidey(it) && videyFrameReady(it.id));
 }
 
-/** Stable split: items with a poster URL in data, then the rest. */
-function postersFirst(list: RawItem[], posters: Record<string, string>): RawItem[] {
-  const withPoster: RawItem[] = [];
-  const without: RawItem[] = [];
-  for (const it of list) (hasDataPoster(it, posters) ? withPoster : without).push(it);
-  return [...withPoster, ...without];
+/**
+ * Stable split: videos whose poster URL exists, then the rest. Relative order inside each group
+ * stays put, and no video is removed (page counts and the sitemap stay the same).
+ */
+function postersFirst(list: RawItem[]): RawItem[] {
+  return realPosterFirst(list, hasListedPoster);
 }
 
 export function buildIndexes(
@@ -776,14 +778,12 @@ export function buildIndexes(
   // Homepage = semua item (urut tanggal), tanpa batasi cuma IndoAV/UserBokep
   const mainSorted = sortByNewest(core);
   for (const [slug, list] of bySlug) {
-    const sorted = sortByNewest(list, false);
-    // /kategori/bokep: videos with a real poster in data first, logo-only ones after (stable, so the
-    // newest-first order holds inside each group). A poster added to data/drp-bokep.json later moves
-    // the video up on the next build. Other categories keep their order.
-    bySlug.set(slug, slug === "bokep" ? postersFirst(sorted, posters) : sorted);
+    // Newest first inside each group, then videos with a real poster ahead of the rest.
+    bySlug.set(slug, postersFirst(sortByNewest(list, false)));
   }
-  const terbaruSorted = terbaruOrder(mainSorted);
   const listOrder = categoryOrders(bySlug, mainSorted);
+  for (const [slug, list] of listOrder) listOrder.set(slug, postersFirst(list));
+  const terbaruSorted = postersFirst(terbaruOrder(mainSorted));
   return {
     at,
     items,

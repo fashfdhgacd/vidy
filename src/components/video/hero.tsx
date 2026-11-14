@@ -6,7 +6,9 @@ import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { VideoCard as VideoCardType } from "@/lib/catalog/types";
 import { isRealMinor } from "@/lib/minor-terms";
-import { BRAND_POSTER, VideoThumb } from "./thumb";
+import { CardThumb } from "./card-thumb";
+import { posterProbeOk } from "@/lib/catalog/poster-known";
+import { videyFrameReady } from "@/lib/catalog/poster-status";
 
 const ROTATE_MS = 60 * 60 * 1000;
 
@@ -22,29 +24,21 @@ function isSpamDescription(text: unknown): boolean {
   return /nonton .+ bokep indo|streaming amatir, jilbab|konten 18\+/i.test(t);
 }
 
-function isUsableThumb(src: unknown): src is string {
-  if (typeof src !== "string" || !src) return false;
-  if (src === BRAND_POSTER || /brand-poster/i.test(src)) return false;
-  if (/\.(mp4|mov|webm)(\?|$)/i.test(src) || /cdn\.videy\.co\//i.test(src)) return false;
-  return /^https?:\/\//i.test(src) || src.startsWith("/");
-}
-
 function cleanHeroTitle(raw: string): string {
   return cleanDisplayTitle(raw);
 }
 
+function hasRealPoster(id: string): boolean {
+  return posterProbeOk(id) || videyFrameReady(id);
+}
+
 export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
-  const incoming = videos && videos.length > 0 ? videos : video ? [video] : [];
-  const list = useMemo(() => incoming.filter((v) => isUsableThumb(v.thumbnail) && !isRealMinor({ title: v.title, tags: v.category })), [incoming]);
-  const listKey = list.map((v) => v.id).join("|");
-  const [failedIds, setFailedIds] = useState<Set<string>>(() => new Set());
-  const [index, setIndex] = useState(0);
-
   const usable = useMemo(() => {
-    return list.filter((v) => !failedIds.has(v.id));
-  }, [list, failedIds, listKey]);
-
+    const incoming = videos && videos.length > 0 ? videos : video ? [video] : [];
+    return incoming.filter((v) => hasRealPoster(v.id) && !isRealMinor({ title: v.title, tags: v.category }));
+  }, [videos, video]);
   const usableKey = usable.map((v) => v.id).join("|");
+  const [index, setIndex] = useState(0);
 
   const goTo = useCallback(
     (nextIdx: number) => {
@@ -81,17 +75,6 @@ export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
 
   const current = usable[Math.min(index, Math.max(0, usable.length - 1))];
 
-  const onThumbUnavailable = useCallback(() => {
-    if (!current) return;
-    const id = current.id;
-    setFailedIds((prev) => {
-      if (prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-  }, [current]);
-
   if (!current) return null;
 
   const showDuration = Boolean(current.durationLabel && current.durationLabel !== "\u2014");
@@ -108,13 +91,13 @@ export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
       <div className="relative aspect-[16/10] sm:aspect-[16/9] lg:aspect-[21/9]">
         {/* Decorative media — never steal taps meant for the CTA or page below */}
         <div className="pointer-events-none absolute inset-0">
-          <VideoThumb
+          <CardThumb
             key={current.id}
+            id={current.id}
             src={current.thumbnail}
             alt={heroTitle}
             eager
             className="size-full object-cover object-center transition-opacity duration-300"
-            onUnavailable={onThumbUnavailable}
           />
         </div>
 
