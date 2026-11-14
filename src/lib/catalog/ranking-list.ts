@@ -17,6 +17,8 @@
 import { DEFAULT_PAGE_SIZE } from "./types";
 import type { PagedVideos } from "./types";
 import { isVidey, thumbOf, type RawItem } from "./local-shared";
+import { realPosterFirst, videyFrameReady } from "./poster-status";
+import { posterProbeOk } from "./poster-known";
 import deadSources from "./dead-sources.json";
 import { loadItems, pageOf } from "./local-cache";
 import { rankPeriodAvailable, rankPeriodInfo, type RankKind, type RankPeriod } from "./rankings";
@@ -403,9 +405,13 @@ export async function listRanking(
   }
   const list = await rankedList(kind, period);
   const site = kind === "likes" ? await siteLikes() : {};
-  const lastPage = Math.max(1, Math.ceil(list.length / Math.max(1, limit)));
-  const res = pageOf(
+  const ordered = realPosterFirst(
     list.map((r) => r.item),
+    (it) => posterProbeOk(it.id) || videyFrameReady(it.id),
+  );
+  const lastPage = Math.max(1, Math.ceil(ordered.length / Math.max(1, limit)));
+  const res = pageOf(
+    ordered,
     Math.min(Math.max(1, page), lastPage),
     limit,
     posters,

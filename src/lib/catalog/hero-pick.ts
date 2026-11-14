@@ -10,6 +10,8 @@
  *   so a visit costs no KV/D1 read. Nothing is written per visit.
  */
 import type { VideoCard } from "./types";
+import { posterProbeOk } from "./poster-known";
+import { videyFrameReady } from "./poster-status";
 
 export const HERO_SLOTS = 5;
 export const HERO_SLOT_MIN = (24 * 60) / HERO_SLOTS; // 288
@@ -102,7 +104,7 @@ async function cardsFor(ids: string[], needArt: boolean): Promise<VideoCard[]> {
     if (!item) continue;
     try {
       const card = toCard(item, bag.posters, bag.videyNo);
-      if (needArt && !isRealHeroThumb(card.thumbnail)) continue;
+      if (needArt && !posterProbeOk(item.id) && !videyFrameReady(item.id)) continue;
       out.push(card);
     } catch {
       /* skip */

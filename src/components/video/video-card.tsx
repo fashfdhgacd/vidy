@@ -5,7 +5,7 @@ import { Clock, Eye, Heart, Play } from "lucide-react";
 import type { VideoCard as VideoCardType } from "@/lib/catalog/types";
 import { rememberCatalog } from "@/lib/catalog/last-catalog";
 import { useSiteLikes } from "@/lib/live-likes";
-import { VideoThumb } from "./thumb";
+import { CardThumb } from "./card-thumb";
 
 function compactNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M`;
@@ -47,10 +47,10 @@ export function VideoCard({
       }
     >
       <div className={IS_VIDEQSSS ? "relative aspect-video overflow-hidden rounded-lg bg-surface-2" : "relative aspect-video overflow-hidden rounded-xl bg-surface-2"}>
-        <VideoThumb
+        <CardThumb
+          id={video.id}
           src={typeof video.thumbnail === "string" ? video.thumbnail : ""}
           alt={cleanDisplayTitle(video.title)}
-          videoId={video.id}
           eager={eager}
         />
         {IS_VIDEQSSS ? null : (
