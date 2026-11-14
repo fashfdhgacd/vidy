@@ -4,6 +4,7 @@ import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { langSwitchForPath } from "@/lib/catalog/en-landing";
+import { showKirimNav } from "@/lib/kirim-videy";
 import { IS_VIDEQSSS } from "@/lib/seo";
 
 function BrandMark() {
@@ -62,6 +63,7 @@ function LangSwitcher() {
 
 export function Header({ query }: { query?: string }) {
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [draft, setDraft] = useState(query ?? "");
   const debounced = useDebounce(draft, 400);
 
@@ -133,8 +135,23 @@ export function Header({ query }: { query?: string }) {
             </button>
           ) : null}
         </form>
+        {showKirimNav(pathname, IS_VIDEQSSS) ? (
+          <Link
+            to="/kirim"
+            className="hidden shrink-0 whitespace-nowrap text-xs font-semibold text-primary underline-offset-2 hover:underline sm:inline sm:text-sm"
+          >
+            Kirim Video
+          </Link>
+        ) : null}
         <LangSwitcher />
       </div>
+      {showKirimNav(pathname, IS_VIDEQSSS) ? (
+        <div className="border-t border-border/60 px-3 py-2 sm:hidden">
+          <Link to="/kirim" className="text-sm font-semibold text-primary underline-offset-2 hover:underline">
+            Kirim Video
+          </Link>
+        </div>
+      ) : null}
     </header>
   );
 }

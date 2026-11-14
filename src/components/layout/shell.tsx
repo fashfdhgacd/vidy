@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { AgeGate } from "@/components/age-gate";
 import { InPagePush, VideoSlider } from "@/components/ad-slot";
 import { ExoPagePopunder } from "@/components/exo-page-popunder";
-import { SITE_NAME, TITLE_SUFFIX } from "@/lib/seo";
+import { showKirimNav } from "@/lib/kirim-videy";
+import { IS_VIDEQSSS, SITE_NAME, TITLE_SUFFIX } from "@/lib/seo";
 import { Header } from "./header";
 
 export function Shell({
@@ -13,6 +14,8 @@ export function Shell({
   children: ReactNode;
   query?: string;
 }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const kirim = showKirimNav(pathname, IS_VIDEQSSS);
   return (
     <AgeGate>
       <div className="flex min-h-dvh flex-col bg-background text-foreground">
@@ -64,6 +67,11 @@ export function Shell({
                 <Link to="/teman" className="hover:text-foreground hover:underline">
                   Teman
                 </Link>
+                {kirim ? (
+                  <Link to="/kirim" className="hover:text-foreground hover:underline">
+                    Kirim Video
+                  </Link>
+                ) : null}
                 <a href="/en" hrefLang="en" lang="en" className="hover:text-foreground hover:underline">
                   English
                 </a>
