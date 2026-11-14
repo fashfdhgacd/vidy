@@ -12,7 +12,7 @@ import { STATIC_PAGE_LASTMOD } from "../../src/lib/catalog/lastmod.js";
 import { listSitemapWatchEntries } from "../../src/lib/catalog/sitemap-entries";
 import { enHref, keywordHref, keywordRoot } from "../../src/lib/catalog/halaman";
 import { indexableEnLandings } from "../../src/lib/catalog/en-landing-query";
-import { SITE_ORIGIN, cleanDisplayTitle, publicWatchDescription, seoVideoThumbnail } from "../../src/lib/seo";
+import { IS_VIDEQSSS, SITE_ORIGIN, cleanDisplayTitle, publicWatchDescription, seoVideoThumbnail } from "../../src/lib/seo";
 
 interface SitemapEvent {
   url: URL;
@@ -99,6 +99,15 @@ function pageEntries(
   }
   for (const path of LEGAL_PATHS) {
     out.push(urlEntry(`${SITE_ORIGIN}${path}`, { changefreq: "monthly", priority: "0.3", lastmod: STATIC_PAGE_LASTMOD[path] }));
+  }
+  if (!IS_VIDEQSSS) {
+    out.push(
+      urlEntry(`${SITE_ORIGIN}/kirim`, {
+        changefreq: "monthly",
+        priority: "0.3",
+        lastmod: STATIC_PAGE_LASTMOD["/kirim"],
+      }),
+    );
   }
   return out;
 }

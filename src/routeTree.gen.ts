@@ -16,6 +16,7 @@ import { Route as DmcaRouteImport } from './routes/dmca'
 import { Route as EnRouteImport } from './routes/en'
 import { Route as GenreRouteImport } from './routes/genre'
 import { Route as KategoriRouteImport } from './routes/kategori'
+import { Route as KirimRouteImport } from './routes/kirim'
 import { Route as KontakRouteImport } from './routes/kontak'
 import { Route as PemilikRouteImport } from './routes/pemilik'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -102,6 +103,11 @@ const GenreRoute = GenreRouteImport.update({
 const KategoriRoute = KategoriRouteImport.update({
   id: '/kategori',
   path: '/kategori',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KirimRoute = KirimRouteImport.update({
+  id: '/kirim',
+  path: '/kirim',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KontakRoute = KontakRouteImport.update({
@@ -373,6 +379,7 @@ export interface FileRoutesByFullPath {
   '/en': typeof EnRouteWithChildren
   '/genre': typeof GenreRouteWithChildren
   '/kategori': typeof KategoriRouteWithChildren
+  '/kirim': typeof KirimRoute
   '/kontak': typeof KontakRoute
   '/pemilik': typeof PemilikRoute
   '/privacy': typeof PrivacyRoute
@@ -431,6 +438,7 @@ export interface FileRoutesByTo {
   '/2257': typeof R2257Route
   '/campur': typeof CampurRoute
   '/dmca': typeof DmcaRoute
+  '/kirim': typeof KirimRoute
   '/kontak': typeof KontakRoute
   '/pemilik': typeof PemilikRoute
   '/privacy': typeof PrivacyRoute
@@ -493,6 +501,7 @@ export interface FileRoutesById {
   '/en': typeof EnRouteWithChildren
   '/genre': typeof GenreRouteWithChildren
   '/kategori': typeof KategoriRouteWithChildren
+  '/kirim': typeof KirimRoute
   '/kontak': typeof KontakRoute
   '/pemilik': typeof PemilikRoute
   '/privacy': typeof PrivacyRoute
@@ -556,6 +565,7 @@ export interface FileRouteTypes {
     | '/en'
     | '/genre'
     | '/kategori'
+    | '/kirim'
     | '/kontak'
     | '/pemilik'
     | '/privacy'
@@ -614,6 +624,7 @@ export interface FileRouteTypes {
     | '/2257'
     | '/campur'
     | '/dmca'
+    | '/kirim'
     | '/kontak'
     | '/pemilik'
     | '/privacy'
@@ -675,6 +686,7 @@ export interface FileRouteTypes {
     | '/en'
     | '/genre'
     | '/kategori'
+    | '/kirim'
     | '/kontak'
     | '/pemilik'
     | '/privacy'
@@ -737,6 +749,7 @@ export interface RootRouteChildren {
   EnRoute: typeof EnRouteWithChildren
   GenreRoute: typeof GenreRouteWithChildren
   KategoriRoute: typeof KategoriRouteWithChildren
+  KirimRoute: typeof KirimRoute
   KontakRoute: typeof KontakRoute
   PemilikRoute: typeof PemilikRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -830,6 +843,13 @@ declare module '@tanstack/react-router' {
       path: '/kategori'
       fullPath: '/kategori'
       preLoaderRoute: typeof KategoriRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kirim': {
+      id: '/kirim'
+      path: '/kirim'
+      fullPath: '/kirim'
+      preLoaderRoute: typeof KirimRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kontak': {
@@ -1292,6 +1312,7 @@ const rootRouteChildren: RootRouteChildren = {
   EnRoute: EnRouteWithChildren,
   GenreRoute: GenreRouteWithChildren,
   KategoriRoute: KategoriRouteWithChildren,
+  KirimRoute: KirimRoute,
   KontakRoute: KontakRoute,
   PemilikRoute: PemilikRoute,
   PrivacyRoute: PrivacyRoute,
@@ -1338,3 +1359,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { SafeBoundary } from "@/components/safe-boundary";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { Shell } from "@/components/layout/shell";
 import { EmptyState, ErrorState } from "@/components/states/feed-states";
 import { CatalogPager } from "@/components/video/catalog-pager";
@@ -230,6 +230,14 @@ export function HomeExperience({
             <h1 className="text-xl font-semibold tracking-tight text-zinc-100">{title}</h1>
             <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>
             <p className="mt-1 max-w-2xl text-sm text-zinc-600">{intro}</p>
+            {!IS_VIDEQSSS && !q && page === 1 ? (
+              <p className="mt-3 text-sm text-zinc-400">
+                Punya link Videy?{" "}
+                <Link to="/kirim" className="font-medium text-primary underline-offset-2 hover:underline">
+                  Kirim Video
+                </Link>
+              </p>
+            ) : null}
             {IS_VIDEQSSS && !q ? (
               <nav aria-label="Topik" className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm">
                 {landingsForSite("videqsss").map((l) => (
