@@ -1,9 +1,9 @@
 {
-  "syncedAt": "2026-11-16T11:24:58.482Z",
-  "trigger": "manual",
+  "syncedAt": "2026-11-17T00:59:25.902Z",
+  "trigger": "daily",
   "upstream": 10486,
-  "added": 90,
+  "added": 0,
   "snapshotItems": 1093,
   "ok": true,
-  "runUrl": "https://github.com/fashfdhgacd/vidy/actions/runs/43857506786"
+  "runUrl": "https://github.com/fashfdhgacd/vidy/actions/runs/43991998466"
 }
