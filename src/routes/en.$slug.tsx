@@ -17,8 +17,20 @@ import {
 import { listEnLandingPage } from "@/lib/catalog/en-landing-query";
 import type { CatalogResponse, VideoCard } from "@/lib/catalog/types";
 import { jsonLdString } from "@/lib/json-ld";
+import { UiLangProvider } from "@/lib/ui-lang";
 import { gridAdsOn } from "@/lib/ads/spots";
-import { DEFAULT_OG, HOME_CANONICAL, SITE_NAME, SITE_ORIGIN, TITLE_SUFFIX, breadcrumbJsonLd, collectionPageJsonLd } from "@/lib/seo";
+import {
+  DEFAULT_OG,
+  HOME_CANONICAL,
+  IS_VIDEQSSS,
+  SITE_NAME,
+  SITE_ORIGIN,
+  TITLE_SUFFIX,
+  breadcrumbJsonLd,
+  collectionPageJsonLd,
+  listItemsFrom,
+  seoVideoThumbnail,
+} from "@/lib/seo";
 
 export function enLandingHead(slug: string, page: number, loaderData: unknown) {
   const def = findEnLanding(slug);
@@ -31,17 +43,35 @@ export function enLandingHead(slug: string, page: number, loaderData: unknown) {
     };
   }
   const url = `${SITE_ORIGIN}${enHref(def.slug, page)}`;
-  const ld = loaderData as { ok?: boolean; total?: number } | undefined;
-  const enough = Boolean(ld && ld.ok && typeof ld.total === "number" && ld.total >= LANDING_MIN_VIDEOS);
+  const ld = loaderData as
+    | {
+        ok?: boolean;
+        total?: number;
+        limit?: number;
+        items?: Array<{ id: string; title?: string }>;
+      }
+    | undefined;
+  const listItems = ld && ld.ok ? listItemsFrom(ld.items) : [];
+  const ogImage = listItems.length ? seoVideoThumbnail(listItems[0].id) : DEFAULT_OG;
+  const enough = Boolean(
+    ld && ld.ok && typeof ld.total === "number" && ld.total >= LANDING_MIN_VIDEOS,
+  );
   const indexable = enough && page <= LANDING_INDEX_PAGES;
   const title = enDocumentTitle(def.title, page, TITLE_SUFFIX);
   const description = page > 1 ? `Page ${page}: ${def.description}` : def.description;
-  const last = ld && ld.ok && typeof ld.total === "number" ? Math.max(1, Math.ceil(ld.total / LANDING_PAGE_SIZE)) : 1;
+  const last =
+    ld && ld.ok && typeof ld.total === "number"
+      ? Math.max(1, Math.ceil(ld.total / LANDING_PAGE_SIZE))
+      : 1;
   const pageLinks = [
     ...(page > 1 ? [{ rel: "prev", href: `${SITE_ORIGIN}${enHref(def.slug, page - 1)}` }] : []),
     ...(page < last ? [{ rel: "next", href: `${SITE_ORIGIN}${enHref(def.slug, page + 1)}` }] : []),
   ];
-  const hreflang = page === 1 && def.idSlug ? hreflangLinks(keywordHref(def.idSlug, 1), enHref(def.slug, 1), SITE_ORIGIN) : [];
+  // videqsss is English-only (its Indonesian keyword URLs 301 here), so no id alternate there.
+  const hreflang =
+    page === 1 && def.idSlug && !IS_VIDEQSSS
+      ? hreflangLinks(keywordHref(def.idSlug, 1), enHref(def.slug, 1), SITE_ORIGIN)
+      : [];
   return {
     meta: [
       { title },
@@ -50,8 +80,8 @@ export function enLandingHead(slug: string, page: number, loaderData: unknown) {
       { property: "og:description", content: description },
       { property: "og:url", content: url },
       { property: "og:type", content: "website" },
-      { property: "og:locale", content: "en" },
-      { property: "og:image", content: DEFAULT_OG },
+      { property: "og:locale", content: "en_US" },
+      { property: "og:image", content: ogImage },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: indexable ? "index,follow" : "noindex,follow" },
       ...(!indexable ? [{ name: "googlebot", content: "noindex,follow" }] : []),
@@ -61,14 +91,23 @@ export function enLandingHead(slug: string, page: number, loaderData: unknown) {
       ? [
           {
             type: "application/ld+json",
-            children: jsonLdString(collectionPageJsonLd({ name: def.h1, url, description: def.description })),
+            children: jsonLdString(
+              collectionPageJsonLd({
+                name: def.h1,
+                url,
+                description: def.description,
+                lang: "en",
+                items: listItems,
+                startPosition: (page - 1) * (ld?.limit || LANDING_PAGE_SIZE) + 1,
+              }),
+            ),
           },
           {
             type: "application/ld+json",
             children: jsonLdString(
               breadcrumbJsonLd([
                 { name: SITE_NAME, url: HOME_CANONICAL },
-                { name: "English", url: `${SITE_ORIGIN}/en` },
+                { name: IS_VIDEQSSS ? "Categories" : "English", url: `${SITE_ORIGIN}/en` },
                 { name: def.h1, url },
               ]),
             ),
@@ -109,52 +148,79 @@ export function EnExperience({
   const others = EN_LANDINGS.filter((l) => l.slug !== def.slug);
 
   return (
-    <Shell>
-      <section>
-        <div className="mb-4">
-          <h1 className="text-xl font-semibold text-zinc-100">{def.h1}</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-400">{def.intro}</p>
-          {total ? <p className="mt-1 text-sm text-zinc-500">{total.toLocaleString("en")} videos · page {page}</p> : null}
-          {def.idSlug ? (
-            <p className="mt-2 text-sm text-zinc-500">
-              Indonesian page:{" "}
-              <a href={keywordHref(def.idSlug, 1)} hrefLang="id" className="text-[#f4b942] underline-offset-2 hover:underline">
-                open the Bahasa Indonesia version
-              </a>
+    <UiLangProvider value="en">
+      <Shell>
+        <section>
+          <div className="mb-4">
+            <h1 className="text-xl font-semibold text-zinc-100">{def.h1}</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-400">
+              {def.intro.replaceAll("Videqsss", SITE_NAME)}
             </p>
-          ) : null}
-        </div>
-
-        {data && !data.ok ? (
-          <ErrorState message={(data as { error?: string }).error || "Could not load this page"} onRetry={() => window.location.reload()} />
-        ) : !items.length ? (
-          <EmptyState title="Videos coming soon" description="Nothing matches this collection yet. Please check back later." />
-        ) : (
-          <SafeBoundary>
-            <VideoGrid items={items} ads={gridAdsOn()} />
-          </SafeBoundary>
-        )}
-
-        <CatalogPager lang="en" page={page} total={total} limit={limit} onPage={onPage} pageHref={(n) => enHref(def.slug, n)} />
-
-        <div className="mt-6 space-y-3">
-          <nav aria-label="Other English collections">
-            <p className="mb-2 text-xs text-zinc-500">Other English collections</p>
-            <div className="flex flex-wrap gap-2">
-              {others.map((l) => (
+            {total ? (
+              <p className="mt-1 text-sm text-zinc-500">
+                {total.toLocaleString("en")} videos · page {page}
+              </p>
+            ) : null}
+            {def.idSlug && !IS_VIDEQSSS ? (
+              <p className="mt-2 text-sm text-zinc-500">
+                Indonesian page:{" "}
                 <a
-                  key={l.slug}
-                  href={enHref(l.slug, 1)}
-                  className="inline-flex h-8 items-center rounded-full border border-white/10 px-3 text-sm text-zinc-300 hover:border-white/40 hover:text-white"
+                  href={keywordHref(def.idSlug, 1)}
+                  hrefLang="id"
+                  className="text-[#f4b942] underline-offset-2 hover:underline"
                 >
-                  {l.h1}
+                  open the Bahasa Indonesia version
                 </a>
-              ))}
-            </div>
-          </nav>
-        </div>
-      </section>
-    </Shell>
+              </p>
+            ) : null}
+          </div>
+
+          {data && !data.ok ? (
+            <ErrorState
+              message={(data as { error?: string }).error || "Could not load this page"}
+              onRetry={() => window.location.reload()}
+            />
+          ) : !items.length ? (
+            <EmptyState
+              title="Videos coming soon"
+              description="Nothing matches this collection yet. Please check back later."
+            />
+          ) : (
+            <SafeBoundary>
+              <VideoGrid items={items} ads={gridAdsOn()} />
+            </SafeBoundary>
+          )}
+
+          <CatalogPager
+            lang="en"
+            page={page}
+            total={total}
+            limit={limit}
+            onPage={onPage}
+            pageHref={(n) => enHref(def.slug, n)}
+          />
+
+          <div className="mt-6 space-y-3">
+            <nav aria-label={IS_VIDEQSSS ? "More categories" : "Other English collections"}>
+              <p className="mb-2 text-xs text-zinc-500">
+                {IS_VIDEQSSS ? "More categories" : "Other English collections"}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {others.map((l) => (
+                  <a
+                    key={l.slug}
+                    href={enHref(l.slug, 1)}
+                    className="inline-flex h-8 items-center rounded-full border border-white/10 px-3 text-sm text-zinc-300 hover:border-white/40 hover:text-white"
+                  >
+                    {l.h1}
+                  </a>
+                ))}
+              </div>
+            </nav>
+          </div>
+        </section>
+      </Shell>
+    </UiLangProvider>
   );
 }
 

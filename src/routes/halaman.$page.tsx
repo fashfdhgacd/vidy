@@ -1,3 +1,4 @@
+import { tr } from "@/lib/ui-lang";
 import { createFileRoute, notFound, redirect, useNavigate } from "@tanstack/react-router";
 import { homeHref, parseHalamanParam } from "@/lib/catalog/halaman";
 import { HOME_CANONICAL, SITE_NAME, SITE_ORIGIN, TITLE_SUFFIX, homeJsonLd } from "@/lib/seo";
@@ -15,8 +16,11 @@ export const Route = createFileRoute("/halaman/$page")({
   loader: ({ params }) => loadHome({ search: { page: parseHalamanParam(params.page) || 2 } }),
   head: ({ params }) => {
     const page = parseHalamanParam(params.page) || 2;
-    const title = `Bokep Indo Terbaru Halaman ${page} | ${SITE_NAME}`;
-    const description = `Halaman ${page}: bokep indo terbaru, update setiap hari, streaming di ${TITLE_SUFFIX}. Khusus 18+.`;
+    const title = tr(`Bokep Indo Terbaru Halaman ${page} | ${SITE_NAME}`, `Newest Indonesian Amateur Videos – Page ${page} | ${SITE_NAME}`);
+    const description = tr(
+      `Halaman ${page}: bokep indo terbaru, update setiap hari, streaming di ${TITLE_SUFFIX}. Khusus 18+.`,
+      `Page ${page}: the newest Indonesian amateur videos, updated daily, streaming on ${TITLE_SUFFIX}. Adults 18+ only.`,
+    );
     const url = `${SITE_ORIGIN}${homeHref(page)}`;
     const indexable = page <= DEEP_PAGE_NOINDEX;
     return {

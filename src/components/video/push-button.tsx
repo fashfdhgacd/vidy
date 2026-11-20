@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { tr } from "@/lib/ui-lang";
 
 /**
  * Ajakan "Aktifkan notifikasi" (web push video baru). Berlaku per SITUS, bukan per video:
@@ -122,7 +123,7 @@ export function PushButton() {
         disabled={state === "busy"}
         className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-2 disabled:opacity-60"
       >
-        🔔 {state === "busy" ? "Mengaktifkan…" : state === "error" ? "Gagal, coba lagi" : "Aktifkan notifikasi"}
+        🔔 {state === "busy" ? tr("Mengaktifkan…", "Turning on…") : state === "error" ? tr("Gagal, coba lagi", "Failed, try again") : tr("Aktifkan notifikasi", "Turn on notifications")}
       </button>
       {state !== "busy" && (
         <button type="button" onClick={dismiss} className="text-xs text-muted underline-offset-2 hover:underline">

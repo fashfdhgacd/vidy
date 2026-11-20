@@ -1,3 +1,4 @@
+import { tr } from "@/lib/ui-lang";
 // Display slots. Zone ids live in src/lib/ads/spots.ts. A disabled slot (empty script)
 // renders nothing and does not load a network script. The popunder is not a box.
 // Banner and in-page push stay off on IndoAV watch pages (data-kdp-page-ad=off|wait).
@@ -67,7 +68,7 @@ function DisplaySlot({ spot, className = "" }: { spot: AdSpot; className?: strin
     };
   }, [spot.enabled, spot.script, spot.zoneId, spot.insClass]);
   if (!spot.enabled || !spot.script || !spot.zoneId) return null;
-  return <div ref={ref} data-kdp-ad="exoclick" className={className} aria-label="Iklan" />;
+  return <div ref={ref} data-kdp-ad="exoclick" className={className} aria-label={tr("Iklan", "Advertisement")} />;
 }
 
 /** Catalog card. Off while banner300x250 is disabled. */

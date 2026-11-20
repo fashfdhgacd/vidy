@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { tr } from "@/lib/ui-lang";
 
 import { SITE_NAME } from "@/lib/seo";
 
@@ -59,19 +60,21 @@ export function AgeGate({ children }: { children: ReactNode }) {
       {children}
       <noscript>
         <p>
-          Katalog video dewasa 18+ Videy Hub. Aktifkan JavaScript untuk menonton.{" "}
-          <a href="/">Beranda</a> · <a href="/syarat">Syarat</a> · <a href="/privasi">Privasi</a> · <a href="/dmca">DMCA</a> ·{" "}
-          <a href="/2257">2257</a> · <a href="/kontak">Kontak</a>
+          {tr(`Katalog video dewasa 18+ ${SITE_NAME}. Aktifkan JavaScript untuk menonton.`, `${SITE_NAME}: an 18+ adult video catalog. Turn on JavaScript to watch.`)}{" "}
+          <a href="/">{tr("Beranda", "Home")}</a> · <a href="/syarat">{tr("Syarat", "Terms")}</a> · <a href="/privasi">{tr("Privasi", "Privacy")}</a> · <a href="/dmca">DMCA</a> ·{" "}
+          <a href="/2257">2257</a> · <a href="/kontak">{tr("Kontak", "Contact")}</a>
         </p>
       </noscript>
       {blocked ? (
         <div data-kdp-noad="" className="kdp-no-pop fixed inset-0 z-[80] flex items-center justify-center bg-background px-6">
           <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 text-center shadow-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">{SITE_NAME}</p>
-            <h1 className="mt-3 font-display text-3xl text-foreground">Konten 18+</h1>
+            <h1 className="mt-3 font-display text-3xl text-foreground">{tr("Konten 18+", "18+ Content")}</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted">
-              Situs ini menampilkan materi dewasa. Masuk hanya jika Anda berusia 18 tahun atau lebih
-              dan setuju dengan syarat layanan.
+              {tr(
+                "Situs ini menampilkan materi dewasa. Masuk hanya jika Anda berusia 18 tahun atau lebih dan setuju dengan syarat layanan.",
+                "This site shows adult material. Enter only if you are 18 or older and agree to the terms of service.",
+              )}
             </p>
             <div className="mt-6 grid gap-3">
               <button
@@ -79,13 +82,13 @@ export function AgeGate({ children }: { children: ReactNode }) {
                 className="h-12 rounded-xl bg-primary px-4 text-base font-semibold text-primary-foreground"
                 onClick={accept}
               >
-                Saya 18+ dan setuju
+                {tr("Saya 18+ dan setuju", "I am 18+ and I agree")}
               </button>
               <a
                 href="https://www.google.com"
                 className="flex h-12 items-center justify-center rounded-xl border border-border text-sm text-muted"
               >
-                Keluar
+                {tr("Keluar", "Leave")}
               </a>
             </div>
           </div>

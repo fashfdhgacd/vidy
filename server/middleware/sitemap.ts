@@ -82,15 +82,19 @@ function pageEntries(
       urlEntry(`${SITE_ORIGIN}/halaman/${i + 2}`, { changefreq: "hourly", priority: "0.8", lastmod }),
     ),
   ];
-  const hub = keywordRoot() === "genre" ? "/genre" : "/cari";
-  out.push(urlEntry(`${SITE_ORIGIN}${hub}`, { changefreq: "weekly", priority: "0.6", lastmod: "2026-11-05" }));
-  for (const landing of landings) {
+  // videqsss is English-only: its Indonesian /genre pages 301 to /en, so only /en goes in its sitemap.
+  const idLandings = IS_VIDEQSSS ? [] : landings;
+  if (!IS_VIDEQSSS) {
+    const hub = keywordRoot() === "genre" ? "/genre" : "/cari";
+    out.push(urlEntry(`${SITE_ORIGIN}${hub}`, { changefreq: "weekly", priority: "0.6", lastmod: "2026-11-05" }));
+  }
+  for (const landing of idLandings) {
     out.push(urlEntry(`${SITE_ORIGIN}${keywordHref(landing.slug, 1)}`, { changefreq: "daily", priority: "0.6" }));
     for (let n = 2; n <= landing.pages; n++) {
       out.push(urlEntry(`${SITE_ORIGIN}${keywordHref(landing.slug, n)}`, { changefreq: "daily", priority: "0.5" }));
     }
   }
-  out.push(urlEntry(`${SITE_ORIGIN}/en`, { changefreq: "weekly", priority: "0.6", lastmod: "2026-11-13" }));
+  out.push(urlEntry(`${SITE_ORIGIN}/en`, { changefreq: "weekly", priority: "0.6", lastmod: IS_VIDEQSSS ? "2026-11-20" : "2026-11-13" }));
   for (const landing of enLandings) {
     out.push(urlEntry(`${SITE_ORIGIN}${enHref(landing.slug, 1)}`, { changefreq: "daily", priority: "0.6" }));
     for (let n = 2; n <= landing.pages; n++) {

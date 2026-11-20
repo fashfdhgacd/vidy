@@ -1,4 +1,5 @@
 "use client";
+import { tr, UI_LOCALE } from "@/lib/ui-lang";
 
 import { useCallback, useEffect, useState } from "react";
 import { authClient } from "@/lib/auth/client";
@@ -17,13 +18,13 @@ function timeLabel(iso: string): string {
   if (!Number.isFinite(t)) return "";
   const diff = Date.now() - t;
   const m = Math.floor(diff / 60_000);
-  if (m < 1) return "baru saja";
-  if (m < 60) return `${m} mnt lalu`;
+  if (m < 1) return tr("baru saja", "just now");
+  if (m < 60) return tr(`${m} mnt lalu`, `${m} min ago`);
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} jam lalu`;
+  if (h < 24) return tr(`${h} jam lalu`, `${h} h ago`);
   const d = Math.floor(h / 24);
-  if (d < 30) return `${d} hari lalu`;
-  return new Date(t).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  if (d < 30) return tr(`${d} hari lalu`, `${d} d ago`);
+  return new Date(t).toLocaleDateString(UI_LOCALE, { day: "numeric", month: "short", year: "numeric" });
 }
 
 /**
@@ -108,7 +109,7 @@ export function VideoComments({ videoId }: { videoId: string }) {
       }
       await authClient.getSession();
     } catch {
-      setAuthError("gagal terhubung");
+      setAuthError(tr("gagal terhubung", "connection failed"));
     } finally {
       setAuthBusy(false);
     }
@@ -118,23 +119,23 @@ export function VideoComments({ videoId }: { videoId: string }) {
     "w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-[primary]/50 focus:outline-none";
 
   return (
-    <section className="mt-8 max-w-3xl space-y-4" aria-label="Komentar">
+    <section className="mt-8 max-w-3xl space-y-4" aria-label={tr("Komentar", "Comments")}>
       <h2 className="font-display text-xl text-foreground">
-        Komentar{total ? ` (${total})` : ""}
+        {tr("Komentar", "Comments")}{total ? ` (${total})` : ""}
       </h2>
 
       {isPending ? null : user ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs text-zinc-500">
-              Masuk sebagai <span className="text-zinc-300">{user.displayName || user.primaryEmail || "Member"}</span>
+              {tr("Masuk sebagai", "Signed in as")} <span className="text-zinc-300">{user.displayName || user.primaryEmail || "Member"}</span>
             </p>
             <button
               type="button"
               className="text-[11px] text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline"
               onClick={() => void signOut("/watch/" + videoId)}
             >
-              Keluar
+              {tr("Keluar", "Sign out")}
             </button>
           </div>
           <textarea
@@ -142,7 +143,7 @@ export function VideoComments({ videoId }: { videoId: string }) {
             onChange={(e) => setDraft(e.target.value)}
             rows={3}
             maxLength={600}
-            placeholder="Tulis komentar…"
+            placeholder={tr("Tulis komentar…", "Write a comment…")}
             className={inputCls}
           />
           <div className="flex items-center justify-between">
@@ -153,23 +154,23 @@ export function VideoComments({ videoId }: { videoId: string }) {
               onClick={() => void submit()}
               className="rounded-lg border border-[primary] bg-[primary] px-4 py-1.5 text-[13px] font-medium text-zinc-950 hover:bg-[#5eead4] disabled:opacity-50"
             >
-              {busy ? "Kirim…" : "Kirim"}
+              {busy ? tr("Kirim…", "Sending…") : tr("Kirim", "Send")}
             </button>
           </div>
           {error && error !== "login_required" ? (
-            <p className="text-[12px] text-red-300">{error === "rate_limited" ? "Terlalu banyak komentar, coba lagi nanti." : "Komentar gagal dikirim."}</p>
+            <p className="text-[12px] text-red-300">{error === "rate_limited" ? tr("Terlalu banyak komentar, coba lagi nanti.", "Too many comments, try again later.") : tr("Komentar gagal dikirim.", "Comment could not be sent.")}</p>
           ) : null}
         </div>
       ) : (
         <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
-          <p className="text-sm text-zinc-300">Masuk untuk berkomentar.</p>
+          <p className="text-sm text-zinc-300">{tr("Masuk untuk berkomentar.", "Sign in to comment.")}</p>
           <div className="mt-1 flex gap-2 text-[12px]">
             <button
               type="button"
               className={mode === "signup" ? "text-[#5eead4] underline" : "text-zinc-500 hover:text-zinc-300"}
               onClick={() => setMode("signup")}
             >
-              Daftar
+              {tr("Daftar", "Sign up")}
             </button>
             <span className="text-zinc-700">·</span>
             <button
@@ -177,7 +178,7 @@ export function VideoComments({ videoId }: { videoId: string }) {
               className={mode === "login" ? "text-[#5eead4] underline" : "text-zinc-500 hover:text-zinc-300"}
               onClick={() => setMode("login")}
             >
-              Masuk
+              {tr("Masuk", "Sign in")}
             </button>
           </div>
           <div className="mt-3 space-y-2">
@@ -196,7 +197,7 @@ export function VideoComments({ videoId }: { videoId: string }) {
               onKeyDown={(e) => {
                 if (e.key === "Enter") void submitAuth();
               }}
-              placeholder="Password (min. 8 karakter)"
+              placeholder={tr("Password (min. 8 karakter)", "Password (min. 8 characters)")}
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
               className={inputCls}
             />
@@ -206,7 +207,7 @@ export function VideoComments({ videoId }: { videoId: string }) {
               onClick={() => void submitAuth()}
               className="rounded-lg border border-white/[0.15] bg-white/[0.06] px-4 py-1.5 text-[13px] font-medium text-zinc-100 hover:bg-white/[0.1] disabled:opacity-50"
             >
-              {authBusy ? "…" : mode === "signup" ? "Buat Akun" : "Masuk"}
+              {authBusy ? "…" : mode === "signup" ? tr("Buat Akun", "Create account") : tr("Masuk", "Sign in")}
             </button>
             {authError ? <p className="text-[12px] text-red-300">{authError}</p> : null}
           </div>
@@ -214,9 +215,9 @@ export function VideoComments({ videoId }: { videoId: string }) {
       )}
 
       {comments === null ? (
-        <p className="text-[13px] text-zinc-500">Memuat komentar…</p>
+        <p className="text-[13px] text-zinc-500">{tr("Memuat komentar…", "Loading comments…")}</p>
       ) : comments.length === 0 ? (
-        <p className="text-[13px] text-zinc-500">Belum ada komentar. Jadilah yang pertama.</p>
+        <p className="text-[13px] text-zinc-500">{tr("Belum ada komentar. Jadilah yang pertama.", "No comments yet. Be the first.")}</p>
       ) : (
         <ul className="space-y-3">
           {comments.map((c) => (

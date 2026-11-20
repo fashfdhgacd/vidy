@@ -5,6 +5,7 @@ import {
   EN_LANDINGS,
   enDocumentTitle,
   enSlugForId,
+  englishTargetForIdLanding,
   findEnLanding,
   hreflangLinks,
   idSlugForEn,
@@ -109,5 +110,21 @@ describe("english videqsss landings", () => {
       enDocumentTitle("Indonesian Amateur Videos", 2, "videqsss.icu"),
       "Indonesian Amateur Videos – Page 2 | videqsss.icu",
     );
+  });
+});
+
+describe("videqsss english-only redirects", () => {
+  it("sends an Indonesian keyword page to its English page, same page number", () => {
+    assert.equal(englishTargetForIdLanding("bokep-indo-amatir"), "/en/indonesian-amateur");
+    assert.equal(englishTargetForIdLanding("bokep-jilbab-indo", 3), "/en/indo-hijab/halaman/3");
+  });
+  it("falls back to the /en hub when no English page corresponds", () => {
+    assert.equal(englishTargetForIdLanding("bokep-open-bo"), "/en");
+    assert.equal(englishTargetForIdLanding("does-not-exist", 2), "/en");
+  });
+  it("keeps Andini Permata titles off keyword pages", () => {
+    assert.equal(hasBannedWord("Video Andini Permata viral"), true);
+    assert.equal(hasBannedWord("andinipermata full"), true);
+    assert.equal(hasBannedWord("Bokep jilbab indo"), false);
   });
 });

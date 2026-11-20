@@ -1,3 +1,5 @@
+import { UI_LANG } from "@/lib/ui-lang";
+
 function windowPages(current: number, totalPages: number, span = 2): number[] {
   const size = span * 2 + 1;
   let start = Math.max(1, current - span);
@@ -18,7 +20,7 @@ export function CatalogPager({
   onPage,
   basePath,
   pageHref,
-  lang = "id",
+  lang = UI_LANG,
 }: {
   page: number;
   total: number;
@@ -88,7 +90,7 @@ export function CatalogPager({
       <p className="text-center text-xs text-foreground/80 sm:text-base">
         {lang === "en" ? "Page" : "Halaman"} {page.toLocaleString(lang === "en" ? "en" : "id-ID")} {lang === "en" ? "of" : "dari"} {totalPages.toLocaleString(lang === "en" ? "en" : "id-ID")}
         {" · "}
-        {total.toLocaleString(lang === "en" ? "en" : "id-ID")} video
+        {total.toLocaleString(lang === "en" ? "en" : "id-ID")} {lang === "en" ? "videos" : "video"}
       </p>
       <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-3.5">
         <a

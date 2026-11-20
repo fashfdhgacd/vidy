@@ -4,7 +4,7 @@
  * Dibangun dari katalog in-memory, di-cache per colo (Cache API) 1 jam: tanpa KV/D1, tanpa timer.
  */
 import { listSitemapWatchEntries } from "../../src/lib/catalog/sitemap-entries";
-import { SITE_NAME, SITE_ORIGIN, cleanDisplayTitle, seoVideoThumbnail, videoSeoDescription } from "../../src/lib/seo";
+import { IS_VIDEQSSS, SITE_NAME, SITE_ORIGIN, TITLE_SUFFIX, cleanDisplayTitle, seoVideoThumbnail, videoSeoDescription } from "../../src/lib/seo";
 
 interface RssEvent {
   url: URL;
@@ -59,11 +59,15 @@ async function buildRss(): Promise<string> {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>${esc(SITE_NAME)} - Video Terbaru</title>
+    <title>${esc(SITE_NAME)} - ${IS_VIDEQSSS ? "Newest Videos" : "Video Terbaru"}</title>
     <link>${SITE_ORIGIN}/</link>
     <atom:link href="${SITE_ORIGIN}/rss.xml" rel="self" type="application/rss+xml"/>
-    <description>Video terbaru dari ${esc(SITE_NAME)}, situs resmi videyy.icu. Konten 18+.</description>
-    <language>id</language>
+    <description>${
+      IS_VIDEQSSS
+        ? `Newest videos from ${esc(SITE_NAME)}, the official ${TITLE_SUFFIX}. Adults 18+ only.`
+        : `Video terbaru dari ${esc(SITE_NAME)}, situs resmi videyy.icu. Konten 18+.`
+    }</description>
+    <language>${IS_VIDEQSSS ? "en" : "id"}</language>
     <lastBuildDate>${last}</lastBuildDate>
 ${items.join("\n")}
   </channel>

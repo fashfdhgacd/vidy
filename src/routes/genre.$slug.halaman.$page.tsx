@@ -1,6 +1,7 @@
 import { createFileRoute, notFound, redirect, useNavigate } from "@tanstack/react-router";
-import { keywordHref, parseHalamanParam } from "@/lib/catalog/halaman";
+import { parseHalamanParam } from "@/lib/catalog/halaman";
 import { findLanding } from "@/lib/catalog/landing";
+import { englishTargetForIdLanding } from "@/lib/catalog/en-landing";
 import { IS_VIDEQSSS, SITE_ORIGIN } from "@/lib/seo";
 import { CariExperience, landingHead, loadLanding } from "./cari.$slug";
 
@@ -13,10 +14,10 @@ export const Route = createFileRoute("/genre/$slug/halaman/$page")({
       const path = page ? `/cari/${encodeURIComponent(params.slug)}/halaman/${page}` : `/cari/${encodeURIComponent(params.slug)}`;
       throw redirect({ href: `${SITE_ORIGIN}${path}`, statusCode: 301 });
     }
-    if (params.page === "1") {
-      throw redirect({ href: `${SITE_ORIGIN}${keywordHref(params.slug, 1)}`, statusCode: 301 });
-    }
-    if (!parseHalamanParam(params.page)) throw notFound();
+    if (!parseHalamanParam(params.page) && params.page !== "1") throw notFound();
+    // videqsss is English site-wide: same page number on the English keyword page.
+    const n = parseHalamanParam(params.page) || 1;
+    throw redirect({ href: `${SITE_ORIGIN}${englishTargetForIdLanding(params.slug, n)}`, statusCode: 301 });
   },
   loader: ({ params }) => loadLanding(params.slug, parseHalamanParam(params.page) || 2),
   head: ({ params, loaderData }) => landingHead(params.slug, parseHalamanParam(params.page) || 2, loaderData),

@@ -452,12 +452,15 @@ export function isUsable(item: RawItem): boolean {
   return play.length >= 6;
 }
 
+/** "1h 2m" on the English build (videqsss), "1j 2m" (jam) on videyy. */
+const HOUR_UNIT = (import.meta as { env?: { VITE_SITE_ID?: string } }).env?.VITE_SITE_ID === "videqsss" ? "h" : "j";
+
 function fmtDuration(sec: number): string {
   const s = Math.round(sec);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const r = s % 60;
-  return h ? `${h}j ${m}m` : m ? `${m}m ${r}s` : `${r}s`;
+  return h ? `${h}${HOUR_UNIT} ${m}m` : m ? `${m}m ${r}s` : `${r}s`;
 }
 
 export function toCard(item: RawItem, posters: Record<string, string>, videyNo?: Map<string, number>): VideoCard {

@@ -5,7 +5,7 @@ import { SafeBoundary } from "@/components/safe-boundary";
 import { CatalogPager } from "@/components/video/catalog-pager";
 import { VideoGrid } from "@/components/video/video-grid";
 import { enHref, keywordHref } from "@/lib/catalog/halaman";
-import { enSlugForId, hreflangLinks } from "@/lib/catalog/en-landing";
+import { englishTargetForIdLanding, halamanFromPath, enSlugForId, hreflangLinks } from "@/lib/catalog/en-landing";
 import { LANDING_INDEX_PAGES, LANDING_MIN_VIDEOS, LANDING_PAGE_SIZE, findLanding, landingsForSite } from "@/lib/catalog/landing";
 import { queryCatalog } from "@/lib/catalog/service";
 import type { CatalogResponse, VideoCard } from "@/lib/catalog/types";
@@ -77,10 +77,10 @@ export function landingHead(slug: string, page: number, loaderData: unknown) {
 
 /** /cari/<slug>: keyword landings. Page 2+ lives at /cari/<slug>/halaman/N. */
 export const Route = createFileRoute("/cari/$slug")({
-  beforeLoad: ({ params }) => {
+  beforeLoad: ({ params, location }) => {
     if (!findLanding(params.slug)) throw notFound();
     if (IS_VIDEQSSS) {
-      throw redirect({ href: `${SITE_ORIGIN}${keywordHref(params.slug, 1)}`, statusCode: 301 });
+      throw redirect({ href: `${SITE_ORIGIN}${englishTargetForIdLanding(params.slug, halamanFromPath(location.pathname))}`, statusCode: 301 });
     }
   },
   loader: ({ params }) => loadLanding(params.slug, 1),

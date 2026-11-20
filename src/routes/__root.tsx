@@ -1,10 +1,11 @@
+import { UI_EN } from "@/lib/ui-lang";
 import { createRootRoute, HeadContent, Outlet, Scripts, redirect, useRouterState } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { PresencePing } from "@/components/presence-ping";
 import { SwCleanup } from "@/components/sw-cleanup";
 import { EXOCLICK_META_NAME, exoclickToken } from "@/lib/exoclick-verify";
-import { DEFAULT_OG, HOME_DESCRIPTION, HOME_TITLE, OG_SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
+import { DEFAULT_OG, HOME_DESCRIPTION, HOME_TITLE, OG_SITE_NAME, SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
 import appCss from "../styles.css?url";
 import figtreeFont from "../assets/fonts/figtree-latin.woff2?url";
 
@@ -50,7 +51,7 @@ export const Route = createRootRoute({
       { property: "og:site_name", content: OG_SITE_NAME },
       { property: "og:title", content: HOME_TITLE },
       { property: "og:type", content: "website" },
-      { property: "og:locale", content: "id_ID" },
+      { property: "og:locale", content: UI_EN ? "en_US" : "id_ID" },
       { property: "og:image", content: DEFAULT_OG },
       { property: "og:image:secure_url", content: DEFAULT_OG },
       { property: "og:image:type", content: "image/jpeg" },
@@ -65,8 +66,8 @@ export const Route = createRootRoute({
       { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png?v=3" },
       { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png?v=3" },
       { rel: "image_src", href: DEFAULT_OG },
-      { rel: "search", type: "application/opensearchdescription+xml", title: "Videy Hub", href: `${SITE_ORIGIN}/opensearch.xml` },
-      { rel: "alternate", type: "application/rss+xml", title: "Videy Hub - Video Terbaru", href: `${SITE_ORIGIN}/rss.xml` },
+      { rel: "search", type: "application/opensearchdescription+xml", title: SITE_NAME, href: `${SITE_ORIGIN}/opensearch.xml` },
+      { rel: "alternate", type: "application/rss+xml", title: UI_EN ? `${SITE_NAME} - Newest Videos` : "Videy Hub - Video Terbaru", href: `${SITE_ORIGIN}/rss.xml` },
       // Poster/thumbnail host (cards + preloaded hero images): open the connection with the HTML.
       { rel: "preconnect", href: "https://img.koleksidrpinguin.com" },
       { rel: "preconnect", href: "https://tv1.indoav.app" },
@@ -87,7 +88,8 @@ function RootComponent() {
   const lang = useRouterState({
     select: (s) => {
       const p = s.location.pathname;
-      return p === "/en" || p.startsWith("/en/") ? "en" : "id";
+      // videqsss.icu is English site-wide; videyy.icu is Indonesian except its /en pages.
+      return UI_EN || p === "/en" || p.startsWith("/en/") ? "en" : "id";
     },
   });
   return (

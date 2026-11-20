@@ -48,8 +48,12 @@ export const OWN_CATALOG_SOURCES = new Set(["IndoAV", "UserBokep"]);
 export const LANDING_BANNED =
   /\b(abg|smp|sma|smk|sd|bocil|bocah|pelajar|siswi|siswa|sekolah|seragam|anak|dibawah\s*umur|under\s*age|underage|loli|lolita|remaja|perawan|bocor|bocoran|kesebar|tersebar|direkam|rekam\s*diam|skandal|paksa|dipaksa|diperkosa|perkosa|mabuk|tidur|pingsan|ngintip|intip|hidden\s*cam|spy\s*cam)\b/i;
 
+/** Titles kept out of every SEO surface (keyword pages, their ItemList), owner decision 2026-11-20. */
+export const SEO_EXCLUDED_TITLE = /andini\s*permata/i;
+
 export function hasBannedWord(text: string): boolean {
-  return LANDING_BANNED.test(String(text || ""));
+  const t = String(text || "");
+  return LANDING_BANNED.test(t) || SEO_EXCLUDED_TITLE.test(t);
 }
 
 export const LANDINGS: LandingDef[] = [
