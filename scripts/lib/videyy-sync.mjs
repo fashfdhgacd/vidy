@@ -99,3 +99,32 @@ export function mergeBlocklist(localBlock, extraIds, now = Date.now()) {
   }
   return { block: { ...(localBlock || {}), ids }, added };
 }
+
+/**
+ * Rows the previous snapshot had that the new upstream export no longer lists, minus blocked ids
+ * and rows now bundled locally. Upstream drops a row both when the owner hides it and when its
+ * multi-server merge folds it into another id; the caller tells the two apart (kept only when the
+ * main site answers /watch/<id> with a redirect, i.e. a merged copy).
+ */
+export function droppedSinceLast({ prevItems, nextItems, localItems, blockIds }) {
+  const next = new Set((nextItems || []).map((it) => String(it?.id || "")));
+  const local = new Set((localItems || []).map((it) => String(it?.id || "")));
+  const blocked = new Set((blockIds || []).map(String));
+  return (prevItems || []).filter((it) => {
+    const id = String(it?.id || "");
+    return id && !next.has(id) && !local.has(id) && !blocked.has(id);
+  });
+}
+
+/** Merged copies go back in, after the new rows, without duplicates. */
+export function withRetained(nextItems, retained) {
+  const seen = new Set((nextItems || []).map((it) => String(it.id)));
+  const out = [...(nextItems || [])];
+  for (const it of retained || []) {
+    const id = String(it.id);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(it);
+  }
+  return out;
+}
