@@ -9,12 +9,14 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   applyConfigOverlay,
+  droppedSinceLast,
   extraBlockIds,
   idsFromBlock,
   isJsonDocument,
   itemsFromUnknown,
   mergeBlocklist,
   planSync,
+  withRetained,
 } from "./lib/videyy-sync.mjs";
 
 const root = process.cwd();
@@ -63,6 +65,35 @@ async function pullJson(config, relPath) {
     }
   }
   return null;
+}
+
+/** Rows whose main-site watch page redirects (merged multi-server copy). Errors count as "not merged". */
+async function mergedCopies(config, rows) {
+  const origin = String(config.upstream?.httpOrigin || "").replace(/\/$/, "");
+  if (!origin || !rows.length) return [];
+  const kept = [];
+  for (let i = 0; i < rows.length; i += 8) {
+    const batch = rows.slice(i, i + 8);
+    const codes = await Promise.all(
+      batch.map(async (it) => {
+        try {
+          const res = await fetch(`${origin}/watch/${encodeURIComponent(String(it.id))}`, {
+            method: "HEAD",
+            redirect: "manual",
+            headers: { "User-Agent": "videyy-daily-sync" },
+            signal: AbortSignal.timeout(10000),
+          });
+          return res.status;
+        } catch {
+          return 0;
+        }
+      }),
+    );
+    batch.forEach((it, j) => {
+      if (codes[j] === 301 || codes[j] === 308) kept.push(it);
+    });
+  }
+  return kept;
 }
 
 function loadLocalItems(files) {
@@ -180,6 +211,16 @@ async function main() {
       return { items: [] };
     }
   })();
+  // Keep rows the main site merged into another id (its /watch/<id> answers 301): their watch
+  // pages here stay up (already indexed/shared). Rows hidden or removed there (404/410) are dropped.
+  if (upstreamItems.length && !plan.skipped) {
+    const dropped = droppedSinceLast({ prevItems: itemsFromUnknown(prev), nextItems: plan.items, localItems, blockIds });
+    const kept = await mergedCopies(config, dropped);
+    if (kept.length) {
+      plan.items = withRetained(plan.items, kept);
+      console.log("kept merged copies", kept.length, "of", dropped.length, "dropped upstream");
+    }
+  }
   const prevKey = JSON.stringify(itemsFromUnknown(prev));
   const nextKey = JSON.stringify(plan.items);
   const prevIds = new Set(itemsFromUnknown(prev).map((it) => String(it.id)));

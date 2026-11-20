@@ -72,3 +72,21 @@ test("challenge HTML is not a catalog", () => {
   assert.equal(isJsonDocument('[{"id":"a"}]'), true);
   assert.deepEqual(itemsFromUnknown({ items: [{ id: "a" }, { title: "nope" }] }).map((row) => row.id), ["a"]);
 });
+
+import { droppedSinceLast, withRetained } from "./lib/videyy-sync.mjs";
+
+test("rows that left upstream are candidates unless blocked or now bundled", () => {
+  const prevItems = [{ id: "keep-me" }, { id: "still-up" }, { id: "blocked" }, { id: "now-local" }];
+  const got = droppedSinceLast({
+    prevItems,
+    nextItems: [{ id: "still-up" }],
+    localItems: [{ id: "now-local" }],
+    blockIds: ["blocked"],
+  });
+  assert.deepEqual(got.map((it) => it.id), ["keep-me"]);
+});
+
+test("retained merged copies go after the new rows, once", () => {
+  const out = withRetained([{ id: "n1" }], [{ id: "m1" }, { id: "n1" }, { id: "m1" }]);
+  assert.deepEqual(out.map((it) => it.id), ["n1", "m1"]);
+});
