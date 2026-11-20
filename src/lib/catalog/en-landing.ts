@@ -33,7 +33,7 @@ export const EN_LANDINGS: EnLandingDef[] = [
     h1: "Indonesian Amateur Videos",
     title: "Indonesian Amateur Videos",
     description:
-      "Indonesian amateur videos from IndoAV and UserBokep, ranked by views. Watch in the browser, no account needed. 18+ only.",
+      "Indonesian amateur videos from IndoAV, UserBokep and other hosts, ranked by views. Watch in the browser, no account needed. 18+ only.",
     intro:
       "This page gathers Indonesian amateur recordings already in the Videqsss catalog — everyday adult couples and homemade clips, not studio features. They are ordered by views so the most watched titles sit at the top. Everyone shown is 18 or older; press play in your browser, no signup required.",
     idSlug: "bokep-indo-amatir",
@@ -44,7 +44,7 @@ export const EN_LANDINGS: EnLandingDef[] = [
     h1: "Indonesian Hijab Videos",
     title: "Indonesian Hijab Videos",
     description:
-      "Indonesian hijab and jilbab videos from our IndoAV and UserBokep catalog. Stream on your phone. 18+ only.",
+      "Indonesian hijab and jilbab videos from our catalog of IndoAV, UserBokep and other hosts. Stream on your phone. 18+ only.",
     intro:
       "A short list of Indonesian hijab and jilbab videos that already sit in our catalog, from modest everyday dress to longer amateur recordings. The grid follows view count, not upload date, so popular titles appear first. All performers are adults, and you can watch in the browser without creating an account.",
     idSlug: "bokep-jilbab-indo",
@@ -57,7 +57,7 @@ export const EN_LANDINGS: EnLandingDef[] = [
     description:
       "Indonesian MILF, STW, and mature amateur videos, ranked by views. Stream without an account. 18+ only.",
     intro:
-      "These clips feature older Indonesian women — often tagged tante, STW, or MILF in the original titles — drawn from IndoAV and UserBokep. The order is by views, so the titles people actually watch rise to the top. Every performer is an adult; start with the first row or browse later pages for more of the same.",
+      "These clips feature older Indonesian women — often tagged tante, STW, or MILF in the original titles — drawn from IndoAV, UserBokep and other hosts. The order is by views, so the titles people actually watch rise to the top. Every performer is an adult; start with the first row or browse later pages for more of the same.",
     idSlug: "bokep-indo-stw",
   },
   {
@@ -87,7 +87,7 @@ export const EN_LANDINGS: EnLandingDef[] = [
     h1: "Indonesian Wife Videos",
     title: "Indonesian Wife Videos",
     description:
-      "Indonesian wife and married-couple videos from IndoAV and UserBokep. Stream without signing up. 18+ only.",
+      "Indonesian wife and married-couple videos from IndoAV, UserBokep and other hosts. Stream without signing up. 18+ only.",
     intro:
       "This grid collects Indonesian videos whose titles describe wives and married couples, taken only from sources we already host. Popular titles float to the top by view count. Everyone appearing here is 18 or older; watch in the browser at your own pace.",
     idSlug: "bokep-istri-indo",
@@ -109,7 +109,7 @@ export const EN_LANDINGS: EnLandingDef[] = [
     h1: "Indonesian and Western Pairings",
     title: "Indonesian & Western Pairings",
     description:
-      "Indonesian videos with Western partners, collected from our IndoAV and UserBokep catalog. 18+ only.",
+      "Indonesian videos with Western partners, collected from our catalog of IndoAV, UserBokep and other hosts. 18+ only.",
     intro:
       "These titles mention a Western partner together with an Indonesian performer — the clips people often look for when they want that pairing, not a translated copy of another page. They are ranked by views from our own catalog. Everyone shown is 18 or older.",
   },
@@ -139,7 +139,7 @@ export const EN_LANDINGS: EnLandingDef[] = [
     h1: "Indonesian Bathroom Videos",
     title: "Indonesian Bathroom Videos",
     description:
-      "Indonesian bathroom and shower amateur videos from IndoAV and UserBokep. Stream without an account. 18+ only.",
+      "Indonesian bathroom and shower amateur videos from IndoAV, UserBokep and other hosts. Stream without an account. 18+ only.",
     intro:
       "These Indonesian amateur clips are set in a bathroom or shower, according to the titles we already store. Hidden-camera wording is kept out of this list. The grid is sorted by views, and every performer is 18 or older.",
   },
@@ -160,7 +160,7 @@ export const EN_LANDINGS: EnLandingDef[] = [
     h1: "Chinese-Indonesian Videos",
     title: "Chinese-Indonesian Videos",
     description:
-      "Chinese-Indonesian (Chindo) amateur videos from our IndoAV and UserBokep catalog. 18+ only.",
+      "Chinese-Indonesian (Chindo) amateur videos from our catalog of IndoAV, UserBokep and other hosts. 18+ only.",
     intro:
       "These recordings are tagged or titled as Chinese-Indonesian (Chindo) and already belong to the Videqsss catalog. The most watched titles lead the list. All performers are adults, and you can stream them in the browser.",
     idSlug: "bokep-chindo",
@@ -182,7 +182,7 @@ export const EN_LANDINGS: EnLandingDef[] = [
     h1: "Indonesian Doggy Style Videos",
     title: "Indonesian Doggy Style Videos",
     description:
-      "Indonesian doggy style amateur videos from IndoAV and UserBokep, sorted by views. 18+ only.",
+      "Indonesian doggy style amateur videos from IndoAV, UserBokep and other hosts, sorted by views. 18+ only.",
     intro:
       "These Indonesian clips are grouped here because the title already names doggy style, not because we relabeled a random set. The order follows view count. All performers are adults; play them in the browser whenever you like.",
     idSlug: "bokep-doggy-indo",
@@ -237,7 +237,7 @@ export const EN_LANDINGS: EnLandingDef[] = [
     h1: "Indonesian Couple Videos",
     title: "Indonesian Couple Videos",
     description:
-      "Indonesian couple and pasutri amateur videos from IndoAV and UserBokep. Stream on your phone. 18+ only.",
+      "Indonesian couple and pasutri amateur videos from IndoAV, UserBokep and other hosts. Stream on your phone. 18+ only.",
     intro:
       "A selection of Indonesian couple videos — married pairs and long-term partners, according to the original titles. They are pulled from our existing catalog and sorted by views. All performers are 18 or older.",
   },
@@ -268,7 +268,7 @@ export const EN_LANDINGS: EnLandingDef[] = [
     h1: "Indonesian Neighbor Videos",
     title: "Indonesian Neighbor Videos",
     description:
-      "Indonesian amateur videos about a neighbor, taken from our IndoAV and UserBokep catalog. 18+ only.",
+      "Indonesian amateur videos about a neighbor, taken from our catalog of IndoAV, UserBokep and other hosts. 18+ only.",
     intro:
       "These Indonesian clips talk about a neighbor in the title and already belong to the catalog. Hidden-camera wording is not used as a reason to list a video here. Popular titles lead the page, and all performers are adults.",
   },
@@ -280,7 +280,7 @@ export const EN_LANDINGS: EnLandingDef[] = [
     description:
       "Indonesian office and coworker amateur videos from our catalog, sorted by views. 18+ only.",
     intro:
-      "A short list of Indonesian videos set in an office or involving coworkers, according to the original titles. They come from the same IndoAV and UserBokep pool as the rest of Videqsss. Everyone shown is 18 or older.",
+      "A short list of Indonesian videos set in an office or involving coworkers, according to the original titles. They come from the same multi-host pool as the rest of Videqsss. Everyone shown is 18 or older.",
   },
   {
     slug: "indonesian-famous",

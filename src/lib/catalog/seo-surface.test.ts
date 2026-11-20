@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { blockedIdSet, isBlockedId } from "./catalog-block.js";
-import { acceptLandingCard } from "./landing.ts";
+import { acceptLandingCard, freshFirst, mixOtherHosts } from "./landing.ts";
 import { categoryHref, cariHref, enHref, genreHref, homeHref, landingPath, legacyPageRedirect, parseHalamanParam } from "./halaman.ts";
 
 test("halaman paths replace query pagination", () => {
@@ -27,12 +27,14 @@ test("halaman paths replace query pagination", () => {
   assert.equal(legacyPageRedirect("/halaman/1", ""), "/");
 });
 
-test("genre landings accept only IndoAV and UserBokep; Videy landing stays Videy", () => {
+test("genre landings accept every host but Videy; Videy landing stays Videy; Andini excluded", () => {
   const genre = { category: "jilbab" };
   assert.equal(acceptLandingCard({ title: "Tante STW di kamar", creator: "IndoAV", category: "jilbab" }, genre), true);
   assert.equal(acceptLandingCard({ title: "Tante STW di kamar", creator: "UserBokep", category: "jilbab" }, genre), true);
   assert.equal(acceptLandingCard({ title: "Tante STW di kamar", creator: "Videy", category: "jilbab" }, genre), false);
-  assert.equal(acceptLandingCard({ title: "Tante STW di kamar", creator: "Putarin", category: "jilbab" }, genre), false);
+  assert.equal(acceptLandingCard({ title: "Tante STW di kamar", creator: "Putarin", category: "jilbab" }, genre), true);
+  assert.equal(acceptLandingCard({ title: "Tante STW di kamar", creator: "Byse", category: "jilbab" }, genre), true);
+  assert.equal(acceptLandingCard({ title: "Andini Permata di kamar", creator: "Byse", category: "jilbab" }, genre), false);
   assert.equal(acceptLandingCard({ title: "Link videy", creator: "Videy", category: "videy" }, { category: "videy" }), true);
 });
 
@@ -53,4 +55,25 @@ test("hard blocklist ids are excluded; a school-title is not an id block by itse
   const home = readFileSync(new URL("../seo.ts", import.meta.url), "utf8");
   assert.match(home, /Update Setiap Hari/);
   assert.match(home, /tanpa VPN/);
+});
+
+test("freshFirst puts Baru cards first, keeps order otherwise", () => {
+  const out = freshFirst([{ id: "a" }, { id: "b", isNew: true }, { id: "c" }, { id: "d", isNew: true }]);
+  assert.deepEqual(out.map((c) => c.id), ["b", "d", "a", "c"]);
+});
+
+test("mixOtherHosts: one newest other-host card after every 3 view-ranked IndoAV/UserBokep cards", () => {
+  const cards = [
+    { id: "i1", creator: "IndoAV" },
+    { id: "b-old", creator: "Byse" },
+    { id: "i2", creator: "IndoAV" },
+    { id: "u1", creator: "UserBokep" },
+    { id: "v-new", creator: "Vidara" },
+    { id: "i3", creator: "IndoAV" },
+    { id: "i4", creator: "IndoAV" },
+  ];
+  const rank: Record<string, number> = { "b-old": 1, "v-new": 2 };
+  const out = mixOtherHosts(cards, (c) => rank[c.id] || 0);
+  assert.deepEqual(out.map((c) => c.id), ["i1", "i2", "u1", "v-new", "i3", "i4", "b-old"]);
+  assert.deepEqual(mixOtherHosts([{ id: "x", creator: "Byse" }], () => 0).map((c) => c.id), ["x"]);
 });

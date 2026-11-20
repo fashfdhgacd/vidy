@@ -20,7 +20,7 @@ export const SITE_LOGO = `${SITE_ORIGIN}/icon-512.png`;
 
 /** Snippet beranda: update harian + streaming tanpa VPN (pola growth, teks sendiri). */
 export const HOME_DESCRIPTION = IS_VIDEQSSS
-  ? "The newest Indonesian amateur videos from IndoAV and UserBokep in one list, updated daily. Stream on your phone, no sign-up. Adults 18+ only."
+  ? "The newest Indonesian amateur videos from IndoAV, UserBokep and other video hosts in one list, updated daily. Stream on your phone, no sign-up. Adults 18+ only."
   : "Nonton video terbaru, update setiap hari, di videyy.icu. Streaming lancar di HP tanpa VPN dan tanpa daftar akun. Khusus dewasa 18+.";
 
 /** Judul beranda. Brand di depan, frasa update harian, tetap di bawah 60 karakter. */
@@ -33,7 +33,7 @@ export const HOME_H1 = IS_VIDEQSSS ? "Newest Indonesian Amateur Videos" : "Video
 
 /** Kalimat pendek di bawah H1 beranda. */
 export const HOME_INTRO = IS_VIDEQSSS
-  ? "Indonesian videos collected from IndoAV and UserBokep, newest first. Video titles stay in their original Indonesian. Plays right in your phone browser. Adults 18+ only."
+  ? "Indonesian videos collected from IndoAV, UserBokep, Byse, Vidara, LuluStream and other hosts, newest first. Video titles stay in their original Indonesian. Plays right in your phone browser. Adults 18+ only."
   : "Video terbaru di Videy Hub, ditambah setiap hari dari katalog sendiri. Putar langsung di HP tanpa VPN, tanpa aplikasi, dan tanpa login. Konten khusus 18+.";
 
 /** English category names for the English build (videqsss.icu). Hand-written, not machine-translated. */
@@ -270,7 +270,7 @@ export function publicWatchDescription(item: SeoVideoInput, max = 0): string {
   const durBit = dur ? (IS_VIDEQSSS ? `, ${dur} long` : `, durasi ${dur}`) : "";
   // Template per situs: meta satelit tidak sama persis dengan koleksidrpinguin.com (konten duplikat).
   const text = IS_VIDEQSSS
-    ? `${name}: an Indonesian ${label.toLowerCase()} video${durBit} on Videqsss. Newest IndoAV & UserBokep uploads, stream free with no sign-up at videqsss.icu. 18+.`
+    ? `${name}: an Indonesian ${label.toLowerCase()} video${durBit} on Videqsss. New uploads daily, stream free with no sign-up at videqsss.icu. 18+.`
     : `Nonton ${name} di Videy Hub, video ${label}${durBit}. Videy viral update tiap hari, tanpa VPN di videyy.icu. 18+.`;
   return max > 0 ? clipAtWord(text, max) : text;
 }

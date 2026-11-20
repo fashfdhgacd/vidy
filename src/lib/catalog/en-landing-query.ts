@@ -4,13 +4,14 @@
  */
 import { isSeoBlockedId } from "./seo-block";
 import { isMinorContentTitle } from "./minor-detector.js";
-import { LANDING_INDEX_PAGES, LANDING_MIN_VIDEOS, LANDING_PAGE_SIZE, OWN_CATALOG_SOURCES, hasBannedWord } from "./landing";
+import { LANDING_INDEX_PAGES, LANDING_MIN_VIDEOS, LANDING_PAGE_SIZE, GENRE_EXCLUDED_SOURCES, freshFirst, hasBannedWord, mixOtherHosts } from "./landing";
 import { EN_LANDINGS, findEnLanding } from "./en-landing";
 import { loadItems } from "./local-cache";
 import { slugOf, sourceLabel, toCard, type RawItem } from "./local-shared";
 import { realPosterFirst, videyFrameReady } from "./poster-status";
 import { posterProbeOk } from "./poster-known";
 import { titleTags } from "./title-tags";
+import { itemDate } from "./feed-order";
 import type { CatalogResponse, VideoCard } from "./types";
 
 const memo = new WeakMap<object, Map<string, VideoCard[]>>();
@@ -29,12 +30,12 @@ function cardsForAllEn(
 ): Map<string, VideoCard[]> {
   const hit = memo.get(items);
   if (hit) return hit;
-  const buckets = new Map<string, Array<{ card: VideoCard; i: number }>>();
+  const buckets = new Map<string, Array<{ card: VideoCard; i: number; t: number }>>();
   for (const def of EN_LANDINGS) buckets.set(def.slug, []);
   let i = 0;
   for (const item of items) {
     const label = sourceLabel(item);
-    if (!OWN_CATALOG_SOURCES.has(label)) {
+    if (GENRE_EXCLUDED_SOURCES.has(label)) {
       i++;
       continue;
     }
@@ -49,8 +50,9 @@ function cardsForAllEn(
     }
     const hay = haystack(item);
     const card = toCard(item, posters, videyNo);
+    const t = itemDate(item);
     for (const def of EN_LANDINGS) {
-      if (def.match.test(hay)) buckets.get(def.slug)!.push({ card, i });
+      if (def.match.test(hay)) buckets.get(def.slug)!.push({ card, i, t });
     }
     i++;
   }
@@ -58,11 +60,17 @@ function cardsForAllEn(
   for (const def of EN_LANDINGS) {
     const rows = buckets.get(def.slug) || [];
     rows.sort((a, b) => (b.card.views || 0) - (a.card.views || 0) || a.i - b.i);
+    const at = new Map(rows.map((r) => [r.card.id, r.t] as [string, number]));
     out.set(
       def.slug,
-      realPosterFirst(
-        rows.map((r) => r.card),
-        (c) => posterProbeOk(c.id) || videyFrameReady(c.id),
+      freshFirst(
+        realPosterFirst(
+          mixOtherHosts(
+            rows.map((r) => r.card),
+            (c) => at.get(c.id) || 0,
+          ),
+          (c) => posterProbeOk(c.id) || videyFrameReady(c.id),
+        ),
       ),
     );
   }

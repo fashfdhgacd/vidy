@@ -92,6 +92,32 @@ import {
 // Re-bind mutable cache/inflight via shared module namespace
 import { runtime } from "./local-shared";
 
+type UpstreamMap = { merged?: Record<string, string>; gone?: string[]; unlisted?: string[] };
+/** Main-site merges / hides for bundled ids it no longer lists (satelit-config.json `upstream`, daily sync). */
+const UPSTREAM: UpstreamMap = (satelitConfig as { upstream?: UpstreamMap }).upstream || {};
+/** Ids the main site hid or removed: left out of this build like a panel skip. */
+const UPSTREAM_GONE: ReadonlySet<string> = new Set((UPSTREAM.gone || []).map(String));
+/** Ids the main site still serves but no longer lists: out of every list, /watch stays up. */
+const UPSTREAM_UNLISTED: ReadonlySet<string> = new Set((UPSTREAM.unlisted || []).map(String));
+/** Main-site merges as manual merge groups ([main, ...copies]); owner merges/splits here win. */
+const UPSTREAM_MERGES: string[][] = (() => {
+  const byMain = new Map<string, string[]>();
+  for (const [copy, main] of Object.entries(UPSTREAM.merged || {})) {
+    if (!copy || !main || copy === main) continue;
+    const g = byMain.get(main) || [main];
+    g.push(copy);
+    byMain.set(main, g);
+  }
+  return [...byMain.values()];
+})();
+
+export function withUpstreamMerges(manual: ManualMergesLite, upstream: string[][] = UPSTREAM_MERGES): ManualMergesLite {
+  if (!upstream.length) return manual;
+  const split = new Set(manual.splits);
+  const extra = upstream.map((g) => g.filter((id) => !split.has(id))).filter((g) => g.length >= 2);
+  return { merges: [...manual.merges, ...extra], splits: manual.splits };
+}
+
 function sourcePriority(item: RawItem): number {
   // Kategori/pencarian: IndoAV di atas Userbokep, lalu sumber lain
   if (isIndoAv(item)) return 100;
@@ -733,6 +759,10 @@ export function buildIndexes(
   let videyNoThumbNextAt = 0;
   for (const it of items) {
     byId.set(it.id, it);
+    if (UPSTREAM_UNLISTED.has(it.id)) {
+      videyNoThumbIds.add(it.id);
+      continue;
+    }
     const hideAt = videyNoThumbHideAt(it, timeKey(it));
     if (!hideAt) continue;
     if (hideAt <= now) videyNoThumbIds.add(it.id);
@@ -742,7 +772,7 @@ export function buildIndexes(
   // Multi-server: copies of one video on other hosts fold into its main page (multi-server.ts).
   // Built from the published items only, so a hidden copy is never a server. Nothing is deleted.
   // Owner "Gabung jadi satu" / "Pisahkan" (MERGES) apply on top of the automatic groups.
-  const groups = applyManualMerges(items, mergeServers(items).groups, MERGES);
+  const groups = applyManualMerges(items, mergeServers(items).groups, withUpstreamMerges(MERGES));
   const multi = multiServerFrom(items, groups);
   if (multi.mainOf.size) {
     // A main page with no poster of its own shows the best poster of its other copies.
@@ -906,7 +936,7 @@ export function assembleLocal(): { items: RawItem[]; posters: Record<string, str
   const posters: Record<string, string> = localPosters();
   const siteId = siteIdFromEnv((import.meta.env as { VITE_SITE_ID?: string }).VITE_SITE_ID);
   const panel = satelitConfig as { blockedIds?: string[]; sites?: Record<string, { skipIds?: string[] }> };
-  const skip = new Set([...(panel.blockedIds || []), ...(panel.sites?.[siteId]?.skipIds || [])].map(String));
+  const skip = new Set([...(panel.blockedIds || []), ...(panel.sites?.[siteId]?.skipIds || []), ...UPSTREAM_GONE].map(String));
   const items = mergeById([...synced, ...feed, ...latest, ...pl, ...st, ...st2, ...pu, ...local, ...fb, ...drp]).filter(
     (it) => allowsSource(it, siteId, syncConfig as SiteSyncConfig) && !skip.has(String(it.id)),
   );

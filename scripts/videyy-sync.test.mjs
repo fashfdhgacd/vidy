@@ -90,3 +90,34 @@ test("retained merged copies go after the new rows, once", () => {
   const out = withRetained([{ id: "n1" }], [{ id: "m1" }, { id: "n1" }, { id: "m1" }]);
   assert.deepEqual(out.map((it) => it.id), ["n1", "m1"]);
 });
+
+test("upstream map: classify missing ids, keep old answers on errors, drop ids back in export", async () => {
+  const { upstreamMapPlan, nextUpstreamMap, watchIdFromLocation } = await import("./lib/videyy-sync.mjs");
+  assert.equal(watchIdFromLocation("https://koleksidrpinguin.com/watch/by-abc123"), "by-abc123");
+  assert.equal(watchIdFromLocation("/"), "");
+  const prev = { merged: { old1: "m1" }, gone: ["g1"], unlisted: [] };
+  const plan = upstreamMapPlan({ localIds: ["old1", "g1", "n1", "n2", "n3", "up1", "b1"], upstreamIds: ["up1"], blockIds: ["b1"], prev, recheckAll: false });
+  assert.deepEqual(plan.missing, ["old1", "g1", "n1", "n2", "n3"]);
+  assert.deepEqual(plan.toCheck, ["n1", "n2", "n3"]);
+  const next = nextUpstreamMap(prev, plan.missing, [
+    { id: "n1", status: 301, location: "https://koleksidrpinguin.com/watch/m22" },
+    { id: "n2", status: 302, location: "https://koleksidrpinguin.com/" },
+    { id: "n3", status: 0, location: "" },
+  ]);
+  assert.deepEqual(next, { merged: { n1: "m22", old1: "m1" }, gone: ["g1", "n2"], unlisted: [] });
+  const all = upstreamMapPlan({ localIds: ["old1", "g1"], upstreamIds: ["g1"], blockIds: [], prev, recheckAll: true });
+  assert.deepEqual(all.toCheck, ["old1"]);
+  assert.deepEqual(nextUpstreamMap(prev, all.missing, [{ id: "old1", status: 200 }]), { merged: {}, gone: [], unlisted: ["old1"] });
+});
+
+test("effectiveSkipIds: videqsss ignores automatic host excludes, keeps hides and IndoAV choices", async () => {
+  const { effectiveSkipIds } = await import("./lib/videyy-sync.mjs");
+  const byId = new Map([
+    ["by-1", { id: "by-1", source: "Byse", embed: "https://bysejikuar.com/e/1" }],
+    ["ia-1", { id: "ia-1", source: "IndoAV", embed: "https://tv1.indoav.app/e/1" }],
+  ]);
+  const site = { skipIds: ["by-1", "ia-1", "h1", "zz"], hiddenIds: ["h1"], uploadExcludeIds: ["by-1", "ia-1", "zz"] };
+  assert.deepEqual(effectiveSkipIds("videqsss", site, byId), ["h1", "ia-1", "zz"]);
+  assert.deepEqual(effectiveSkipIds("videyy", site, byId), ["by-1", "h1", "ia-1", "zz"]);
+  assert.deepEqual(effectiveSkipIds("videqsss", { skipIds: ["by-1"] }, byId), ["by-1"]);
+});
