@@ -164,7 +164,8 @@ function siteTitleTails(base: string, label: string, hasLabel: boolean, hasBokep
     // English tails: the stored (Indonesian) title stays, the tail tells foreign searchers what it is.
     const hasIndo = /\bindo(nesia|nesian)?\b/i.test(base);
     if (hasIndo) return [" – Indonesian Amateur Video", " – Amateur Video", " – Videqsss"];
-    return hasLabel
+    // Generic categories map to the label "Indonesian": no "Indonesian Indonesian Video".
+    return hasLabel || /^indonesian$/i.test(label.trim())
       ? [" – Indonesian Amateur Video", " – Indonesian Video"]
       : [` – Indonesian ${label} Video`, " – Indonesian Video"];
   }
@@ -270,7 +271,7 @@ export function publicWatchDescription(item: SeoVideoInput, max = 0): string {
   const durBit = dur ? (IS_VIDEQSSS ? `, ${dur} long` : `, durasi ${dur}`) : "";
   // Template per situs: meta satelit tidak sama persis dengan koleksidrpinguin.com (konten duplikat).
   const text = IS_VIDEQSSS
-    ? `${name}: an Indonesian ${label.toLowerCase()} video${durBit} on Videqsss. New uploads daily, stream free with no sign-up at videqsss.icu. 18+.`
+    ? `${name}: an Indonesian ${/^indonesian$/i.test(label.trim()) ? "" : `${label.toLowerCase()} `}video${durBit} on Videqsss. New uploads daily, stream free with no sign-up at videqsss.icu. 18+.`
     : `Nonton ${name} di Videy Hub, video ${label}${durBit}. Videy viral update tiap hari, tanpa VPN di videyy.icu. 18+.`;
   return max > 0 ? clipAtWord(text, max) : text;
 }
@@ -321,7 +322,8 @@ function buildSentences(item: SeoVideoInput): { lead: string; detail: string; cl
 
   if (IS_VIDEQSSS) {
     const subjEn = t ? `“${t}”` : "this video";
-    const lab = label.toLowerCase();
+    // The generic "Indonesian" label would read "an Indonesian indonesian video".
+    const lab = /^indonesian$/i.test(label.trim()) ? "amateur" : label.toLowerCase();
     const leadsEn = [
       `${subjEn} is an Indonesian ${lab} video${dur ? ` running about ${dur}` : ""}.`,
       `Watch ${subjEn}, an Indonesian ${lab} clip${dur ? ` of about ${dur}` : ""}.`,
