@@ -13,7 +13,9 @@ import { useCatalogFeed } from "../hooks/use-catalog";
 import { jsonLdString } from "@/lib/json-ld";
 import { homeHref } from "@/lib/catalog/halaman";
 import { landingsForSite } from "@/lib/catalog/landing";
-import { keywordHref } from "@/lib/catalog/halaman";
+import { enHref } from "@/lib/catalog/halaman";
+import { enSlugForId, findEnLanding } from "@/lib/catalog/en-landing";
+import { fmtNum, tr } from "@/lib/ui-lang";
 import { gridAdsOn } from "@/lib/ads/spots";
 import { DEFAULT_OG, HOME_CANONICAL, HOME_H1, HOME_INTRO, IS_VIDEQSSS, SITE_NAME, SITE_ORIGIN, TITLE_SUFFIX, homeJsonLd, homeSeo } from "@/lib/seo";
 import { ReturnVisitor } from "@/components/return-visitor";
@@ -127,8 +129,17 @@ export const Route = createFileRoute("/")({
     const q = typeof match.search.q === "string" ? match.search.q : undefined;
     const page = typeof match.search.page === "number" ? match.search.page : 1;
     const seo = homeSeo(q);
-    const title = !q && page > 1 ? `Bokep Indo Terbaru Halaman ${page} | ${SITE_NAME}` : seo.title;
-    const description = !q && page > 1 ? `Halaman ${page}: bokep indo terbaru, update setiap hari, streaming di ${TITLE_SUFFIX}. Khusus 18+.` : seo.description;
+    const title =
+      !q && page > 1
+        ? tr(`Bokep Indo Terbaru Halaman ${page} | ${SITE_NAME}`, `Newest Indonesian Amateur Videos – Page ${page} | ${SITE_NAME}`)
+        : seo.title;
+    const description =
+      !q && page > 1
+        ? tr(
+            `Halaman ${page}: bokep indo terbaru, update setiap hari, streaming di ${TITLE_SUFFIX}. Khusus 18+.`,
+            `Page ${page}: the newest Indonesian amateur videos, updated daily, streaming on ${TITLE_SUFFIX}. Adults 18+ only.`,
+          )
+        : seo.description;
     const url = q ? HOME_CANONICAL : `${SITE_ORIGIN}${homeHref(page)}`;
     const indexable = !q && page <= DEEP_PAGE_NOINDEX;
     return {
@@ -171,17 +182,17 @@ export function HomeExperience({
   const heroIds = new Set(heroVideos.map((v) => v.id));
   const gridItems = heroIds.size ? feed.items.filter((item) => !heroIds.has(item.id)) : feed.items;
 
-  const title = q ? `Hasil untuk “${q}”` : HOME_H1;
+  const title = q ? tr(`Hasil untuk “${q}”`, `Results for “${q}”`) : HOME_H1;
   const subtitle = q
     ? feed.loading && !feed.items.length
-      ? "Mencari…"
-      : `${(gridItems.length ? feed.total : 0).toLocaleString("id-ID")} hasil`
+      ? tr("Mencari…", "Searching…")
+      : `${fmtNum(gridItems.length ? feed.total : 0)} ${tr("hasil", "results")}`
     : feed.total
-    ? `${feed.total.toLocaleString("id-ID")} judul · videyy.icu`
-    : "videyy.icu";
+    ? `${fmtNum(feed.total)} ${tr("judul", "videos")} · ${TITLE_SUFFIX}`
+    : TITLE_SUFFIX;
   const intro =
     q
-      ? `Hasil pencarian “${q}” di katalog Videy Hub. Konten dewasa 18+.`
+      ? tr(`Hasil pencarian “${q}” di katalog Videy Hub. Konten dewasa 18+.`, `Search results for “${q}” in the ${SITE_NAME} catalog. Adults 18+ only.`)
       : HOME_INTRO;
 
   // Search result pages past the end (e.g. stale ?page=N kept in the URL) jump back to page 1,
@@ -203,7 +214,7 @@ export function HomeExperience({
     return (
       <Shell>
         <ErrorState
-          message={(loaderData as { error?: string }).error || "Gagal memuat"}
+          message={(loaderData as { error?: string }).error || tr("Gagal memuat", "Could not load")}
           onRetry={() => feed.retry()}
         />
       </Shell>
@@ -239,12 +250,18 @@ export function HomeExperience({
               </p>
             ) : null}
             {IS_VIDEQSSS && !q ? (
-              <nav aria-label="Topik" className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm">
-                {landingsForSite("videqsss").map((l) => (
-                  <a key={l.slug} href={keywordHref(l.slug, 1)} className="text-[#f4b942] underline-offset-2 hover:underline">
-                    {l.h1}
-                  </a>
-                ))}
+              <nav aria-label="Categories" className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm">
+                {landingsForSite("videqsss").map((l) => {
+                  const en = findEnLanding(enSlugForId(l.slug));
+                  return en ? (
+                    <a key={en.slug} href={enHref(en.slug, 1)} className="text-[#f4b942] underline-offset-2 hover:underline">
+                      {en.h1}
+                    </a>
+                  ) : null;
+                })}
+                <a href="/en" className="text-[#f4b942] underline-offset-2 hover:underline">
+                  All categories →
+                </a>
               </nav>
             ) : null}
           </div>
@@ -255,11 +272,11 @@ export function HomeExperience({
             <ErrorState message={feed.error} onRetry={feed.retry} />
           ) : !gridItems.length ? (
             <EmptyState
-              title={q ? `Belum ada video untuk “${q}”` : "Kosong"}
+              title={q ? tr(`Belum ada video untuk “${q}”`, `No videos for “${q}” yet`) : tr("Kosong", "Empty")}
               description={
                 q
-                  ? "Coba kata kunci yang lebih pendek atau umum, misalnya “jilbab”, “indo”, atau “jav”."
-                  : "Belum ada video."
+                  ? tr("Coba kata kunci yang lebih pendek atau umum, misalnya “jilbab”, “indo”, atau “jav”.", "Try a shorter or more general keyword, for example “hijab”, “indo”, or “jav”.")
+                  : tr("Belum ada video.", "No videos yet.")
               }
             />
           ) : (

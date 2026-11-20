@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTr } from "@/lib/ui-lang";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { AgeGate } from "@/components/age-gate";
 import { InPagePush, VideoSlider } from "@/components/ad-slot";
@@ -14,6 +15,7 @@ export function Shell({
   children: ReactNode;
   query?: string;
 }) {
+  const tr = useTr();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const kirim = showKirimNav(pathname, IS_VIDEQSSS);
   return (
@@ -36,45 +38,53 @@ export function Shell({
                 </a>{" "}
                 · 18+
               </p>
-              <p className="text-xs text-foreground/80 sm:text-sm">{SITE_NAME} — streaming video tanpa ribet</p>
+              <p className="text-xs text-foreground/80 sm:text-sm">{SITE_NAME} — {tr("streaming video tanpa ribet", "hassle-free video streaming")}</p>
               <p className="text-[11px] text-muted sm:text-xs">
-                Koleksi ini dimaksudkan untuk pengguna dewasa. Pastikan Anda berusia 18+ sebelum melanjutkan.
+                {tr(
+                  "Koleksi ini dimaksudkan untuk pengguna dewasa. Pastikan Anda berusia 18+ sebelum melanjutkan.",
+                  "This collection is meant for adults. Make sure you are 18 or older before you continue.",
+                )}
               </p>
               <p className="text-[11px] text-muted sm:text-xs">
-                Konten dan gambar disediakan oleh pihak ketiga. Kami tidak bertanggung jawab atas materi eksternal.
+                {tr(
+                  "Konten dan gambar disediakan oleh pihak ketiga. Kami tidak bertanggung jawab atas materi eksternal.",
+                  "Videos and images are provided by third parties. We are not responsible for external material.",
+                )}
               </p>
             </div>
             <div className="flex items-center justify-between gap-6 sm:justify-end sm:gap-8">
               <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm" aria-label="Legal">
                 <Link to="/tentang" className="hover:text-foreground hover:underline">
-                  Tentang
+                  {tr("Tentang", "About")}
                 </Link>
                 <Link to="/2257" className="hover:text-foreground hover:underline">
                   2257
                 </Link>
                 <Link to="/privasi" className="hover:text-foreground hover:underline">
-                  Privasi
+                  {tr("Privasi", "Privacy")}
                 </Link>
                 <Link to="/syarat" className="hover:text-foreground hover:underline">
-                  Syarat
+                  {tr("Syarat", "Terms")}
                 </Link>
                 <Link to="/dmca" className="hover:text-foreground hover:underline">
                   DMCA
                 </Link>
                 <Link to="/kontak" className="hover:text-foreground hover:underline">
-                  Kontak
+                  {tr("Kontak", "Contact")}
                 </Link>
                 <Link to="/teman" className="hover:text-foreground hover:underline">
-                  Teman
+                  {tr("Teman", "Friends")}
                 </Link>
                 {kirim ? (
                   <Link to="/kirim" className="hover:text-foreground hover:underline">
                     Kirim Video
                   </Link>
                 ) : null}
-                <a href="/en" hrefLang="en" lang="en" className="hover:text-foreground hover:underline">
-                  English
-                </a>
+                {IS_VIDEQSSS ? null : (
+                  <a href="/en" hrefLang="en" lang="en" className="hover:text-foreground hover:underline">
+                    English
+                  </a>
+                )}
               </nav>
               <a
                 href="https://www.rtalabel.org/"

@@ -1,5 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { LegalPage } from "@/components/legal-page";
+import { AboutEn } from "@/components/legal-en";
+import { UI_EN, UI_LANG } from "@/lib/ui-lang";
 import { jsonLdString } from "@/lib/json-ld";
 import {
   ABOUT_DESCRIPTION,
@@ -36,7 +38,7 @@ export const Route = createFileRoute("/tentang")({
           name: ABOUT_TITLE,
           url: URL_ABOUT,
           description: ABOUT_DESCRIPTION,
-          inLanguage: "id",
+          inLanguage: UI_LANG,
           isPartOf: { "@id": `${HOME_CANONICAL}#website` },
           about: { "@id": `${HOME_CANONICAL}#organization` },
         }),
@@ -46,21 +48,22 @@ export const Route = createFileRoute("/tentang")({
         children: jsonLdString(
           breadcrumbJsonLd([
             { name: SITE_NAME, url: HOME_CANONICAL },
-            { name: "Tentang", url: URL_ABOUT },
+            { name: UI_EN ? "About" : "Tentang", url: URL_ABOUT },
           ]),
         ),
       },
     ],
   }),
-  component: Page,
+  component: UI_EN ? AboutEn : Page,
 });
 
 function Page() {
   return (
     <LegalPage title={`Tentang ${SITE_NAME}`}>
       <p>
-        <strong>Videy Hub</strong> adalah situs resmi di <strong>videyy.icu</strong>. Kami mengkurasi katalog video
-        dewasa 18+ sendiri: bokep indo viral, video viral videy, JAV, dan AI+, yang bisa langsung ditonton di HP.
+        <strong>Videy Hub</strong> adalah situs resmi di <strong>videyy.icu</strong>. Kami
+        mengkurasi katalog video dewasa 18+ sendiri: bokep indo viral, video viral videy, JAV, dan
+        AI+, yang bisa langsung ditonton di HP.
       </p>
       <h2 className="pt-2 text-lg font-semibold text-foreground">Situs asli vs. situs penyalin</h2>
       <p>
@@ -84,8 +87,8 @@ function Page() {
       </ul>
       <h2 className="pt-2 text-lg font-semibold text-foreground">Aturan konten</h2>
       <p>
-        Situs ini khusus untuk pengunjung berusia 18 tahun ke atas. Semua pemeran yang tampil harus dewasa; konten yang
-        melibatkan anak di bawah umur tidak pernah diterbitkan. Lihat juga{" "}
+        Situs ini khusus untuk pengunjung berusia 18 tahun ke atas. Semua pemeran yang tampil harus
+        dewasa; konten yang melibatkan anak di bawah umur tidak pernah diterbitkan. Lihat juga{" "}
         <Link className="underline" to="/2257">
           2257
         </Link>

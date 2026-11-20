@@ -1,21 +1,31 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LegalPage } from "@/components/legal-page";
+import { EN_LEGAL, PrivacyEn, legalHeadEn } from "@/components/legal-en";
+import { UI_EN } from "@/lib/ui-lang";
 import { SITE_ORIGIN } from "@/lib/seo";
 
 export const Route = createFileRoute("/privasi")({
-  head: () => ({
-    meta: [
-      { title: "Kebijakan Privasi (Privacy Policy) | Videy Hub" },
-      {
-        name: "description",
-        content:
-          "Kebijakan privasi Videy Hub: data analitik anonim yang dikumpulkan, cookie gerbang usia 18+, embed pihak ketiga, dan cara menghubungi kami.",
-      },
-      { name: "robots", content: "index,follow" },
-    ],
-    links: [{ rel: "canonical", href: `${SITE_ORIGIN}/privasi` }],
-  }),
-  component: Page,
+  head: () =>
+    UI_EN
+      ? legalHeadEn(
+          "/privasi",
+          EN_LEGAL.privacy.title,
+          EN_LEGAL.privacy.description,
+          "Privacy Policy",
+        )
+      : {
+          meta: [
+            { title: "Kebijakan Privasi (Privacy Policy) | Videy Hub" },
+            {
+              name: "description",
+              content:
+                "Kebijakan privasi Videy Hub: data analitik anonim yang dikumpulkan, cookie gerbang usia 18+, embed pihak ketiga, dan cara menghubungi kami.",
+            },
+            { name: "robots", content: "index,follow" },
+          ],
+          links: [{ rel: "canonical", href: `${SITE_ORIGIN}/privasi` }],
+        },
+  component: UI_EN ? PrivacyEn : Page,
 });
 
 function H2({ children }: { children: string }) {
@@ -27,20 +37,22 @@ function Page() {
     <LegalPage title="Kebijakan Privasi">
       <p className="text-xs text-muted/70">Terakhir diperbarui: 7 Oktober 2026</p>
       <p>
-        Kebijakan ini menjelaskan data apa yang dikumpulkan saat Anda mengakses
-        videyy.icu (&ldquo;Videy Hub&rdquo;, &ldquo;Situs&rdquo;) dan bagaimana data
-        tersebut digunakan. Situs ini hanya untuk pengguna berusia 18 tahun ke atas.
+        Kebijakan ini menjelaskan data apa yang dikumpulkan saat Anda mengakses videyy.icu
+        (&ldquo;Videy Hub&rdquo;, &ldquo;Situs&rdquo;) dan bagaimana data tersebut digunakan. Situs
+        ini hanya untuk pengguna berusia 18 tahun ke atas.
       </p>
 
       <H2>1. Tanpa akun, tanpa data pribadi</H2>
       <p>
-        Pengunjung tidak perlu membuat akun, dan kami tidak meminta nama, email, nomor telepon,
-        atau data pembayaran. Kami tidak menjual, menyewakan, atau membagikan data pribadi kepada
-        pihak lain untuk tujuan pemasaran.
+        Pengunjung tidak perlu membuat akun, dan kami tidak meminta nama, email, nomor telepon, atau
+        data pembayaran. Kami tidak menjual, menyewakan, atau membagikan data pribadi kepada pihak
+        lain untuk tujuan pemasaran.
       </p>
 
       <H2>2. Analitik anonim</H2>
-      <p>Untuk memahami trafik dan memperbaiki situs, kami mencatat data analitik anonim berikut:</p>
+      <p>
+        Untuk memahami trafik dan memperbaiki situs, kami mencatat data analitik anonim berikut:
+      </p>
       <ul className="list-disc space-y-1 pl-5">
         <li>halaman yang dibuka (page view) dan waktu kunjungan;</li>
         <li>

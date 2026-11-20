@@ -13,6 +13,8 @@ const DESCRIPTION =
 export const Route = createFileRoute("/genre/")({
   beforeLoad: () => {
     if (!IS_VIDEQSSS) throw redirect({ href: `${SITE_ORIGIN}/cari`, statusCode: 301 });
+    // videqsss is English site-wide: the Indonesian genre hub moves to /en.
+    throw redirect({ href: `${SITE_ORIGIN}/en`, statusCode: 301 });
   },
   head: () => {
     const url = `${SITE_ORIGIN}/genre`;

@@ -1,4 +1,5 @@
 import { isIndoAvCreator, NO_POP_CLASS } from "@/lib/ads/exo-popunder";
+import { tr, uiCategory } from "@/lib/ui-lang";
 import { cleanDisplayTitle } from "@/lib/seo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -109,7 +110,7 @@ export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
           to="/watch/$id"
           params={{ id: current.id }}
           className={`absolute inset-0 z-10 flex items-center justify-center touch-manipulation md:hidden${isIndoAvCreator(current.creator) ? ` ${NO_POP_CLASS}` : ""}`}
-          aria-label={`Putar ${heroTitle}`}
+          aria-label={`${tr("Putar", "Play")} ${heroTitle}`}
         >
           <span
             className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_0_0_1px_color-mix(in_oklab,#f2f0fa_12%,transparent)]"
@@ -124,7 +125,7 @@ export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
         {/* Desktop (md+): same copy stack as before (label, title, meta, Putar sekarang). */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 hidden flex-col gap-4 p-8 pb-12 md:flex lg:max-w-2xl lg:p-10 lg:pb-14">
           <p className="w-fit rounded-full bg-black/50 px-2.5 py-1 text-xs font-medium uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm">
-            Pilihan koleksi
+            {tr("Pilihan koleksi", "Featured")}
             {usable.length > 1 ? (
               <span className="ml-2 tabular-nums text-white/70">
                 {displayIndex + 1}/{usable.length}
@@ -142,13 +143,13 @@ export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
             {current.year ? <span>{current.year}</span> : null}
             {showDuration ? <span>{current.durationLabel}</span> : null}
-            {current.category ? <span>{current.category}</span> : null}
+            {current.category ? <span>{uiCategory(current.category)}</span> : null}
           </div>
           <div className="pointer-events-auto pt-0.5">
             <Button asChild size="default" className="h-11 rounded-lg px-5 text-base">
               <Link to="/watch/$id" params={{ id: current.id }} className={isIndoAvCreator(current.creator) ? NO_POP_CLASS : ""}>
                 <Play className="size-4 fill-current" style={{ marginLeft: 2 }} />
-                Putar sekarang
+                {tr("Putar sekarang", "Play now")}
               </Link>
             </Button>
           </div>

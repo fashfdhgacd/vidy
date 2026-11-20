@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { tr } from "@/lib/ui-lang";
 import { backToCatalog, lastCatalogHref } from "@/lib/catalog/last-catalog";
 import type { VideoDetail } from "@/lib/catalog/types";
 
@@ -24,7 +25,7 @@ export function CatalogBackLink({ item }: { item: VideoDetail }) {
         if (backToCatalog(href)) e.preventDefault();
       }}
       className="flex h-12 items-center rounded-xl bg-secondary px-5 text-base text-foreground">
-      Kembali ke katalog
+      {tr("Kembali ke katalog", "Back to catalog")}
     </a>
   );
 }

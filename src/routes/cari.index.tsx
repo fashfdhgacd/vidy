@@ -12,7 +12,7 @@ const DESCRIPTION =
 /** /cari: hub linking every hand-reviewed search landing page (internal links for crawlers and visitors). */
 export const Route = createFileRoute("/cari/")({
   beforeLoad: () => {
-    if (IS_VIDEQSSS) throw redirect({ href: `${SITE_ORIGIN}/genre`, statusCode: 301 });
+    if (IS_VIDEQSSS) throw redirect({ href: `${SITE_ORIGIN}/en`, statusCode: 301 });
   },
   head: () => {
     const url = `${SITE_ORIGIN}/cari`;

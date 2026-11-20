@@ -1,21 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LegalPage } from "@/components/legal-page";
+import { EN_LEGAL, TermsEn, legalHeadEn } from "@/components/legal-en";
+import { UI_EN } from "@/lib/ui-lang";
 import { SITE_ORIGIN } from "@/lib/seo";
 
 export const Route = createFileRoute("/syarat")({
-  head: () => ({
-    meta: [
-      { title: "Syarat & Ketentuan (Terms of Service) | Videy Hub" },
-      {
-        name: "description",
-        content:
-          "Syarat & Ketentuan Videy Hub: khusus 18+, tanggung jawab hukum lokal, konten pihak ketiga, DMCA, penghapusan konten, dan penafian.",
-      },
-      { name: "robots", content: "index,follow" },
-    ],
-    links: [{ rel: "canonical", href: `${SITE_ORIGIN}/syarat` }],
-  }),
-  component: Page,
+  head: () =>
+    UI_EN
+      ? legalHeadEn("/syarat", EN_LEGAL.terms.title, EN_LEGAL.terms.description, "Terms of Service")
+      : {
+          meta: [
+            { title: "Syarat & Ketentuan (Terms of Service) | Videy Hub" },
+            {
+              name: "description",
+              content:
+                "Syarat & Ketentuan Videy Hub: khusus 18+, tanggung jawab hukum lokal, konten pihak ketiga, DMCA, penghapusan konten, dan penafian.",
+            },
+            { name: "robots", content: "index,follow" },
+          ],
+          links: [{ rel: "canonical", href: `${SITE_ORIGIN}/syarat` }],
+        },
+  component: UI_EN ? TermsEn : Page,
 });
 
 function H2({ children }: { children: string }) {
@@ -27,9 +32,8 @@ function Page() {
     <LegalPage title="Syarat & Ketentuan">
       <p className="text-xs text-muted/70">Terakhir diperbarui: 7 Oktober 2026</p>
       <p>
-        Dengan mengakses atau menggunakan videyy.icu (&ldquo;Videy Hub&rdquo;,
-        &ldquo;Situs&rdquo;), Anda menyetujui Syarat &amp; Ketentuan berikut. Jika tidak setuju,
-        jangan gunakan Situs ini.
+        Dengan mengakses atau menggunakan videyy.icu (&ldquo;Videy Hub&rdquo;, &ldquo;Situs&rdquo;),
+        Anda menyetujui Syarat &amp; Ketentuan berikut. Jika tidak setuju, jangan gunakan Situs ini.
       </p>
 
       <H2>1. Khusus dewasa 18+</H2>
@@ -101,9 +105,9 @@ function Page() {
       <p>
         Adults 18+ only. You are responsible for complying with the laws of your location. The Site
         is a catalog of links/embeds to third-party hosted videos; we do not own, produce, or host
-        that content. Zero tolerance for content involving anyone under 18 or non-consensual
-        content &mdash; reported entries are removed. Copyright notices via the DMCA page. The Site
-        is provided &ldquo;as is&rdquo; without warranties.
+        that content. Zero tolerance for content involving anyone under 18 or non-consensual content
+        &mdash; reported entries are removed. Copyright notices via the DMCA page. The Site is
+        provided &ldquo;as is&rdquo; without warranties.
       </p>
     </LegalPage>
   );

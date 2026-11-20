@@ -335,6 +335,21 @@ export function acceptEnLandingCard(
   return def.match.test(blob);
 }
 
+/**
+ * videqsss.icu is English-only (owner decision 2026-11-20): old Indonesian keyword URLs
+ * (/genre/<slug>, /cari/<slug>, with /halaman/N) 301 to the matching English page, or the /en hub.
+ */
+export function englishTargetForIdLanding(idSlug: string, page = 1): string {
+  const en = enSlugForId(idSlug);
+  return en ? enHref(en, page) : "/en";
+}
+
+/** Page number from a ".../halaman/N" path (1 when absent or invalid). */
+export function halamanFromPath(pathname: string): number {
+  const m = /\/halaman\/([1-9]\d{0,4})\/?$/.exec(String(pathname || ""));
+  return m ? Number(m[1]) : 1;
+}
+
 /** Plain-link targets for the ID/EN switcher. No cookies, no auto-redirect.
  * `idRoot` is /genre on videqsss and /cari on videyy. */
 export function langSwitchForPath(

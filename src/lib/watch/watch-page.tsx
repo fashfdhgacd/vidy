@@ -1,3 +1,6 @@
+import { tr, uiCategory, UI_EN, UI_LOCALE } from "@/lib/ui-lang";
+import { enSlugForId, findEnLanding } from "@/lib/catalog/en-landing";
+import { enHref } from "@/lib/catalog/halaman";
 import { useCallback, useEffect, useState } from "react";
 import { Link, getRouteApi } from "@tanstack/react-router";
 import { Shell } from "@/components/layout/shell";
@@ -103,7 +106,7 @@ function ServerButtons({ item, current }: { item: VideoDetail; current: string }
   if (list.length < 2) return null;
   const seen = new Map<string, number>();
   return (
-    <nav aria-label="Pilih server" className="mt-3 flex flex-wrap items-center gap-2">
+    <nav aria-label={tr("Pilih server", "Choose server")} className="mt-3 flex flex-wrap items-center gap-2">
       <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Server</span>
       {list.map((sv) => {
         const n = (seen.get(sv.host) || 0) + 1;
@@ -122,7 +125,7 @@ function ServerButtons({ item, current }: { item: VideoDetail; current: string }
             // Exact search match: the main copy's link (no ?s) is not "active" while ?s=<copy> plays.
             activeOptions={{ exact: true, includeSearch: true }}
             aria-current={active ? "true" : undefined}
-            title={gone ? `${label} (sumber sudah tidak tersedia)` : label}
+            title={gone ? `${label} (${tr("sumber sudah tidak tersedia", "source no longer available")})` : label}
             className={
               "inline-flex h-9 items-center rounded-full border px-4 text-sm font-medium " +
               (active
@@ -187,7 +190,7 @@ function ShareSheet({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      prompt("Salin link ini:", url);
+      prompt(tr("Salin link ini:", "Copy this link:"), url);
     }
   }
 
@@ -212,17 +215,17 @@ function ShareSheet({
       className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
       role="dialog"
       aria-modal="true"
-      aria-label="Bagikan video"
+      aria-label={tr("Bagikan video", "Share video")}
     >
-      <button type="button" className="absolute inset-0 bg-black/70" onClick={onClose} aria-label="Tutup" />
+      <button type="button" className="absolute inset-0 bg-black/70" onClick={onClose} aria-label={tr("Tutup", "Close")} />
       <div className="relative z-10 w-full max-w-md rounded-t-2xl border border-border bg-background p-5 shadow-2xl sm:rounded-2xl">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted">Bagikan</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">{tr("Bagikan", "Share")}</p>
             <p className="mt-1 line-clamp-2 text-base font-medium text-foreground">{title}</p>
           </div>
           <button type="button" onClick={onClose} className="shrink-0 rounded-md px-2 py-1 text-sm text-muted hover:bg-secondary">
-            Tutup
+            {tr("Tutup", "Close")}
           </button>
         </div>
         <div className="grid gap-3">
@@ -231,14 +234,14 @@ function ShareSheet({
             onClick={shareToX}
             className="flex h-14 w-full items-center justify-center gap-3 rounded-xl bg-[#1d9bf0] px-4 text-base font-semibold text-white active:scale-[0.98]"
           >
-            Bagikan ke X
+            {tr("Bagikan ke X", "Share on X")}
           </button>
           <button
             type="button"
             onClick={() => void copyLink()}
             className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-secondary px-4 text-base font-medium text-foreground active:scale-[0.98]"
           >
-            {copied ? "\u2713 Link disalin" : "Salin link"}
+            {copied ? `\u2713 ${tr("Link disalin", "Link copied")}` : tr("Salin link", "Copy link")}
           </button>
           {typeof navigator !== "undefined" && typeof navigator.share === "function" ? (
             <button
@@ -246,7 +249,7 @@ function ShareSheet({
               onClick={() => void nativeShare()}
               className="flex h-14 w-full items-center justify-center rounded-xl border border-border px-4 text-base font-medium text-foreground active:scale-[0.98]"
             >
-              Bagikan via sistem
+              {tr("Bagikan via sistem", "Share via…")}
             </button>
           ) : null}
         </div>
@@ -261,7 +264,7 @@ function uploadDateLabel(raw: string | number | null | undefined): string {
   if (raw == null || raw === "") return "";
   const d = new Date(typeof raw === "number" && raw < 1e12 ? raw * 1000 : raw);
   if (Number.isNaN(d.getTime()) || d.getFullYear() < 2015) return "";
-  return d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta" });
+  return d.toLocaleDateString(UI_LOCALE, { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta" });
 }
 
 /** Fakta singkat per video (durasi, tanggal, sumber). Kategori sudah tampil sebagai chip di atasnya. */
@@ -269,12 +272,12 @@ function VideoFacts({ item }: { item: VideoDetail }) {
   const date = uploadDateLabel(item.uploadDate);
   const host = isVideyItem(item) || isDrpHostItem(item) ? "" : hostLabel(catalogPlayUrl(item)).replace("Puterin", "Putarin");
   const rows: Array<[string, string]> = [];
-  if (item.durationLabel) rows.push(["Durasi", item.durationLabel]);
-  if (date) rows.push(["Diunggah", date]);
-  if (host) rows.push(["Sumber", host]);
+  if (item.durationLabel) rows.push([tr("Durasi", "Duration"), item.durationLabel]);
+  if (date) rows.push([tr("Diunggah", "Uploaded"), date]);
+  if (host) rows.push([tr("Sumber", "Source"), host]);
   if (!rows.length) return null;
   return (
-    <section aria-label="Info video" className="space-y-2">
+    <section aria-label={tr("Info video", "Video info")} className="space-y-2">
       <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Info</p>
       <dl className="flex flex-wrap gap-2 text-sm">
         {rows.map(([k, v]) => (
@@ -350,7 +353,7 @@ export function WatchPage() {
           return;
         }
         if (res.type !== "detail") {
-          setError("Respons detail tidak valid.");
+          setError(tr("Respons detail tidak valid.", "Invalid detail response."));
           setStatus("error");
           return;
         }
@@ -359,7 +362,7 @@ export function WatchPage() {
         setStatus("success");
       } catch (err) {
         if (controller.signal.aborted) return;
-        setError(err instanceof Error ? err.message : "Gagal memuat video.");
+        setError(err instanceof Error ? err.message : tr("Gagal memuat video.", "Could not load the video."));
         setStatus("error");
       }
     })();
@@ -419,9 +422,12 @@ export function WatchPage() {
           <VideoGridSkeleton count={6} />
         </div>
       ) : status === "error" && !item ? (
-        <ErrorState message={error ?? "Gagal memuat video."} onRetry={retry} />
+        <ErrorState message={error ?? tr("Gagal memuat video.", "Could not load the video.")} onRetry={retry} />
       ) : status === "empty" || (!item && !softLoading) ? (
-        <EmptyState title="Video tidak ditemukan" description="Judul ini tidak ada di katalog atau sudah dihapus." />
+        <EmptyState
+          title={tr("Video tidak ditemukan", "Video not found")}
+          description={tr("Judul ini tidak ada di katalog atau sudah dihapus.", "This title is not in the catalog or has been removed.")}
+        />
       ) : (
         <article className="space-y-8">
           {item ? (() => {
@@ -467,7 +473,7 @@ export function WatchPage() {
           </div>
           <header className="max-w-3xl space-y-3">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
-              {isVideyItem(item) ? VIDEY_LABEL : item.category}
+              {isVideyItem(item) ? VIDEY_LABEL : uiCategory(item.category || "")}
               {item.year ? ` \u00b7 ${item.year}` : ""}
               {item.creator && !isVideyItem(item) ? ` \u00b7 ${item.creator}` : ""}
               <span className="ml-3 align-middle text-muted">
@@ -482,10 +488,19 @@ export function WatchPage() {
             <h1 className="font-display text-3xl leading-tight text-foreground sm:text-5xl">{cleanDisplayTitle(item.title)}</h1>
             {item.episodes && item.episodes.length > 1 ? <EpisodeStrip episodes={item.episodes} currentId={item.id} /> : null}
             <p className="text-sm leading-relaxed text-muted">{publicWatchDescription(item)}</p>
-            <nav aria-label="Pencarian" className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <nav aria-label={tr("Pencarian", "Browse")} className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
               {(() => {
                 const slug = categorySlugFor(item.category);
                 const landing = slug ? landingForCategory(slug) : undefined;
+                if (UI_EN) {
+                  // videqsss is English-only: link the matching English category page.
+                  const en = landing ? findEnLanding(enSlugForId(landing.slug)) : undefined;
+                  return (
+                    <a href={en ? enHref(en.slug, 1) : "/en"} className="underline underline-offset-2 hover:text-foreground">
+                      {en ? en.h1 : "Browse categories"}
+                    </a>
+                  );
+                }
                 return (
                   <a href={landing ? `/cari/${landing.slug}` : "/cari"} className="underline underline-offset-2 hover:text-foreground">
                     {landing ? landing.h1 : "Pencarian populer"}
@@ -495,9 +510,11 @@ export function WatchPage() {
             </nav>
             <PushButton />
             {item.sameCategory && item.sameCategory.length ? (
-              <nav aria-label="Video lain di kategori ini" className="space-y-2">
+              <nav aria-label={tr("Video lain di kategori ini", "More videos in this category")} className="space-y-2">
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
-                  Lainnya di {item.category || "kategori ini"}
+                  {UI_EN
+                    ? `More in ${item.category ? uiCategory(item.category) : "this category"}`
+                    : `Lainnya di ${item.category || "kategori ini"}`}
                 </p>
                 <ul className="space-y-1 text-sm">
                   {item.sameCategory.filter((v) => !isSeoBlockedId(v.id)).map((v) => (
@@ -517,7 +534,7 @@ export function WatchPage() {
                 className="h-12 min-w-[140px] rounded-xl bg-primary px-5 text-base font-semibold text-primary-foreground active:scale-[0.98]"
                 onClick={() => setShareOpen(true)}
               >
-                Bagikan
+                {tr("Bagikan", "Share")}
               </button>
               {isVideyItem(playItem) || isDrpHostItem(playItem) ? null : <button
                 type="button"
@@ -528,7 +545,7 @@ export function WatchPage() {
                   if (src) window.open(src, "_blank", "noopener"); // keep referrer so hoster sees videyy.icu
                 }}
               >
-                Buka Sumber
+                {tr("Buka Sumber", "Open original")}
               </button>}
               <CatalogBackLink item={item} />
             </div>
@@ -545,7 +562,7 @@ export function WatchPage() {
           {item ? <VideoComments videoId={item.id} /> : null}
           {related.length ? (
             <section>
-              <h2 className="mb-5 font-display text-3xl text-foreground">Tonton juga</h2>
+              <h2 className="mb-5 font-display text-3xl text-foreground">{tr("Tonton juga", "Watch next")}</h2>
               <VideoGrid items={related} eagerCount={0} />
             </section>
           ) : item ? null : (
@@ -611,7 +628,7 @@ function EpisodeStrip({
       {many ? (
         <details className="sm:max-w-3xl">
           <summary className="cursor-pointer select-none text-sm font-medium text-[#2dd4bf]">
-            Semua episode ({episodes.length})
+            {tr("Semua episode", "All episodes")} ({episodes.length})
           </summary>
           <div className={EP_GRID + " mt-2"}>
             {episodes.map((e) => (
@@ -626,7 +643,7 @@ function EpisodeStrip({
           style={{ backgroundColor: EP_ACCENT, color: "#09090b" }}
           className="inline-flex h-10 w-full items-center justify-center rounded-md px-4 text-sm font-semibold hover:opacity-90 active:scale-[0.98] sm:w-auto"
         >
-          Episode selanjutnya (Episode {next.label ?? next.ep}) →
+          {tr("Episode selanjutnya", "Next episode")} (Episode {next.label ?? next.ep}) →
         </a>
       ) : null}
     </nav>
