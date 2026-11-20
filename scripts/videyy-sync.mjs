@@ -15,7 +15,10 @@ import {
   isJsonDocument,
   itemsFromUnknown,
   mergeBlocklist,
+  effectiveSkipIds,
+  nextUpstreamMap,
   planSync,
+  upstreamMapPlan,
   withRetained,
 } from "./lib/videyy-sync.mjs";
 
@@ -96,6 +99,71 @@ async function mergedCopies(config, rows) {
   return kept;
 }
 
+/** HEAD /watch/<id> on the main site for each id (16 at a time): status + Location, 0 on error. */
+async function watchStatuses(config, ids) {
+  const origin = String(config.upstream?.httpOrigin || "").replace(/\/$/, "");
+  if (!origin || !ids.length) return [];
+  const out = [];
+  for (let i = 0; i < ids.length; i += 16) {
+    const batch = ids.slice(i, i + 16);
+    out.push(
+      ...(await Promise.all(
+        batch.map(async (id) => {
+          try {
+            const res = await fetch(`${origin}/watch/${encodeURIComponent(id)}`, {
+              method: "HEAD",
+              redirect: "manual",
+              headers: { "User-Agent": "videyy-daily-sync" },
+              signal: AbortSignal.timeout(10000),
+            });
+            return { id, status: res.status, location: res.headers.get("location") || "" };
+          } catch {
+            return { id, status: 0, location: "" };
+          }
+        }),
+      )),
+    );
+  }
+  return out;
+}
+
+/**
+ * Main-site merges / hides for bundled ids it no longer lists, kept under `upstream` in the
+ * site config file (data/satelit-config.json, already committed by the sync job). The
+ * Worker folds merged copies into their main page and leaves hidden/removed ids out. Only
+ * unknown ids are checked, except on the daily run, which re-checks every missing id.
+ */
+async function refreshUpstreamMap(config, { localItems, syncedItems, upstreamItems, blockIds }) {
+  const rel = config.siteConfigOutput;
+  if (!upstreamItems.length || !rel) return;
+  let file = {};
+  try {
+    file = readJson(rel);
+  } catch {}
+  const prev = file.upstream || { merged: {}, gone: [], unlisted: [] };
+  const { missing, toCheck } = upstreamMapPlan({
+    localIds: [...localItems, ...syncedItems].map((it) => String(it.id || "")),
+    upstreamIds: upstreamItems.map((it) => String(it.id || "")),
+    blockIds,
+    prev,
+    recheckAll: process.env.SYNC_TRIGGER === "daily",
+  });
+  const results = await watchStatuses(config, toCheck);
+  const next = nextUpstreamMap(prev, missing, results);
+  if (JSON.stringify(prev) === JSON.stringify(next)) {
+    console.log("upstream map unchanged", { missing: missing.length, checked: toCheck.length });
+    return;
+  }
+  writeJson(rel, { ...file, upstream: next });
+  console.log("upstream map", {
+    missing: missing.length,
+    checked: toCheck.length,
+    merged: Object.keys(next.merged).length,
+    gone: next.gone.length,
+    unlisted: next.unlisted.length,
+  });
+}
+
 function loadLocalItems(files) {
   const items = [];
   for (const rel of files) {
@@ -119,9 +187,13 @@ function siteSettingsFrom(remote) {
   for (const site of Array.isArray(remote.sites) ? remote.sites : []) {
     const id = HOSTS[site?.host];
     if (!id) continue;
+    const ids = (list) => [...new Set((Array.isArray(list) ? list : []).map(String))].sort();
     out.sites[id] = {
       sync: site.sync !== false,
-      skipIds: [...new Set((site.skipIds || []).map(String))].sort(),
+      skipIds: ids(site.skipIds),
+      ...(Array.isArray(site.hiddenIds) && Array.isArray(site.uploadExcludeIds)
+        ? { hiddenIds: ids(site.hiddenIds), uploadExcludeIds: ids(site.uploadExcludeIds) }
+        : {}),
       syncRequestedAt: site.syncRequestedAt || null,
     };
   }
@@ -162,14 +234,6 @@ async function main() {
     }
     console.log("poll: pending /pemilik sync request, syncing now");
   }
-  if (siteSettings && config.siteConfigOutput) {
-    // Keep the owner's per-site hide/exclude lists (no request stamps, so the file only changes with them).
-    const keep = {
-      blockedIds: siteSettings.blockedIds,
-      sites: Object.fromEntries(Object.entries(siteSettings.sites).map(([id, s]) => [id, { sync: s.sync, skipIds: s.skipIds }])),
-    };
-    writeJson(config.siteConfigOutput, keep);
-  }
   if (config.remoteConfigUrl) {
     try {
       const got = await fetchText(config.remoteConfigUrl, { "User-Agent": "videyy-daily-sync", Accept: "application/json" });
@@ -201,6 +265,25 @@ async function main() {
     writeJson(config.blocklist || "src/lib/catalog/catalog-blocklist.json", merged.block);
     console.log("blocklist added", merged.added);
   }
+  if (siteSettings && config.siteConfigOutput) {
+    // Keep the owner's per-site hide/exclude lists (no request stamps, so the file only changes with them).
+    const byId = new Map([...localItems, ...upstreamItems].map((it) => [String(it.id), it]));
+    const upstream = (() => {
+      try {
+        return readJson(config.siteConfigOutput).upstream;
+      } catch {
+        return undefined;
+      }
+    })();
+    const keep = {
+      blockedIds: siteSettings.blockedIds,
+      sites: Object.fromEntries(
+        Object.entries(siteSettings.sites).map(([id, s]) => [id, { sync: s.sync, skipIds: effectiveSkipIds(id, s, byId) }]),
+      ),
+      ...(upstream ? { upstream } : {}),
+    };
+    writeJson(config.siteConfigOutput, keep);
+  }
   const blockIds = idsFromBlock(extra.length ? mergeBlocklist(localBlock, extra).block : localBlock);
   const plan = planSync({ localItems, upstreamItems, blockIds, config });
   const output = config.output || "data/synced-catalog.json";
@@ -221,6 +304,7 @@ async function main() {
       console.log("kept merged copies", kept.length, "of", dropped.length, "dropped upstream");
     }
   }
+  await refreshUpstreamMap(config, { localItems, syncedItems: plan.items, upstreamItems, blockIds });
   const prevKey = JSON.stringify(itemsFromUnknown(prev));
   const nextKey = JSON.stringify(plan.items);
   const prevIds = new Set(itemsFromUnknown(prev).map((it) => String(it.id)));

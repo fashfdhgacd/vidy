@@ -21,7 +21,7 @@ const TITLE = IS_VIDEQSSS
   : `English Indonesian Video Collections | ${TITLE_SUFFIX}`;
 const H1 = IS_VIDEQSSS ? "Video categories" : "English collections";
 const DESCRIPTION = IS_VIDEQSSS
-  ? `Browse Indonesian amateur videos on ${TITLE_SUFFIX} by category: hijab, couples, homemade, Malay, and more. IndoAV and UserBokep videos only, 18+.`
+  ? `Browse Indonesian amateur videos on ${TITLE_SUFFIX} by category: hijab, couples, homemade, Malay, and more. IndoAV, UserBokep and other hosts, 18+ only.`
   : `English-language collections of Indonesian amateur videos on ${TITLE_SUFFIX}: hijab, couples, homemade, Malay, and more. 18+ only.`;
 
 export const Route = createFileRoute("/en/")({

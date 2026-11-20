@@ -128,3 +128,75 @@ export function withRetained(nextItems, retained) {
   }
   return out;
 }
+
+/**
+ * Bundled ids the main site no longer lists (not in its export), split by what its
+ * /watch/<id> answered: 301/308 → merged into another id, 302/404/410 → hidden or removed,
+ * 200 → still reachable but unlisted. `prev` is the last map; ids back in the export leave it.
+ * Returns the ids to (re)check: every missing id when `recheckAll`, else only unknown ones.
+ */
+export function upstreamMapPlan({ localIds, upstreamIds, blockIds, prev, recheckAll }) {
+  const up = new Set(upstreamIds);
+  const block = new Set(blockIds || []);
+  const missing = [...new Set(localIds)].filter((id) => id && !up.has(id) && !block.has(id));
+  const known = new Set([
+    ...Object.keys(prev?.merged || {}),
+    ...(prev?.gone || []),
+    ...(prev?.unlisted || []),
+  ]);
+  return { missing, toCheck: recheckAll ? missing : missing.filter((id) => !known.has(id)) };
+}
+
+/** Main id from a main-site redirect Location (`/watch/<id>` or an absolute URL), else "". */
+export function watchIdFromLocation(location) {
+  const m = /\/watch\/([A-Za-z0-9_-]{3,64})(?:[/?#]|$)/.exec(String(location || ""));
+  return m ? m[1] : "";
+}
+
+/**
+ * Next map from the previous one plus fresh results ({ id, status, location }). Ids no longer
+ * missing drop out; a failed check (status 0 / 5xx) keeps the previous answer for that id.
+ */
+export function nextUpstreamMap(prev, missing, results) {
+  const was = new Map();
+  for (const [id, main] of Object.entries(prev?.merged || {})) was.set(id, { kind: "merged", main });
+  for (const id of prev?.gone || []) was.set(id, { kind: "gone" });
+  for (const id of prev?.unlisted || []) was.set(id, { kind: "unlisted" });
+  const now = new Map();
+  for (const r of results) {
+    const s = Number(r.status) || 0;
+    const main = watchIdFromLocation(r.location);
+    if ((s === 301 || s === 308) && main && main !== r.id) now.set(r.id, { kind: "merged", main });
+    else if (s === 302 || s === 404 || s === 410) now.set(r.id, { kind: "gone" });
+    else if (s === 200) now.set(r.id, { kind: "unlisted" });
+  }
+  const out = { merged: {}, gone: [], unlisted: [] };
+  for (const id of [...new Set(missing)].sort()) {
+    const v = now.get(id) || was.get(id);
+    if (!v) continue;
+    if (v.kind === "merged") out.merged[id] = v.main;
+    else out[v.kind].push(id);
+  }
+  return out;
+}
+
+/**
+ * Ids a satellite build leaves out. Owner hides always count. On videqsss.icu the upload
+ * checkbox used to apply only to IndoAV/UserBokep links, so every other host was excluded
+ * automatically at upload (not an owner choice); since videqsss carries all hosts (except Videy),
+ * those automatic marks are ignored. Upload excludes on IndoAV/UserBokep (a real checkbox
+ * choice) and on ids this sync cannot place still count. Without the split lists, skipIds as is.
+ */
+export function effectiveSkipIds(siteId, site, itemsById) {
+  if (!Array.isArray(site?.hiddenIds) || !Array.isArray(site?.uploadExcludeIds) || siteId !== "videqsss") {
+    return [...new Set((site?.skipIds || []).map(String))].sort();
+  }
+  const keep = new Set(site.hiddenIds.map(String));
+  for (const raw of site.uploadExcludeIds) {
+    const id = String(raw);
+    const it = itemsById.get(id);
+    const blob = it ? `${it.embed || ""} ${it.source || ""} ${it.direct || ""}` : "";
+    if (!it || /indoav|userbokep/i.test(blob)) keep.add(id);
+  }
+  return [...keep].sort();
+}

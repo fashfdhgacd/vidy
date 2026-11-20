@@ -12,9 +12,9 @@
     },
     "videqsss": {
       "enabled": true,
-      "sources": [
-        "indoav",
-        "userbokep"
+      "sources": "all",
+      "exclude": [
+        "videy"
       ]
     }
   },

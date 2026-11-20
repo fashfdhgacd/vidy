@@ -56,7 +56,7 @@ export function legalHeadEn(path: string, title: string, description: string, cr
 export const EN_LEGAL = {
   about: {
     title: `About ${SITE_NAME}`,
-    description: `About ${SITE_NAME} (${TITLE_SUFFIX}): a curated 18+ catalog of Indonesian amateur videos from IndoAV and UserBokep, how to recognise the real site, and how to reach us.`,
+    description: `About ${SITE_NAME} (${TITLE_SUFFIX}): a curated 18+ catalog of Indonesian amateur videos from IndoAV, UserBokep and other video hosts, how to recognise the real site, and how to reach us.`,
   },
   privacy: {
     title: "Privacy Policy",
@@ -89,8 +89,8 @@ export function AboutEn() {
     <LegalPage title={EN_LEGAL.about.title}>
       <p>
         <strong>{SITE_NAME}</strong> is the official site at <strong>{TITLE_SUFFIX}</strong>. We
-        curate an 18+ catalog of Indonesian amateur videos from IndoAV and UserBokep that you can
-        watch straight away on your phone. We are not IndoAV or UserBokep and are not affiliated
+        curate an 18+ catalog of Indonesian amateur videos from IndoAV, UserBokep and other
+        video hosts that you can watch straight away on your phone. We are not IndoAV or UserBokep and are not affiliated
         with either.
       </p>
       <H2>The real site vs. copies</H2>
