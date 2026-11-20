@@ -13,6 +13,8 @@ const SOURCE_RE: Record<string, RegExp> = {
   userbokep: /userbokep/i,
   // Videy: its own mp4 files (cdn.videy.co or the aceimg mirror) or the "Videy" source label.
   videy: /(^|[^a-z])videy([^a-z]|$)|cdn\.videy\.co|aceimg\.com/i,
+  // LuluStream and its player domains (lplaygo.com, luluvdo, ...).
+  lulu: /lulu|lplaygo/i,
 };
 
 /** True when this video may ship on `siteId`. "all" keeps every source except `exclude`. */

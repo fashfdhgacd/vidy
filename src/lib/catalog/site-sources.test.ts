@@ -39,3 +39,11 @@ test("videqsss: every host except Videy", () => {
   assert.equal(allowsSource({ source: "", direct: "https://cdn2.aceimg.com/abc.mp4" }, "videqsss", cfg), false);
   assert.equal(allowsSource({ source: "Videy" }, "videyy", { sites: { videyy: { sources: "all" as const } } }), true);
 });
+
+test("videqsss can leave out LuluStream (embed restricted to whitelisted domains)", () => {
+  const cfg = { sites: { videqsss: { sources: "all" as const, exclude: ["videy", "lulu"] } } };
+  assert.equal(allowsSource({ source: "LuluStream", embed: "https://lplaygo.com/e/x" }, "videqsss", cfg), false);
+  assert.equal(allowsSource({ source: "lplaygo.com", embed: "https://lplaygo.com/e/x" }, "videqsss", cfg), false);
+  assert.equal(allowsSource({ source: "Byse", embed: "https://bysejikuar.com/e/x" }, "videqsss", cfg), true);
+  assert.equal(allowsSource({ source: "LuluStream", embed: "https://lplaygo.com/e/x" }, "videyy", { sites: { videyy: { sources: "all" as const } } }), true);
+});
