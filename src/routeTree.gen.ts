@@ -57,6 +57,7 @@ import { Route as GenreSlugRouteImport } from './routes/genre.$slug'
 import { Route as HalamanPageRouteImport } from './routes/halaman.$page'
 import { Route as KategoriIndexRouteImport } from './routes/kategori.index'
 import { Route as KategoriSlugRouteImport } from './routes/kategori.$slug'
+import { Route as OgIdRouteImport } from './routes/og.$id'
 import { Route as ThumbIdRouteImport } from './routes/thumb.$id'
 import { Route as VIdRouteImport } from './routes/v.$id'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
@@ -310,6 +311,11 @@ const KategoriSlugRoute = KategoriSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => KategoriRoute,
 } as any)
+const OgIdRoute = OgIdRouteImport.update({
+  id: '/og/$id',
+  path: '/og/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ThumbIdRoute = ThumbIdRouteImport.update({
   id: '/thumb/$id',
   path: '/thumb/$id',
@@ -416,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/genre/$slug': typeof GenreSlugRouteWithChildren
   '/halaman/$page': typeof HalamanPageRoute
   '/kategori/$slug': typeof KategoriSlugRouteWithChildren
+  '/og/$id': typeof OgIdRoute
   '/thumb/$id': typeof ThumbIdRoute
   '/v/$id': typeof VIdRoute
   '/watch/$id': typeof WatchIdRoute
@@ -475,6 +482,7 @@ export interface FileRoutesByTo {
   '/genre/$slug': typeof GenreSlugRouteWithChildren
   '/halaman/$page': typeof HalamanPageRoute
   '/kategori/$slug': typeof KategoriSlugRouteWithChildren
+  '/og/$id': typeof OgIdRoute
   '/thumb/$id': typeof ThumbIdRoute
   '/v/$id': typeof VIdRoute
   '/watch/$id': typeof WatchIdRoute
@@ -538,6 +546,7 @@ export interface FileRoutesById {
   '/genre/$slug': typeof GenreSlugRouteWithChildren
   '/halaman/$page': typeof HalamanPageRoute
   '/kategori/$slug': typeof KategoriSlugRouteWithChildren
+  '/og/$id': typeof OgIdRoute
   '/thumb/$id': typeof ThumbIdRoute
   '/v/$id': typeof VIdRoute
   '/watch/$id': typeof WatchIdRoute
@@ -602,6 +611,7 @@ export interface FileRouteTypes {
     | '/genre/$slug'
     | '/halaman/$page'
     | '/kategori/$slug'
+    | '/og/$id'
     | '/thumb/$id'
     | '/v/$id'
     | '/watch/$id'
@@ -661,6 +671,7 @@ export interface FileRouteTypes {
     | '/genre/$slug'
     | '/halaman/$page'
     | '/kategori/$slug'
+    | '/og/$id'
     | '/thumb/$id'
     | '/v/$id'
     | '/watch/$id'
@@ -723,6 +734,7 @@ export interface FileRouteTypes {
     | '/genre/$slug'
     | '/halaman/$page'
     | '/kategori/$slug'
+    | '/og/$id'
     | '/thumb/$id'
     | '/v/$id'
     | '/watch/$id'
@@ -783,6 +795,7 @@ export interface RootRouteChildren {
   ApiTelegramRoute: typeof ApiTelegramRoute
   CariSlugRoute: typeof CariSlugRouteWithChildren
   HalamanPageRoute: typeof HalamanPageRoute
+  OgIdRoute: typeof OgIdRoute
   ThumbIdRoute: typeof ThumbIdRoute
   VIdRoute: typeof VIdRoute
   WatchIdRoute: typeof WatchIdRoute
@@ -1132,6 +1145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KategoriSlugRouteImport
       parentRoute: typeof KategoriRoute
     }
+    '/og/$id': {
+      id: '/og/$id'
+      path: '/og/$id'
+      fullPath: '/og/$id'
+      preLoaderRoute: typeof OgIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/thumb/$id': {
       id: '/thumb/$id'
       path: '/thumb/$id'
@@ -1346,6 +1366,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTelegramRoute: ApiTelegramRoute,
   CariSlugRoute: CariSlugRouteWithChildren,
   HalamanPageRoute: HalamanPageRoute,
+  OgIdRoute: OgIdRoute,
   ThumbIdRoute: ThumbIdRoute,
   VIdRoute: VIdRoute,
   WatchIdRoute: WatchIdRoute,

@@ -12,6 +12,7 @@ import {
   publicWatchDescription,
   videoJsonLd,
   videoSeoTitle,
+  seoVideoThumbnail,
 } from "@/lib/seo";
 import { WatchPage } from "@/lib/watch/watch-page";
 
@@ -48,6 +49,7 @@ export type WatchSearch = {
 
 /** MIME type for og:image:type from the image URL's extension (default jpeg). */
 function ogImageType(url: string): string {
+  if (/\/og\//i.test(url) || /og-v2\.jpg/i.test(url) || /brand-poster/i.test(url)) return "image/jpeg";
   const ext = /\.(webp|png|gif|jpe?g)(?:[?#]|$)/i.exec(url)?.[1]?.toLowerCase();
   if (ext === "webp") return "image/webp";
   if (ext === "png") return "image/png";
@@ -107,7 +109,7 @@ export const Route = createFileRoute("/watch/$id")({
           160,
         )
       : "Koleksi video dewasa. Konten 18+.";
-    const image = item ? shareCardImage(item.thumbnail) : DEFAULT_OG;
+    const image = item ? seoVideoThumbnail(item.id, item.thumbnail) : DEFAULT_OG;
     const url = item ? `${SITE_ORIGIN}/watch/${item.id}` : SITE_ORIGIN;
     const embedUrl = item
       ? (item.video_url || item.qualities?.[0]?.url || "").trim() || null
