@@ -11,6 +11,7 @@ import { slugOf, sourceLabel, toCard, type RawItem } from "./local-shared";
 import { realPosterFirst, videyFrameReady } from "./poster-status";
 import { posterProbeOk } from "./poster-known";
 import { titleTags } from "./title-tags";
+import { isIndoAiTitle } from "./title-text";
 import { itemDate } from "./feed-order";
 import type { CatalogResponse, VideoCard } from "./types";
 
@@ -20,6 +21,9 @@ function haystack(item: RawItem): string {
   const title = String(item.title || "");
   const primary = slugOf(item);
   const slugs = titleTags(title, primary);
+  // Same rule as /kategori/ai-indo (local-cache ownSlugs): AI+ with an Indonesian title, never AI GAY.
+  const all = [primary, ...slugs];
+  if (all.includes("ai-plus") && !all.includes("ai-gay") && !all.includes("ai-indo") && isIndoAiTitle(title)) slugs.push("ai-indo");
   return `${title} ${primary} ${slugs.join(" ")}`;
 }
 
