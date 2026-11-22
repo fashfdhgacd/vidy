@@ -292,6 +292,70 @@ export const EN_LANDINGS: EnLandingDef[] = [
     intro:
       "These Indonesian titles mention a selebgram, influencer, or public figure; we list the recordings we already host rather than promising celebrity leaks. The order is by views. All performers are adults.",
   },
+  // Foreign-visitor long tail (2026-11-22): GSC non-ID queries (MYS/SGP/USA/DEU) "bokep indo ai",
+  // "kumpulan bokep ai indonesia", "bokep ai china", "tudung mesum", "bokep bertudung",
+  // "bokep kelas bintang", "kelas bintang porn", "bokep percakapan". Hand-written English copy.
+  {
+    slug: "indonesian-ai",
+    match: /\bai-indo\b/i,
+    h1: "Indonesian AI-Generated Videos",
+    title: "Indonesian AI Porn – AI-Generated Videos",
+    description:
+      "Indonesian AI porn: AI-generated adult videos with Indonesian titles and stories, newest and most watched first. No real people. 18+ only.",
+    intro:
+      "Every clip here is made with generative AI and carries an Indonesian title or storyline, so no real person appears on screen. Popular uploads come first, with fresh AI drops mixed in as they arrive. Press play in the browser; no account and no app are needed.",
+    idSlug: "bokep-indo-ai",
+  },
+  {
+    slug: "asian-ai",
+    match: /^(?![\s\S]*\bai-gay\b)[\s\S]*\bai-plus\b/i,
+    h1: "Asian AI-Generated Videos",
+    title: "Asian AI Porn – AI-Generated Asian Videos",
+    description:
+      "Asian AI porn collection: AI-generated adult videos in Chinese, Japanese, Korean and Indonesian styles. Stream free on your phone. 18+ only.",
+    intro:
+      "This shelf collects the AI-generated Asian videos in our catalog, from Chinese drama-style shorts to Indonesian AI clips. Nothing here is a recording of a real person; the characters are synthetic adults. The grid keeps the most watched titles near the top and adds new uploads as they land.",
+  },
+  {
+    slug: "chinese-ai-drama",
+    match: /^(?=[\s\S]*\bai-plus\b)(?![\s\S]*\bai-gay\b)(?=[\s\S]*\b(?:china|cina|chinese|mandarin|dracin|tiongkok)\b)/i,
+    h1: "Chinese AI Drama Videos",
+    title: "Chinese AI Drama Porn – AI-Generated Shorts",
+    description:
+      "Chinese AI drama porn: AI-generated adult shorts styled like Chinese web dramas. Free streaming, no signup. 18+ only.",
+    intro:
+      "These are AI-generated shorts that borrow the look of Chinese web dramas, with costumes, palace sets and soap-opera plots. They are synthetic, so no real actor is involved. Open any card to stream it in the browser.",
+  },
+  {
+    slug: "malaysian-hijab",
+    match: /^(?=[\s\S]*\b(?:malaysia|malay|melayu|awek|tudung|bertudung)\b)(?=[\s\S]*\b(?:tudung|bertudung|hijab|jilbab|kerudung)\b)/i,
+    h1: "Malaysian Tudung and Hijab Videos",
+    title: "Malaysian Tudung & Hijab Videos",
+    description:
+      "Malaysian tudung and hijab amateur videos, Malay awek clips and bertudung titles from our catalog. Stream on your phone. 18+ only.",
+    intro:
+      "Malay viewers search for tudung and bertudung clips, so this list keeps only titles that are both Malaysian and hijab-themed. Most are amateur recordings shared by adult couples, sorted by how often they are watched. Tap a card to play it in the browser without an account.",
+  },
+  {
+    slug: "indonesian-softcore-films",
+    match: /\bkelas-bintang\b|\bkelas\s*bintang\b/i,
+    h1: "Indonesian Softcore Films (Kelas Bintang)",
+    title: "Indonesian Softcore Films – Kelas Bintang Movies",
+    description:
+      "Kelas bintang: Indonesian softcore films and adult movie scenes with professional actors, ranked by views. 18+ only.",
+    intro:
+      "Kelas bintang is the Indonesian name for softcore feature films and their steamy scenes, shot with professional adult actors rather than phones. We list the ones already in our catalog, most watched first. Each title streams straight in the browser.",
+  },
+  {
+    slug: "indonesian-dirty-talk",
+    match: /\bpercakapan\b/i,
+    h1: "Indonesian Dirty Talk Videos",
+    title: "Indonesian Dirty Talk Videos – With Conversation",
+    description:
+      "Indonesian dirty talk videos where adult couples keep talking in Indonesian during the scene. Ranked by views. 18+ only.",
+    intro:
+      "Indonesian viewers tag these clips percakapan because the couple keeps chatting in Indonesian throughout the scene. If you like hearing the language, start here. Everyone shown is an adult, and every video plays in the browser.",
+  },
 ];
 
 const bySlug = new Map(EN_LANDINGS.map((l) => [l.slug, l]));
