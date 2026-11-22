@@ -63,7 +63,7 @@ function Page() {
       <p>
         <strong>Videy Hub</strong> adalah situs resmi di <strong>videyy.icu</strong>. Kami
         mengkurasi katalog video dewasa 18+ sendiri: bokep indo viral, video viral videy, JAV, dan
-        AI+, yang bisa langsung ditonton di HP.
+        AI Drama, yang bisa langsung ditonton di HP.
       </p>
       <h2 className="pt-2 text-lg font-semibold text-foreground">Situs asli vs. situs penyalin</h2>
       <p>
