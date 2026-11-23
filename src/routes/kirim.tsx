@@ -48,11 +48,12 @@ export const Route = createFileRoute("/kirim")({
 });
 
 function KirimPage() {
+  const localText = usePublicText();
   return (
     <Shell>
       <article className="mx-auto max-w-xl space-y-4">
-        <h1 className="font-display text-3xl text-foreground sm:text-4xl">Kirim Video</h1>
-        <p className="text-sm leading-relaxed text-muted">{HELPER}</p>
+        <h1 className="font-display text-3xl text-foreground sm:text-4xl">{localText("Kirim Video")}</h1>
+        <p className="text-sm leading-relaxed text-muted">{localText(HELPER)}</p>
         <KirimForm />
       </article>
     </Shell>
@@ -108,7 +109,7 @@ function KirimForm() {
     <form onSubmit={onSubmit} className="relative space-y-4" noValidate>
       <div className="space-y-1.5">
         <label htmlFor="kirim-url" className="text-sm font-medium text-foreground">
-          Link Videy
+          {localText("Link Videy")}
         </label>
         <Input
           id="kirim-url"
@@ -125,7 +126,7 @@ function KirimForm() {
       </div>
       <div className="space-y-1.5">
         <label htmlFor="kirim-title" className="text-sm font-medium text-foreground">
-          Judul <span className="font-normal text-muted">(opsional)</span>
+          {localText("Judul")} <span className="font-normal text-muted">{localText("(opsional)")}</span>
         </label>
         <Input
           id="kirim-title"
@@ -138,7 +139,7 @@ function KirimForm() {
         />
       </div>
       <div aria-hidden="true" className="sr-only">
-        <label htmlFor="hp">Jangan diisi</label>
+        <label htmlFor="hp">{localText("Jangan diisi")}</label>
         <input
           id="hp"
           name="hp"
@@ -150,11 +151,11 @@ function KirimForm() {
         />
       </div>
       <Button type="submit" disabled={sending}>
-        {sending ? localText("Mengirim…") : "Kirim"}
+        {sending ? localText("Mengirim…") : localText("Kirim")}
       </Button>
       {message ? (
         <p role="status" className={ok ? "text-sm text-foreground" : "text-sm text-red-400"}>
-          {message}
+          {localText(message)}
         </p>
       ) : null}
     </form>

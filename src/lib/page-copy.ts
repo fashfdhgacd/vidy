@@ -1,3 +1,4 @@
+import { IS_VIDEQSSS } from "./seo";
 import { type PublicLanguage } from "./public-locale";
 import { translate } from "./public-ui";
 
@@ -14,6 +15,13 @@ export function pageCopy(path: string, language: PublicLanguage, originalTitle: 
   if (path.startsWith("/en/") && language !== "en") {
     const label = collectionHeading(path.split("/")[2], language, originalTitle.split(" | ")[0]);
     return { label, title: label + " | " + (originalTitle.split(" | ").at(-1) || label), description: collectionIntro(label, language) };
+  }
+  if (language === "id" && IS_VIDEQSSS && !path.startsWith("/en")) {
+    const [, section, slug] = path.split("/");
+    const titles: Record<string, string> = { kontak: "Kontak", tentang: "Tentang kami", privasi: "Kebijakan privasi", syarat: "Syarat penggunaan", teman: "Situs teman", dmca: "Hak cipta dan penghapusan konten", "2257": "Pernyataan 2257", genre: "Kategori video", cari: "Pencarian populer" };
+    const label = query ? `Hasil pencarian “${query}”` : section === "watch" ? originalTitle.split(" | ")[0] :
+      slug && ["cari","genre"].includes(section) ? collectionLabel(slug, language) : titles[section] ?? "Video Indonesia terbaru";
+    return { label, title: label + " | videqsss.icu", description: section === "watch" ? `Tonton “${label}” dan lihat informasi videonya. Khusus dewasa.` : `${label} di videqsss.icu. Khusus pengunjung berusia 18 tahun ke atas.` };
   }
   if (language === "id" || /^\/en(?:\/|$)/.test(path)) return null;
   const ms = language === "ms";

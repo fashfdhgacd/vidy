@@ -1486,5 +1486,57 @@
   "Genre": [
     "Genre",
     "Genres"
+  ],
+  "Punya link Videy?": [
+    "Ada pautan Videy?",
+    "Have a Videy link?"
+  ],
+  "Video akan dicek admin dulu sebelum tayang; hanya link videy.co.": [
+    "Pihak pentadbir akan menyemak video sebelum disiarkan. Hanya pautan videy.co diterima.",
+    "An administrator reviews each video before publication. Only videy.co links are accepted."
+  ],
+  "Link Videy": [
+    "Pautan Videy",
+    "Videy link"
+  ],
+  "Judul": [
+    "Tajuk",
+    "Title"
+  ],
+  "(opsional)": [
+    "(pilihan)",
+    "(optional)"
+  ],
+  "Jangan diisi": [
+    "Biarkan kosong",
+    "Leave blank"
+  ],
+  "Makasih! Video kamu masuk antrean, tayang setelah dicek admin.": [
+    "Terima kasih! Video anda menunggu semakan pentadbir sebelum disiarkan.",
+    "Thank you! Your video is queued for review before publication."
+  ],
+  "Video ini udah ada / udah dikirim.": [
+    "Video ini sudah ada atau pernah dihantar.",
+    "This video already exists or has already been submitted."
+  ],
+  "Link-nya bukan link Videy yang valid.": [
+    "Pautan Videy ini tidak sah.",
+    "Please enter a valid Videy link."
+  ],
+  "Kebanyakan kiriman, coba lagi besok.": [
+    "Had penghantaran telah dicapai. Cuba lagi esok.",
+    "Daily submission limit reached. Try again tomorrow."
+  ],
+  "Gagal kirim. Coba lagi.": [
+    "Penghantaran gagal. Sila cuba lagi.",
+    "Could not submit. Please try again."
+  ],
+  "Ada yang salah": [
+    "Ralat berlaku",
+    "Something went wrong"
+  ],
+  "Terjadi kesalahan. Muat ulang halaman untuk mencoba lagi.": [
+    "Muat semula halaman untuk mencuba lagi.",
+    "Reload the page to try again."
   ]
 }

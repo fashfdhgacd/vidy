@@ -79,7 +79,7 @@ export function Shell({
                 </Link>
                 {kirim ? (
                   <Link to="/kirim" className="hover:text-foreground hover:underline">
-                    Kirim Video
+                    {tr("Kirim Video", "Submit a video")}
                   </Link>
                 ) : null}
                 {IS_VIDEQSSS ? null : (
