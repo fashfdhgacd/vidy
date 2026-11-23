@@ -1,5 +1,4 @@
-import { usePublicHref } from "@/lib/public-ui";
-import { usePublicText } from "@/lib/public-ui";
+import { usePublicHref, usePublicLanguage, usePublicText } from "@/lib/public-ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage } from "@/components/legal-page";
 import { EN_LEGAL, FriendsEn, legalHeadEn } from "@/components/legal-en";
@@ -59,7 +58,9 @@ export const Route = createFileRoute("/teman")({
             },
           ],
         },
-  component: UI_EN ? () => <FriendsEn links={TEMAN_LINKS} /> : Page,
+  component: function LocalizedPage() {
+    return usePublicLanguage() === "en" ? <FriendsEn links={TEMAN_LINKS} /> : <Page />;
+  },
 });
 
 function Page() {

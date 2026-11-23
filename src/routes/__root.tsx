@@ -1,5 +1,5 @@
-import { UI_EN } from "@/lib/ui-lang";
 import { usePublicLanguage } from "@/lib/public-ui";
+import { UI_EN } from "@/lib/ui-lang";
 import { LocaleHead } from "@/components/locale-head";
 import { createRootRoute, Outlet, Scripts, redirect } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";

@@ -1,6 +1,5 @@
-import { usePublicHref } from "@/lib/public-ui";
-import { usePublicLanguage } from "@/lib/public-ui";
-import { usePublicText } from "@/lib/public-ui";
+import { collectionLabel } from "@/lib/page-copy";
+import { usePublicHref, usePublicLanguage, usePublicText } from "@/lib/public-ui";
 import { tr, uiCategory, UI_EN, UI_LOCALE } from "@/lib/ui-lang";
 import { enSlugForId, findEnLanding } from "@/lib/catalog/en-landing";
 import { enHref } from "@/lib/catalog/halaman";
@@ -265,17 +264,18 @@ function ShareSheet({
 }
 
 /** Tanggal unggah yang bisa dibaca (id-ID, WIB). Kosong kalau tidak valid. */
-function uploadDateLabel(raw: string | number | null | undefined): string {
+function uploadDateLabel(raw: string | number | null | undefined, locale: string): string {
   if (raw == null || raw === "") return "";
   const d = new Date(typeof raw === "number" && raw < 1e12 ? raw * 1000 : raw);
   if (Number.isNaN(d.getTime()) || d.getFullYear() < 2015) return "";
-  return d.toLocaleDateString(UI_LOCALE, { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta" });
+  return d.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta" });
 }
 
 /** Fakta singkat per video (durasi, tanggal, sumber). Kategori sudah tampil sebagai chip di atasnya. */
 function VideoFacts({ item }: { item: VideoDetail }) {
   const tr = usePublicText();
-  const date = uploadDateLabel(item.uploadDate);
+  const locale = usePublicLanguage();
+  const date = uploadDateLabel(item.uploadDate, locale);
   const host = isVideyItem(item) || isDrpHostItem(item) ? "" : hostLabel(catalogPlayUrl(item)).replace("Puterin", "Putarin");
   const rows: Array<[string, string]> = [];
   if (item.durationLabel) rows.push([tr("Durasi", "Duration"), item.durationLabel]);
@@ -298,9 +298,10 @@ function VideoFacts({ item }: { item: VideoDetail }) {
 }
 
 export function WatchPage() {
+  const language = usePublicLanguage();
   const publicHref = usePublicHref();
   const tr = usePublicText();
-  const UI_EN = usePublicLanguage() === "en";
+  const UI_EN = language === "en";
   const localText = usePublicText();
   const { id } = routeApi.useParams();
   const { s: wantedServer } = routeApi.useSearch();
@@ -483,7 +484,7 @@ export function WatchPage() {
           </div>
           <header className="max-w-3xl space-y-3">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
-              {isVideyItem(item) ? VIDEY_LABEL : uiCategory(item.category || "")}
+              {isVideyItem(item) ? VIDEY_LABEL : localText(item.category || "")}
               {item.year ? ` \u00b7 ${item.year}` : ""}
               {item.creator && !isVideyItem(item) ? ` \u00b7 ${item.creator}` : ""}
               <span className="ml-3 align-middle text-muted">
@@ -513,7 +514,7 @@ export function WatchPage() {
                 }
                 return (
                   <a href={publicHref(landing ? `/cari/${landing.slug}` : "/cari")} className="underline underline-offset-2 hover:text-foreground">
-                    {landing ? landing.h1 : localText("Pencarian populer")}
+                    {landing ? (language === "id" ? landing.h1 : collectionLabel(landing.slug, language)) : localText("Pencarian populer")}
                   </a>
                 );
               })()}
@@ -524,7 +525,7 @@ export function WatchPage() {
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
                   {UI_EN
                     ? `More in ${item.category ? uiCategory(item.category) : "this category"}`
-                    : `Lainnya di ${item.category || "kategori ini"}`}
+                    : `Lainnya di ${localText(item.category || "kategori ini")}`}
                 </p>
                 <ul className="space-y-1 text-sm">
                   {item.sameCategory.filter((v) => !isSeoBlockedId(v.id)).map((v) => (

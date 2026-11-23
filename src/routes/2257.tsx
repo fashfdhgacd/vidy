@@ -1,4 +1,4 @@
-import { usePublicText } from "@/lib/public-ui";
+import { usePublicLanguage, usePublicText } from "@/lib/public-ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LegalPage } from "@/components/legal-page";
 import { EN_LEGAL, Statement2257En, legalHeadEn } from "@/components/legal-en";
@@ -21,7 +21,9 @@ export const Route = createFileRoute("/2257")({
           ],
           links: [{ rel: "canonical", href: `${SITE_ORIGIN}/2257` }],
         },
-  component: UI_EN ? Statement2257En : Page,
+  component: function LocalizedPage() {
+    return usePublicLanguage() === "en" ? <Statement2257En /> : <Page />;
+  },
 });
 
 function Page() {

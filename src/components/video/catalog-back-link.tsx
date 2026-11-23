@@ -1,5 +1,4 @@
-import { usePublicHref } from "@/lib/public-ui";
-import { usePublicText } from "@/lib/public-ui";
+import { usePublicHref, usePublicText } from "@/lib/public-ui";
 import { useEffect, useState } from "react";
 import { tr } from "@/lib/ui-lang";
 import { backToCatalog, lastCatalogHref } from "@/lib/catalog/last-catalog";

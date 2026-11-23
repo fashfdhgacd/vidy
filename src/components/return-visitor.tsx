@@ -1,5 +1,4 @@
-import { usePublicLanguage } from "@/lib/public-ui";
-import { usePublicText } from "@/lib/public-ui";
+import { usePublicLanguage, usePublicText } from "@/lib/public-ui";
 import { useEffect, useState } from "react";
 import { tr, UI_EN } from "@/lib/ui-lang";
 import { InstallApp } from "@/components/install-app";

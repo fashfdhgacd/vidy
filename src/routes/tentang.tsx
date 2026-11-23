@@ -1,5 +1,4 @@
-import { usePublicHref } from "@/lib/public-ui";
-import { usePublicText } from "@/lib/public-ui";
+import { usePublicHref, usePublicLanguage, usePublicText } from "@/lib/public-ui";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { LegalPage } from "@/components/legal-page";
 import { AboutEn } from "@/components/legal-en";
@@ -56,7 +55,9 @@ export const Route = createFileRoute("/tentang")({
       },
     ],
   }),
-  component: UI_EN ? AboutEn : Page,
+  component: function LocalizedPage() {
+    return usePublicLanguage() === "en" ? <AboutEn /> : <Page />;
+  },
 });
 
 function Page() {

@@ -114,7 +114,7 @@ export function Header({ query }: { query?: string }) {
             to="/kirim"
             className="hidden shrink-0 whitespace-nowrap text-xs font-semibold text-primary underline-offset-2 hover:underline sm:inline sm:text-sm"
           >
-            Kirim Video
+            {tr("Kirim Video", "Submit a video")}
           </Link>
         ) : null}
         {/* videqsss.icu is English site-wide: no ID/EN switch there. */}
@@ -123,7 +123,7 @@ export function Header({ query }: { query?: string }) {
       {showKirimNav(pathname, IS_VIDEQSSS) ? (
         <div className="border-t border-border/60 px-3 py-2 sm:hidden">
           <Link to="/kirim" className="text-sm font-semibold text-primary underline-offset-2 hover:underline">
-            Kirim Video
+            {tr("Kirim Video", "Submit a video")}
           </Link>
         </div>
       ) : null}

@@ -1,4 +1,4 @@
-import { usePublicLanguage } from "@/lib/public-ui";
+import { usePublicHref, usePublicLanguage } from "@/lib/public-ui";
 import { UI_LANG } from "@/lib/ui-lang";
 
 function windowPages(current: number, totalPages: number, span = 2): number[] {
@@ -36,6 +36,7 @@ export function CatalogPager({
   pageHref?: (page: number) => string;
   lang?: "id" | "en";
 }) {
+  const publicHref = usePublicHref();
   const selectedLanguage = usePublicLanguage();
   const lang = explicitLanguage ?? selectedLanguage;
   const totalPages = Math.max(1, Math.ceil((total || 0) / Math.max(1, limit)));
@@ -80,7 +81,7 @@ export function CatalogPager({
 
   function linkProps(n: number) {
     return {
-      href: hrefFor(n),
+      href: publicHref(hrefFor(n)),
       onClick: (e: { preventDefault: () => void }) => {
         e.preventDefault();
         go(n);

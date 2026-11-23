@@ -1,6 +1,4 @@
-import { usePublicHref } from "@/lib/public-ui";
-import { usePublicLanguage } from "@/lib/public-ui";
-import { usePublicText } from "@/lib/public-ui";
+import { usePublicHref, usePublicLanguage, usePublicText } from "@/lib/public-ui";
 import { useEffect } from "react";
 import { SafeBoundary } from "@/components/safe-boundary";
 import { Link, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
@@ -271,7 +269,7 @@ export function HomeExperience({
             <ErrorState message={feed.error} onRetry={feed.retry} />
           ) : !gridItems.length ? (
             <EmptyState
-              title={q ? tr(`Belum ada video untuk “${q}”`, `No videos for “${q}” yet`) : tr("Kosong", "Empty")}
+              title={q && language === "ms" ? `Tiada video untuk “${q}”` : q ? tr(`Belum ada video untuk “${q}”`, `No videos for “${q}” yet`) : tr("Kosong", "Empty")}
               description={
                 q
                   ? tr("Coba kata kunci yang lebih pendek atau umum, misalnya “jilbab”, “indo”, atau “jav”.", "Try a shorter or more general keyword, for example “hijab”, “indo”, or “jav”.")

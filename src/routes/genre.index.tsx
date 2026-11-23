@@ -1,6 +1,5 @@
-import { usePublicHref } from "@/lib/public-ui";
+import { usePublicHref, usePublicLanguage } from "@/lib/public-ui";
 import { collectionLabel } from "@/lib/page-copy";
-import { usePublicLanguage } from "@/lib/public-ui";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Shell } from "@/components/layout/shell";
 import { keywordHref } from "@/lib/catalog/halaman";

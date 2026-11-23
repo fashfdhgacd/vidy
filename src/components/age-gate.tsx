@@ -1,5 +1,4 @@
-import { usePublicHref } from "@/lib/public-ui";
-import { usePublicText } from "@/lib/public-ui";
+import { usePublicHref, usePublicText } from "@/lib/public-ui";
 import { useEffect, useState, type ReactNode } from "react";
 import { tr } from "@/lib/ui-lang";
 

@@ -1,4 +1,4 @@
-import { usePublicText } from "@/lib/public-ui";
+import { usePublicLanguage, usePublicText } from "@/lib/public-ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage } from "@/components/legal-page";
 import { EN_LEGAL, DmcaEn, legalHeadEn } from "@/components/legal-en";
@@ -24,7 +24,9 @@ export const Route = createFileRoute("/dmca")({
           ],
           links: [{ rel: "canonical", href: `${SITE_ORIGIN}/dmca` }],
         },
-  component: UI_EN ? DmcaEn : Page,
+  component: function LocalizedPage() {
+    return usePublicLanguage() === "en" ? <DmcaEn /> : <Page />;
+  },
 });
 
 function Page() {
