@@ -1,3 +1,6 @@
+import { collectionHeading, collectionIntro } from "@/lib/page-copy";
+import { languageFamily } from "@/lib/language-family";
+import { usePublicLanguage } from "@/lib/public-ui";
 import { Outlet, createFileRoute, notFound, useMatches, useNavigate } from "@tanstack/react-router";
 import { Shell } from "@/components/layout/shell";
 import { EmptyState, ErrorState } from "@/components/states/feed-states";
@@ -139,12 +142,14 @@ export function EnExperience({
   data: CatalogResponse;
   onPage: (next: number) => void;
 }) {
+  const language = usePublicLanguage();
   const def = findEnLanding(slug);
   if (!def) return null;
   const items = data && data.ok && data.type === "landing" ? (data.items as VideoCard[]) : [];
   const total = data && data.ok && data.type === "landing" ? data.total : 0;
   const page = data && data.ok && data.type === "landing" ? data.page : 1;
   const limit = data && data.ok && data.type === "landing" ? data.limit : LANDING_PAGE_SIZE;
+  const heading = collectionHeading(def.slug, language, def.h1);
   const others = EN_LANDINGS.filter((l) => l.slug !== def.slug);
 
   return (
@@ -152,16 +157,16 @@ export function EnExperience({
       <Shell>
         <section>
           <div className="mb-4">
-            <h1 className="text-xl font-semibold text-zinc-100">{def.h1}</h1>
+            <h1 className="text-xl font-semibold text-zinc-100">{heading}</h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-400">
-              {def.intro.replaceAll("Videqsss", SITE_NAME)}
+              {language === "en" ? def.intro.replaceAll("Videqsss", SITE_NAME) : collectionIntro(heading, language)}
             </p>
             {total ? (
               <p className="mt-1 text-sm text-zinc-500">
-                {total.toLocaleString("en")} videos · page {page}
+                {total.toLocaleString(language)} {language === "en" ? "videos · page" : "video · halaman"} {page}
               </p>
             ) : null}
-            {def.idSlug && !IS_VIDEQSSS ? (
+            {language === "en" && def.idSlug && !IS_VIDEQSSS ? (
               <p className="mt-2 text-sm text-zinc-500">
                 Indonesian page:{" "}
                 <a
@@ -182,8 +187,8 @@ export function EnExperience({
             />
           ) : !items.length ? (
             <EmptyState
-              title="Videos coming soon"
-              description="Nothing matches this collection yet. Please check back later."
+              title={language === "ms" ? "Video akan datang" : language === "id" ? "Video segera hadir" : "Videos coming soon"}
+              description={language === "ms" ? "Belum ada video dalam koleksi ini. Sila singgah lagi." : language === "id" ? "Belum ada video dalam koleksi ini." : "Nothing matches this collection yet. Please check back later."}
             />
           ) : (
             <SafeBoundary>
@@ -192,7 +197,6 @@ export function EnExperience({
           )}
 
           <CatalogPager
-            lang="en"
             page={page}
             total={total}
             limit={limit}
@@ -209,10 +213,10 @@ export function EnExperience({
                 {others.map((l) => (
                   <a
                     key={l.slug}
-                    href={enHref(l.slug, 1)}
+                    href={languageFamily(enHref(l.slug, 1))[language]}
                     className="inline-flex h-8 items-center rounded-full border border-white/10 px-3 text-sm text-zinc-300 hover:border-white/40 hover:text-white"
                   >
-                    {l.h1}
+                    {language === "en" ? l.h1 : collectionHeading(l.slug, language, l.h1)}
                   </a>
                 ))}
               </div>

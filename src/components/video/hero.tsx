@@ -1,3 +1,4 @@
+import { usePublicText } from "@/lib/public-ui";
 import { isIndoAvCreator, NO_POP_CLASS } from "@/lib/ads/exo-popunder";
 import { tr, uiCategory } from "@/lib/ui-lang";
 import { cleanDisplayTitle } from "@/lib/seo";
@@ -34,6 +35,7 @@ function hasRealPoster(id: string): boolean {
 }
 
 export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
+  const tr = usePublicText();
   const usable = useMemo(() => {
     const incoming = videos && videos.length > 0 ? videos : video ? [video] : [];
     return incoming.filter((v) => hasRealPoster(v.id) && !isRealMinor({ title: v.title, tags: v.category }));

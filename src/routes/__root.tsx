@@ -1,5 +1,7 @@
+import { usePublicLanguage } from "@/lib/public-ui";
 import { UI_EN } from "@/lib/ui-lang";
-import { createRootRoute, HeadContent, Outlet, Scripts, redirect, useRouterState } from "@tanstack/react-router";
+import { LocaleHead } from "@/components/locale-head";
+import { createRootRoute, Outlet, Scripts, redirect } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { PresencePing } from "@/components/presence-ping";
@@ -85,17 +87,11 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-  const lang = useRouterState({
-    select: (s) => {
-      const p = s.location.pathname;
-      // videqsss.icu is English site-wide; videyy.icu is Indonesian except its /en pages.
-      return UI_EN || p === "/en" || p.startsWith("/en/") ? "en" : "id";
-    },
-  });
+  const lang = usePublicLanguage();
   return (
     <html lang={lang} suppressHydrationWarning className="antialiased">
       <head>
-        <HeadContent />
+        <LocaleHead />
       </head>
       <body className="min-h-dvh bg-background font-sans text-foreground">
         <SwCleanup />

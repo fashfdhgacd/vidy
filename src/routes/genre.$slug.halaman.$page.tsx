@@ -17,7 +17,6 @@ export const Route = createFileRoute("/genre/$slug/halaman/$page")({
     if (!parseHalamanParam(params.page) && params.page !== "1") throw notFound();
     // videqsss is English site-wide: same page number on the English keyword page.
     const n = parseHalamanParam(params.page) || 1;
-    throw redirect({ href: `${SITE_ORIGIN}${englishTargetForIdLanding(params.slug, n)}`, statusCode: 301 });
   },
   loader: ({ params }) => loadLanding(params.slug, parseHalamanParam(params.page) || 2),
   head: ({ params, loaderData }) => landingHead(params.slug, parseHalamanParam(params.page) || 2, loaderData),

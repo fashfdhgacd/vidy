@@ -1,3 +1,6 @@
+import { collectionLabel } from "@/lib/page-copy";
+import { languageFamily } from "@/lib/language-family";
+import { usePublicHref, usePublicLanguage, usePublicText } from "@/lib/public-ui";
 import { useEffect } from "react";
 import { SafeBoundary } from "@/components/safe-boundary";
 import { Link, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
@@ -175,6 +178,9 @@ export function HomeExperience({
   loaderData: Awaited<ReturnType<typeof loadHome>>;
   onPage: (next: number) => void;
 }) {
+  const publicHref = usePublicHref();
+  const language = usePublicLanguage();
+  const tr = usePublicText();
   const seed = seedFromLoader(loaderData);
   const mode = q ? "search" : "home";
   const feed = useCatalogFeed({ mode, q, page }, seed);
@@ -182,18 +188,11 @@ export function HomeExperience({
   const heroIds = new Set(heroVideos.map((v) => v.id));
   const gridItems = heroIds.size ? feed.items.filter((item) => !heroIds.has(item.id)) : feed.items;
 
-  const title = q ? tr(`Hasil untuk “${q}”`, `Results for “${q}”`) : HOME_H1;
-  const subtitle = q
-    ? feed.loading && !feed.items.length
-      ? tr("Mencari…", "Searching…")
-      : `${fmtNum(gridItems.length ? feed.total : 0)} ${tr("hasil", "results")}`
-    : feed.total
-    ? `${fmtNum(feed.total)} ${tr("judul", "videos")} · ${TITLE_SUFFIX}`
-    : TITLE_SUFFIX;
-  const intro =
-    q
-      ? tr(`Hasil pencarian “${q}” di katalog Videy Hub. Konten dewasa 18+.`, `Search results for “${q}” in the ${SITE_NAME} catalog. Adults 18+ only.`)
-      : HOME_INTRO;
+  const ms = language === "ms";
+  const title = q ? (ms ? `Hasil carian untuk “${q}”` : language === "en" ? `Results for “${q}”` : `Hasil untuk “${q}”`) : ms ? "Video terkini" : language === "en" ? "Latest videos" : IS_VIDEQSSS ? "Video Indonesia terbaru" : HOME_H1;
+  const count = (q && !gridItems.length ? 0 : feed.total).toLocaleString(language);
+  const subtitle = q && feed.loading && !gridItems.length ? (ms ? "Sedang mencari…" : language === "en" ? "Searching…" : "Mencari…") : count + " " + (q ? ms ? "hasil carian" : language === "en" ? "results" : "hasil" : ms ? "tajuk" : language === "en" ? "titles" : "judul");
+  const intro = language === "id" ? (q ? `Hasil pencarian “${q}”. Khusus dewasa 18+.` : IS_VIDEQSSS ? "Jelajahi koleksi video terbaru. Khusus pengunjung berusia 18 tahun ke atas." : HOME_INTRO) : ms ? "Terokai koleksi video untuk penonton berumur 18 tahun ke atas." : "Explore the collection for viewers aged 18 and over.";
 
   // Search result pages past the end (e.g. stale ?page=N kept in the URL) jump back to page 1,
   // so the count and the grid always come from the same result array.
@@ -222,7 +221,7 @@ export function HomeExperience({
   }
 
   return (
-    <Shell>
+    <Shell query={q}>
       <div className="space-y-6">
         {heroVideos.length ? (
           <SafeBoundary>
@@ -243,24 +242,24 @@ export function HomeExperience({
             <p className="mt-1 max-w-2xl text-sm text-zinc-600">{intro}</p>
             {!IS_VIDEQSSS && !q && page === 1 ? (
               <p className="mt-3 text-sm text-zinc-400">
-                Punya link Videy?{" "}
+                {tr("Punya link Videy?", "Have a Videy link?")}{" "}
                 <Link to="/kirim" className="font-medium text-primary underline-offset-2 hover:underline">
-                  Kirim Video
+                  {tr("Kirim Video", "Submit a video")}
                 </Link>
               </p>
             ) : null}
             {IS_VIDEQSSS && !q ? (
-              <nav aria-label="Categories" className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm">
+              <nav aria-label={tr("Kategori", "Categories")} className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm">
                 {landingsForSite("videqsss").map((l) => {
                   const en = findEnLanding(enSlugForId(l.slug));
                   return en ? (
-                    <a key={en.slug} href={enHref(en.slug, 1)} className="text-[#f4b942] underline-offset-2 hover:underline">
-                      {en.h1}
+                    <a key={en.slug} href={languageFamily(enHref(en.slug, 1))[language]} className="text-[#f4b942] underline-offset-2 hover:underline">
+                      {language === "en" ? en.h1 : language === "id" ? l.h1 : collectionLabel(l.slug, language)}
                     </a>
                   ) : null;
                 })}
-                <a href="/en" className="text-[#f4b942] underline-offset-2 hover:underline">
-                  All categories →
+                <a href={languageFamily("/genre")[language]} className="text-[#f4b942] underline-offset-2 hover:underline">
+                  {tr("Semua kategori →", "All categories →")}
                 </a>
               </nav>
             ) : null}
@@ -272,7 +271,7 @@ export function HomeExperience({
             <ErrorState message={feed.error} onRetry={feed.retry} />
           ) : !gridItems.length ? (
             <EmptyState
-              title={q ? tr(`Belum ada video untuk “${q}”`, `No videos for “${q}” yet`) : tr("Kosong", "Empty")}
+              title={q && language === "ms" ? `Tiada video untuk “${q}”` : q ? tr(`Belum ada video untuk “${q}”`, `No videos for “${q}” yet`) : tr("Kosong", "Empty")}
               description={
                 q
                   ? tr("Coba kata kunci yang lebih pendek atau umum, misalnya “jilbab”, “indo”, atau “jav”.", "Try a shorter or more general keyword, for example “hijab”, “indo”, or “jav”.")

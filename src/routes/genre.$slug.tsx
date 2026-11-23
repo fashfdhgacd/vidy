@@ -13,7 +13,6 @@ export const Route = createFileRoute("/genre/$slug")({
     }
     if (params.slug && findLanding(params.slug)?.category === "videy") throw notFound();
     // videqsss is English site-wide: the Indonesian keyword page moves to its English page.
-    throw redirect({ href: `${SITE_ORIGIN}${englishTargetForIdLanding(params.slug, halamanFromPath(location.pathname))}`, statusCode: 301 });
   },
   loader: ({ params }) => loadLanding(params.slug, 1),
   head: ({ params, loaderData, matches }) => {

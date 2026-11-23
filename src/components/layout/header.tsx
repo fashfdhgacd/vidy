@@ -4,7 +4,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
-import { langSwitchForPath } from "@/lib/catalog/en-landing";
+import { LanguageSwitcher } from "./language-switcher";
 import { showKirimNav } from "@/lib/kirim-videy";
 import { IS_VIDEQSSS, SITE_NAME } from "@/lib/seo";
 
@@ -33,34 +33,6 @@ function BrandMark() {
   );
 }
 
-function LangSwitcher() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { lang, idHref, enHref } = langSwitchForPath(pathname);
-  const item = (href: string, label: string, current: boolean, hrefLang: string) => (
-    <a
-      href={href}
-      hrefLang={hrefLang}
-      lang={hrefLang}
-      aria-current={current ? "page" : undefined}
-      className={
-        current
-          ? "rounded px-1.5 py-0.5 text-[11px] font-semibold text-foreground"
-          : "rounded px-1.5 py-0.5 text-[11px] font-medium text-muted hover:text-foreground"
-      }
-    >
-      {label}
-    </a>
-  );
-  return (
-    <nav aria-label="Language" className="flex shrink-0 items-center gap-0.5 border-l border-border/60 pl-2 sm:pl-3">
-      {item(idHref, "ID", lang === "id", "id")}
-      <span aria-hidden="true" className="text-[11px] text-muted">
-        /
-      </span>
-      {item(enHref, "EN", lang === "en", "en")}
-    </nav>
-  );
-}
 
 export function Header({ query }: { query?: string }) {
   const tr = useTr();
@@ -142,16 +114,16 @@ export function Header({ query }: { query?: string }) {
             to="/kirim"
             className="hidden shrink-0 whitespace-nowrap text-xs font-semibold text-primary underline-offset-2 hover:underline sm:inline sm:text-sm"
           >
-            Kirim Video
+            {tr("Kirim Video", "Submit a video")}
           </Link>
         ) : null}
         {/* videqsss.icu is English site-wide: no ID/EN switch there. */}
-        {IS_VIDEQSSS ? null : <LangSwitcher />}
+        <LanguageSwitcher />
       </div>
       {showKirimNav(pathname, IS_VIDEQSSS) ? (
         <div className="border-t border-border/60 px-3 py-2 sm:hidden">
           <Link to="/kirim" className="text-sm font-semibold text-primary underline-offset-2 hover:underline">
-            Kirim Video
+            {tr("Kirim Video", "Submit a video")}
           </Link>
         </div>
       ) : null}

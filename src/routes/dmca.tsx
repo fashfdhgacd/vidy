@@ -1,3 +1,4 @@
+import { usePublicLanguage, usePublicText } from "@/lib/public-ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage } from "@/components/legal-page";
 import { EN_LEGAL, DmcaEn, legalHeadEn } from "@/components/legal-en";
@@ -23,19 +24,20 @@ export const Route = createFileRoute("/dmca")({
           ],
           links: [{ rel: "canonical", href: `${SITE_ORIGIN}/dmca` }],
         },
-  component: UI_EN ? DmcaEn : Page,
+  component: function LocalizedPage() {
+    return usePublicLanguage() === "en" ? <DmcaEn /> : <Page />;
+  },
 });
 
 function Page() {
+  const localText = usePublicText();
   return (
     <LegalPage title="DMCA">
       <p>
-        Jika Anda pemegang hak dan ingin judul dihapus dari katalog, kirim pemberitahuan ke halaman
-        Kontak dengan URL watch, bukti kepemilikan, dan pernyataan itikad baik.
+        {localText("Jika Anda pemegang hak dan ingin judul dihapus dari katalog, kirim pemberitahuan ke halaman Kontak dengan URL watch, bukti kepemilikan, dan pernyataan itikad baik.")}
       </p>
       <p>
-        Kami meninjau laporan yang lengkap dan menghapus entri katalog yang sah tanpa meng-host
-        ulang berkas video.
+        {localText("Kami meninjau laporan yang lengkap dan menghapus entri katalog yang sah tanpa meng-host ulang berkas video.")}
       </p>
     </LegalPage>
   );

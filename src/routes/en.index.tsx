@@ -1,3 +1,4 @@
+import { usePublicHref } from "@/lib/public-ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { Shell } from "@/components/layout/shell";
 import { enHref, keywordRoot } from "@/lib/catalog/halaman";
@@ -79,6 +80,7 @@ export const Route = createFileRoute("/en/")({
 });
 
 function EnIndex() {
+  const publicHref = usePublicHref();
   const { pages } = Route.useLoaderData();
   return (
     <UiLangProvider value="en">
@@ -103,7 +105,7 @@ function EnIndex() {
             {pages.map((l) => (
               <li key={l.slug}>
                 <a
-                  href={enHref(l.slug, 1)}
+                  href={publicHref(enHref(l.slug, 1))}
                   className="text-[#f4b942] underline-offset-2 hover:underline"
                 >
                   {l.h1}

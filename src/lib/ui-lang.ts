@@ -1,4 +1,5 @@
-import { createContext, useContext } from "react";
+import { usePublicText } from "./public-ui";
+import { createContext } from "react";
 import { findCategory } from "@/lib/catalog/categories";
 import { EN_CATEGORY_LABELS } from "@/lib/seo";
 
@@ -38,6 +39,5 @@ export const UiLangProvider = UiLangContext.Provider;
 
 /** `tr` bound to the page language (falls back to the build language). */
 export function useTr(): (id: string, en: string) => string {
-  const en = useContext(UiLangContext) === "en";
-  return (id, enText) => (en ? enText : id);
+  return usePublicText();
 }

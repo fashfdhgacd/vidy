@@ -1,3 +1,4 @@
+import { usePublicText } from "@/lib/public-ui";
 import { tr } from "@/lib/ui-lang";
 import { useEffect, useState } from "react";
 import { Clock, Eye, Heart } from "lucide-react";
@@ -45,6 +46,7 @@ export function WatchStats({
   durationLabel?: string | null;
   sourceLikes?: number | null;
 }) {
+  const tr = usePublicText();
   const base = typeof sourceLikes === "number" && sourceLikes > 0 ? sourceLikes : 0;
   const [ours, setOurs] = useState(0);
   const [liked, setLiked] = useState(false);

@@ -1,3 +1,4 @@
+import { usePublicLanguage, usePublicText } from "@/lib/public-ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LegalPage } from "@/components/legal-page";
 import { EN_LEGAL, Statement2257En, legalHeadEn } from "@/components/legal-en";
@@ -20,10 +21,13 @@ export const Route = createFileRoute("/2257")({
           ],
           links: [{ rel: "canonical", href: `${SITE_ORIGIN}/2257` }],
         },
-  component: UI_EN ? Statement2257En : Page,
+  component: function LocalizedPage() {
+    return usePublicLanguage() === "en" ? <Statement2257En /> : <Page />;
+  },
 });
 
 function Page() {
+  const localText = usePublicText();
   return (
     <LegalPage title="18 U.S.C. 2257 Exemption Statement">
       <p className="text-xs text-muted/70">Last updated: 7 October 2026</p>
@@ -70,7 +74,7 @@ function Page() {
       <p>
         To report a video or request removal of a catalog entry, please contact us via the{" "}
         <Link to="/kontak" className="underline">
-          Kontak
+          {localText("Kontak")}
         </Link>{" "}
         page, including the full URL of the page on this Site and a short description of the issue.
         Copyright notices can be submitted following the{" "}
@@ -80,7 +84,7 @@ function Page() {
         procedure.
       </p>
 
-      <h2 className="pt-2 text-base font-semibold text-foreground">Ringkasan (Bahasa Indonesia)</h2>
+      <h2 className="pt-2 text-base font-semibold text-foreground">{localText("Ringkasan (Bahasa Indonesia)")}</h2>
       <p>
         Pengelola videyy.icu bukan produsen (primer maupun sekunder) konten apa pun. Situs ini hanya
         katalog yang menampilkan judul, thumbnail, dan tautan/embed ke video yang di-host oleh
@@ -90,7 +94,7 @@ function Page() {
         konten tanpa persetujuan &mdash; entri yang dilaporkan akan dihapus setelah ditinjau.
         Laporan dan permintaan penghapusan dapat dikirim melalui halaman{" "}
         <Link to="/kontak" className="underline">
-          Kontak
+          {localText("Kontak")}
         </Link>
         .
       </p>
