@@ -1,3 +1,5 @@
+import { usePublicHref } from "@/lib/public-ui";
+import { usePublicText } from "@/lib/public-ui";
 import { useEffect, useState } from "react";
 import { tr } from "@/lib/ui-lang";
 import { backToCatalog, lastCatalogHref } from "@/lib/catalog/last-catalog";
@@ -8,6 +10,8 @@ function fallbackHref(_item: VideoDetail): string {
 }
 
 export function CatalogBackLink({ item }: { item: VideoDetail }) {
+  const publicHref = usePublicHref();
+  const tr = usePublicText();
   const fallback = fallbackHref(item);
   const [href, setHref] = useState(fallback);
 
@@ -17,7 +21,7 @@ export function CatalogBackLink({ item }: { item: VideoDetail }) {
 
   return (
     <a
-      href={href}
+      href={publicHref(href)}
       onClick={(e) => {
         // Same grid page, same scroll: history back when the grid is the previous entry, else a
         // normal load of href that restores the saved scroll position.

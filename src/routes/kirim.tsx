@@ -1,3 +1,4 @@
+import { usePublicText } from "@/lib/public-ui";
 import { useState, type FormEvent } from "react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { Shell } from "@/components/layout/shell";
@@ -59,6 +60,7 @@ function KirimPage() {
 }
 
 function KirimForm() {
+  const localText = usePublicText();
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
   const [hp, setHp] = useState("");
@@ -148,7 +150,7 @@ function KirimForm() {
         />
       </div>
       <Button type="submit" disabled={sending}>
-        {sending ? "Mengirim…" : "Kirim"}
+        {sending ? localText("Mengirim…") : "Kirim"}
       </Button>
       {message ? (
         <p role="status" className={ok ? "text-sm text-foreground" : "text-sm text-red-400"}>

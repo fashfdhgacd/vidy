@@ -1,3 +1,4 @@
+import { usePublicText } from "@/lib/public-ui";
 // Ad-blocker gate for Videy watch pages only (watch-page.tsx wraps VideyPlayer with it). Every other
 // host (IndoAV, UserBokep, Putarin/Jav, Streamtape, ...) and every catalog page is never gated.
 // player.tsx and the iframe URLs stay as they are.
@@ -82,6 +83,7 @@ export function detectAdblock(): Promise<boolean> {
 }
 
 export function AdblockGate({ videoId, children }: { videoId: string; children: ReactNode }) {
+  const localText = usePublicText();
   const [verdict, setVerdict] = useState<Verdict>("checking");
 
   useEffect(() => {
@@ -117,7 +119,7 @@ export function AdblockGate({ videoId, children }: { videoId: string; children: 
         >
           <div className="max-w-sm space-y-3">
             <p id="kdp-adblock-title" className="text-base font-semibold sm:text-lg">
-              Matikan pemblokir iklan dulu ya
+              {localText("Matikan pemblokir iklan dulu ya")}
             </p>
             <p className="text-sm text-white/80">
               Videy Hub gratis karena iklan. Matikan AdBlock atau mode pemblokir iklan di browser
@@ -128,7 +130,7 @@ export function AdblockGate({ videoId, children }: { videoId: string; children: 
               onClick={() => window.location.reload()}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
             >
-              Sudah, muat ulang
+              {localText("Sudah, muat ulang")}
             </button>
           </div>
         </div>

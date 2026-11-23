@@ -1,3 +1,5 @@
+import { usePublicHref } from "@/lib/public-ui";
+import { usePublicText } from "@/lib/public-ui";
 import { useEffect, useState, type ReactNode } from "react";
 import { tr } from "@/lib/ui-lang";
 
@@ -39,6 +41,8 @@ function registerPosterSw() {
 }
 
 export function AgeGate({ children }: { children: ReactNode }) {
+  const publicHref = usePublicHref();
+  const tr = usePublicText();
   const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
@@ -61,8 +65,8 @@ export function AgeGate({ children }: { children: ReactNode }) {
       <noscript>
         <p>
           {tr(`Katalog video dewasa 18+ ${SITE_NAME}. Aktifkan JavaScript untuk menonton.`, `${SITE_NAME}: an 18+ adult video catalog. Turn on JavaScript to watch.`)}{" "}
-          <a href="/">{tr("Beranda", "Home")}</a> · <a href="/syarat">{tr("Syarat", "Terms")}</a> · <a href="/privasi">{tr("Privasi", "Privacy")}</a> · <a href="/dmca">DMCA</a> ·{" "}
-          <a href="/2257">2257</a> · <a href="/kontak">{tr("Kontak", "Contact")}</a>
+          <a href={publicHref("/")}>{tr("Beranda", "Home")}</a> · <a href={publicHref("/syarat")}>{tr("Syarat", "Terms")}</a> · <a href={publicHref("/privasi")}>{tr("Privasi", "Privacy")}</a> · <a href={publicHref("/dmca")}>DMCA</a> ·{" "}
+          <a href={publicHref("/2257")}>2257</a> · <a href={publicHref("/kontak")}>{tr("Kontak", "Contact")}</a>
         </p>
       </noscript>
       {blocked ? (

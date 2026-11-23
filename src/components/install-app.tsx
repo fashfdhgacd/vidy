@@ -1,3 +1,5 @@
+import { usePublicLanguage } from "@/lib/public-ui";
+import { usePublicText } from "@/lib/public-ui";
 import { useEffect, useState } from "react";
 import { tr, UI_EN } from "@/lib/ui-lang";
 
@@ -41,6 +43,9 @@ function isIos(): boolean {
 }
 
 export function InstallApp() {
+  const tr = usePublicText();
+  const UI_EN = usePublicLanguage() === "en";
+  const localText = usePublicText();
   const [evt, setEvt] = useState<BipEvent | null>(null);
   const [ios, setIos] = useState(false);
   const [hint, setHint] = useState(false);
@@ -113,8 +118,8 @@ export function InstallApp() {
             </>
           ) : (
             <>
-              Di Safari: tap tombol <strong>Bagikan</strong> (kotak dengan panah ke atas), lalu pilih{" "}
-              <strong>Tambah ke Layar Utama</strong>.
+              {localText("Di Safari: tap tombol")} <strong>{localText("Bagikan")}</strong> {localText("(kotak dengan panah ke atas), lalu pilih")}{" "}
+              <strong>{localText("Tambah ke Layar Utama")}</strong>.
             </>
           )}
         </p>

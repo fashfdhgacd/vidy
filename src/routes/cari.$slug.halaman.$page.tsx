@@ -9,10 +9,6 @@ import { CariExperience, landingHead, loadLanding } from "./cari.$slug";
 export const Route = createFileRoute("/cari/$slug/halaman/$page")({
   beforeLoad: ({ params }) => {
     if (!findLanding(params.slug)) throw notFound();
-    if (IS_VIDEQSSS) {
-      const n = parseHalamanParam(params.page) || 1;
-      throw redirect({ href: `${SITE_ORIGIN}${englishTargetForIdLanding(params.slug, n)}`, statusCode: 301 });
-    }
     if (params.page === "1") {
       throw redirect({ href: `${SITE_ORIGIN}${cariHref(params.slug, 1)}`, statusCode: 301 });
     }

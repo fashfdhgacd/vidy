@@ -1,3 +1,6 @@
+import { usePublicHref } from "@/lib/public-ui";
+import { usePublicLanguage } from "@/lib/public-ui";
+import { usePublicText } from "@/lib/public-ui";
 import { tr, uiCategory, UI_EN, UI_LOCALE } from "@/lib/ui-lang";
 import { enSlugForId, findEnLanding } from "@/lib/catalog/en-landing";
 import { enHref } from "@/lib/catalog/halaman";
@@ -102,6 +105,7 @@ function itemForServer(item: VideoDetail, server: Server | null): VideoDetail {
 
 /** Server buttons under the player (outside it). Plain links: ?s=<copy id>, the main copy without. */
 function ServerButtons({ item, current }: { item: VideoDetail; current: string }) {
+  const tr = usePublicText();
   const list = item.servers || [];
   if (list.length < 2) return null;
   const seen = new Map<string, number>();
@@ -166,6 +170,7 @@ function ShareSheet({
   id: string;
   onClose: () => void;
 }) {
+  const tr = usePublicText();
   const [copied, setCopied] = useState(false);
   const url = shareUrl(id);
 
@@ -269,6 +274,7 @@ function uploadDateLabel(raw: string | number | null | undefined): string {
 
 /** Fakta singkat per video (durasi, tanggal, sumber). Kategori sudah tampil sebagai chip di atasnya. */
 function VideoFacts({ item }: { item: VideoDetail }) {
+  const tr = usePublicText();
   const date = uploadDateLabel(item.uploadDate);
   const host = isVideyItem(item) || isDrpHostItem(item) ? "" : hostLabel(catalogPlayUrl(item)).replace("Puterin", "Putarin");
   const rows: Array<[string, string]> = [];
@@ -292,6 +298,10 @@ function VideoFacts({ item }: { item: VideoDetail }) {
 }
 
 export function WatchPage() {
+  const publicHref = usePublicHref();
+  const tr = usePublicText();
+  const UI_EN = usePublicLanguage() === "en";
+  const localText = usePublicText();
   const { id } = routeApi.useParams();
   const { s: wantedServer } = routeApi.useSearch();
   const loaderData = routeApi.useLoaderData();
@@ -496,14 +506,14 @@ export function WatchPage() {
                   // videqsss is English-only: link the matching English category page.
                   const en = landing ? findEnLanding(enSlugForId(landing.slug)) : undefined;
                   return (
-                    <a href={en ? enHref(en.slug, 1) : "/en"} className="underline underline-offset-2 hover:text-foreground">
+                    <a href={publicHref(en ? enHref(en.slug, 1) : "/en")} className="underline underline-offset-2 hover:text-foreground">
                       {en ? en.h1 : "Browse categories"}
                     </a>
                   );
                 }
                 return (
-                  <a href={landing ? `/cari/${landing.slug}` : "/cari"} className="underline underline-offset-2 hover:text-foreground">
-                    {landing ? landing.h1 : "Pencarian populer"}
+                  <a href={publicHref(landing ? `/cari/${landing.slug}` : "/cari")} className="underline underline-offset-2 hover:text-foreground">
+                    {landing ? landing.h1 : localText("Pencarian populer")}
                   </a>
                 );
               })()}
@@ -519,7 +529,7 @@ export function WatchPage() {
                 <ul className="space-y-1 text-sm">
                   {item.sameCategory.filter((v) => !isSeoBlockedId(v.id)).map((v) => (
                     <li key={v.id}>
-                      <a href={`/watch/${v.id}`} className="text-foreground/80 underline-offset-2 hover:text-primary hover:underline">
+                      <a href={publicHref(`/watch/${v.id}`)} className="text-foreground/80 underline-offset-2 hover:text-primary hover:underline">
                         {cleanDisplayTitle(v.title)}
                       </a>
                     </li>
@@ -582,9 +592,10 @@ const EP_ACCENT = "#2dd4bf"; // site teal accent (bg-primary is gray in this the
 const EP_WINDOW = 24;
 
 function EpisodeLink({ id, ep, label, current }: { id: string; ep: number; label?: string; current: boolean }) {
+  const publicHref = usePublicHref();
   return (
     <a
-      href={`/watch/${id}`}
+      href={publicHref(`/watch/${id}`)}
       aria-current={current ? "page" : undefined}
       style={current ? { backgroundColor: EP_ACCENT, borderColor: EP_ACCENT, color: "#09090b" } : undefined}
       className={
@@ -609,6 +620,8 @@ function EpisodeStrip({
   episodes: Array<{ id: string; ep: number; label?: string }>;
   currentId: string;
 }) {
+  const publicHref = usePublicHref();
+  const tr = usePublicText();
   const at = episodes.findIndex((e) => e.id === currentId);
   const next = at >= 0 && at + 1 < episodes.length ? episodes[at + 1] : null;
   const many = episodes.length > EP_WINDOW;
@@ -639,7 +652,7 @@ function EpisodeStrip({
       ) : null}
       {next ? (
         <a
-          href={`/watch/${next.id}`}
+          href={publicHref(`/watch/${next.id}`)}
           style={{ backgroundColor: EP_ACCENT, color: "#09090b" }}
           className="inline-flex h-10 w-full items-center justify-center rounded-md px-4 text-sm font-semibold hover:opacity-90 active:scale-[0.98] sm:w-auto"
         >

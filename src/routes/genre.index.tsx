@@ -1,3 +1,6 @@
+import { usePublicHref } from "@/lib/public-ui";
+import { collectionLabel } from "@/lib/page-copy";
+import { usePublicLanguage } from "@/lib/public-ui";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Shell } from "@/components/layout/shell";
 import { keywordHref } from "@/lib/catalog/halaman";
@@ -14,7 +17,6 @@ export const Route = createFileRoute("/genre/")({
   beforeLoad: () => {
     if (!IS_VIDEQSSS) throw redirect({ href: `${SITE_ORIGIN}/cari`, statusCode: 301 });
     // videqsss is English site-wide: the Indonesian genre hub moves to /en.
-    throw redirect({ href: `${SITE_ORIGIN}/en`, statusCode: 301 });
   },
   head: () => {
     const url = `${SITE_ORIGIN}/genre`;
@@ -49,6 +51,8 @@ export const Route = createFileRoute("/genre/")({
 });
 
 function GenreIndex() {
+  const publicHref = usePublicHref();
+  const language = usePublicLanguage();
   const pages = landingsForSite("videqsss");
   return (
     <Shell>
@@ -64,8 +68,8 @@ function GenreIndex() {
         <ul className="grid gap-2 sm:grid-cols-2">
           {pages.map((l) => (
             <li key={l.slug}>
-              <a href={keywordHref(l.slug, 1)} className="text-[#f4b942] underline-offset-2 hover:underline">
-                {l.h1}
+              <a href={publicHref(keywordHref(l.slug, 1))} className="text-[#f4b942] underline-offset-2 hover:underline">
+                {language === "id" ? l.h1 : collectionLabel(l.slug, language)}
               </a>
             </li>
           ))}

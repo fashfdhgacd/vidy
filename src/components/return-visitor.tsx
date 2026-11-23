@@ -1,3 +1,5 @@
+import { usePublicLanguage } from "@/lib/public-ui";
+import { usePublicText } from "@/lib/public-ui";
 import { useEffect, useState } from "react";
 import { tr, UI_EN } from "@/lib/ui-lang";
 import { InstallApp } from "@/components/install-app";
@@ -24,6 +26,8 @@ function bumpViews(): number {
 }
 
 export function ReturnVisitor() {
+  const tr = usePublicText();
+  const UI_EN = usePublicLanguage() === "en";
   const [views, setViews] = useState(0);
   const [bookmark, setBookmark] = useState(false);
 

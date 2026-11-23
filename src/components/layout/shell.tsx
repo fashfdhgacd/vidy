@@ -1,3 +1,4 @@
+import { usePublicHref } from "@/lib/public-ui";
 import type { ReactNode } from "react";
 import { useTr } from "@/lib/ui-lang";
 import { Link, useRouterState } from "@tanstack/react-router";
@@ -15,6 +16,7 @@ export function Shell({
   children: ReactNode;
   query?: string;
 }) {
+  const publicHref = usePublicHref();
   const tr = useTr();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const kirim = showKirimNav(pathname, IS_VIDEQSSS);
@@ -33,7 +35,7 @@ export function Shell({
             <div className="space-y-2">
               <p className="font-display text-sm font-bold tracking-[0.08em] text-foreground sm:text-lg">
                 {SITE_NAME} ·{" "}
-                <a href={`https://${TITLE_SUFFIX}`} className="underline-offset-2 hover:text-foreground hover:underline">
+                <a href={publicHref(`https://${TITLE_SUFFIX}`)} className="underline-offset-2 hover:text-foreground hover:underline">
                   {TITLE_SUFFIX}
                 </a>{" "}
                 · 18+

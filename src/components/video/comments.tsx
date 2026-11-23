@@ -1,3 +1,4 @@
+import { usePublicText } from "@/lib/public-ui";
 "use client";
 import { tr, UI_LOCALE } from "@/lib/ui-lang";
 
@@ -32,6 +33,7 @@ function timeLabel(iso: string): string {
  * GET publik; POST butuh session; server menolak non-akun dengan 401.
  */
 export function VideoComments({ videoId }: { videoId: string }) {
+  const tr = usePublicText();
   const { user, isPending } = useCurrentUserState();
   const [comments, setComments] = useState<Comment[] | null>(null);
   const [total, setTotal] = useState(0);

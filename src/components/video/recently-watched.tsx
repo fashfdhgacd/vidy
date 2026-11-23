@@ -1,3 +1,4 @@
+import { usePublicText } from "@/lib/public-ui";
 import { useEffect, useState } from "react";
 import { tr } from "@/lib/ui-lang";
 import type { VideoCard } from "@/lib/catalog/types";
@@ -49,6 +50,7 @@ export function rememberWatched(video: VideoCard): void {
 }
 
 export function RecentlyWatched() {
+  const tr = usePublicText();
   const [items, setItems] = useState<VideoCard[]>([]);
 
   useEffect(() => {
