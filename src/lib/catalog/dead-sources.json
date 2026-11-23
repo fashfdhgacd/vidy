@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-22T20:08:15Z",
+  "checkedAt": "2026-11-23T07:57:37Z",
   "gone": {
     "1d6rOGbA2aheokz": {
       "code": "1d6rOGbA2aheokz",
@@ -512,5 +512,18 @@
       "status": 404
     }
   },
-  "suspect": {}
+  "suspect": {
+    "oelW233BZgCJBW1": {
+      "code": "oelW233BZgCJBW1",
+      "first": "2026-11-23T07:57:37Z",
+      "host": "Streamtape",
+      "status": 404
+    },
+    "z62vyqDZXAUYV7a": {
+      "code": "z62vyqDZXAUYV7a",
+      "first": "2026-11-23T07:57:37Z",
+      "host": "Streamtape",
+      "status": 404
+    }
+  }
 }
