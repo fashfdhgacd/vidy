@@ -5,6 +5,10 @@
   "mix": "newest",
   "excludeIds": [],
   "excludeSources": [],
+  "sites": {
+    "videyy": { "enabled": true, "sources": "all" },
+    "videqsss": { "enabled": true, "sources": ["indoav", "userbokep"] }
+  },
   "upstream": {
     "httpOrigin": "https://koleksidrpinguin.com",
     "tryHttp": true,

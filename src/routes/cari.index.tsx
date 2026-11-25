@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Shell } from "@/components/layout/shell";
 import { LANDINGS } from "@/lib/catalog/landing";
 import { jsonLdString } from "@/lib/json-ld";
-import { DEFAULT_OG, HOME_CANONICAL, SITE_NAME, SITE_ORIGIN, breadcrumbJsonLd, collectionPageJsonLd } from "@/lib/seo";
+import { DEFAULT_OG, HOME_CANONICAL, IS_VIDEQSSS, SITE_NAME, SITE_ORIGIN, breadcrumbJsonLd, collectionPageJsonLd } from "@/lib/seo";
 
 const TITLE = "Pencarian Populer Video Indo 18+ | videyy.icu";
 const DESCRIPTION =
@@ -10,6 +10,9 @@ const DESCRIPTION =
 
 /** /cari: hub linking every hand-reviewed search landing page (internal links for crawlers and visitors). */
 export const Route = createFileRoute("/cari/")({
+  beforeLoad: () => {
+    if (IS_VIDEQSSS) throw redirect({ href: `${SITE_ORIGIN}/genre`, statusCode: 301 });
+  },
   head: () => {
     const url = `${SITE_ORIGIN}/cari`;
     return {

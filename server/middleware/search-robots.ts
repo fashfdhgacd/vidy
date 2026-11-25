@@ -3,6 +3,8 @@
  * Placeholder schema {search_term_string} diarahkan ke beranda.
  * Query sungguhan tetap jalan, tapi noindex.
  */
+import { SITE_ORIGIN } from "../../src/lib/seo";
+
 interface SearchEvent {
   url: URL;
   req: { method: string; headers: Headers };
@@ -27,7 +29,7 @@ export default function searchRobotsMiddleware(
   if (isPlaceholder(q)) {
     return new Response(null, {
       status: 301,
-      headers: { location: "https://videyy.icu/" },
+      headers: { location: `${SITE_ORIGIN}/` },
     });
   }
   return Promise.resolve(next()).then((res) => {

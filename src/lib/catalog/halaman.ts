@@ -13,7 +13,26 @@ export function categoryHref(slug: string, page: number, periode?: string | null
 }
 
 export function cariHref(slug: string, page: number): string {
-  return page > 1 ? `/cari/${encodeURIComponent(slug)}/halaman/${page}` : `/cari/${encodeURIComponent(slug)}`;
+  return landingPath("cari", slug, page);
+}
+
+export function genreHref(slug: string, page: number): string {
+  return landingPath("genre", slug, page);
+}
+
+/** videqsss uses /genre (ladangbokep-style). videyy keeps /cari. */
+export function keywordRoot(): "cari" | "genre" {
+  const env = (import.meta as { env?: { VITE_SITE_ID?: string } }).env;
+  return env?.VITE_SITE_ID === "videqsss" ? "genre" : "cari";
+}
+
+export function keywordHref(slug: string, page: number): string {
+  return landingPath(keywordRoot(), slug, page);
+}
+
+export function landingPath(root: "cari" | "genre", slug: string, page: number): string {
+  const base = `/${root}/${encodeURIComponent(slug)}`;
+  return page > 1 ? `${base}/halaman/${page}` : base;
 }
 
 /** Path segment for /halaman/N. Page 1 is not a halaman URL. */
@@ -40,11 +59,11 @@ export function legacyPageRedirect(pathname: string, search = ""): string | null
   const homeHal = /^\/halaman\/([1-9]\d*)$/.exec(path);
   if (homeHal && Number(homeHal[1]) < 2) return "/";
 
-  const nested = /^\/cari\/([^/]+)\/halaman\/([1-9]\d*)$/.exec(path);
-  if (nested && Number(nested[2]) < 2) {
+  const nested = /^\/(cari|genre)\/([^/]+)\/halaman\/([1-9]\d*)$/.exec(path);
+  if (nested && Number(nested[3]) < 2) {
     url.searchParams.delete("page");
     const qs = url.searchParams.toString();
-    return `/cari/${nested[1]}${qs ? `?${qs}` : ""}`;
+    return `/${nested[1]}/${nested[2]}${qs ? `?${qs}` : ""}`;
   }
 
   const pageRaw = url.searchParams.get("page");
@@ -52,7 +71,7 @@ export function legacyPageRedirect(pathname: string, search = ""): string | null
   if (!/^[1-9]\d{0,4}$/.test(pageRaw)) return null;
   // Hanya path halaman katalog yang boleh di-rewrite — /api/* dan route lain dengan
   // ?page= (mis. /api/data?type=home&page=1) jangan disentuh.
-  const isCatalogPage = path === "/" || /^\/cari\/[^/]+$/.test(path);
+  const isCatalogPage = path === "/" || /^\/(cari|genre)\/[^/]+$/.test(path);
   if (!isCatalogPage) return null;
   const n = Number(pageRaw);
   url.searchParams.delete("page");
@@ -60,7 +79,7 @@ export function legacyPageRedirect(pathname: string, search = ""): string | null
   const tail = qs ? `?${qs}` : "";
   if (n === 1) return `${path}${tail}`;
   if (path === "/") return `/halaman/${n}${tail}`;
-  const cari = /^\/cari\/([^/]+)$/.exec(path);
-  if (cari) return `/cari/${cari[1]}/halaman/${n}${tail}`;
+  const keyed = /^\/(cari|genre)\/([^/]+)$/.exec(path);
+  if (keyed) return `/${keyed[1]}/${keyed[2]}/halaman/${n}${tail}`;
   return null;
 }

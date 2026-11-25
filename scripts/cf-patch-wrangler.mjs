@@ -37,6 +37,18 @@ for (const p of paths) {
   // 2026-09-27+: nodejs_compat / node:fs tersedia di Workers
   j.compatibility_date = "2026-09-27";
 
+  const siteArg = process.argv.indexOf("--site");
+  const site = siteArg >= 0 ? process.argv[siteArg + 1] : "videyy";
+  if (site === "videqsss") {
+    j.name = "videqsss";
+    j.workers_dev = true;
+    j.routes = [
+      { pattern: "videqsss.icu", custom_domain: true },
+      { pattern: "www.videqsss.icu", custom_domain: true },
+    ];
+    j.vars = { ...(j.vars || {}), SITE_ID: "videqsss" };
+  }
+
   // Ensure ANALYTICS_KV binding survives Nitro rewrite
   const kvId = "8c809729ccd64e5da6e9cb7dd62fb40b";
   const need = [

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { AgeGate } from "@/components/age-gate";
+import { SITE_NAME, TITLE_SUFFIX } from "@/lib/seo";
 import { Header } from "./header";
 
 export function Shell({
@@ -21,13 +22,13 @@ export function Shell({
           <div className="mx-auto flex max-w-[1600px] flex-col gap-5 px-4 py-7 text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-9">
             <div className="space-y-2">
               <p className="font-display text-sm font-bold tracking-[0.08em] text-foreground sm:text-lg">
-                VIDEY<span className="text-primary">HUB</span> ·{" "}
-                <a href="https://videyy.icu" className="underline-offset-2 hover:text-foreground hover:underline">
-                  videyy.icu
+                {SITE_NAME} ·{" "}
+                <a href={`https://${TITLE_SUFFIX}`} className="underline-offset-2 hover:text-foreground hover:underline">
+                  {TITLE_SUFFIX}
                 </a>{" "}
                 · 18+
               </p>
-              <p className="text-xs text-foreground/80 sm:text-sm">Videy Hub — streaming video tanpa ribet</p>
+              <p className="text-xs text-foreground/80 sm:text-sm">{SITE_NAME} — streaming video tanpa ribet</p>
               <p className="text-[11px] text-muted sm:text-xs">
                 Koleksi ini dimaksudkan untuk pengguna dewasa. Pastikan Anda berusia 18+ sebelum melanjutkan.
               </p>
