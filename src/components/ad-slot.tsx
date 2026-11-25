@@ -73,11 +73,25 @@ function DisplaySlot({ spot, className = "" }: { spot: AdSpot; className?: strin
 
 /** Catalog card. Off while banner300x250 is disabled. */
 export function GridMasterspot({ className = "" }: { className?: string }) {
+  const frame = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const el = frame.current;
+    if (!el) return;
+    const resize = () => setScale(Math.min(1, el.clientWidth / 300, el.clientHeight / 250));
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const spot = ADS.banner300x250;
+  if (!spot.enabled || !spot.script || !spot.zoneId) return null;
   return (
-    <DisplaySlot
-      spot={ADS.banner300x250}
-      className={`block aspect-[300/250] overflow-hidden rounded-xl bg-surface-2 ${className}`}
-    />
+    <div ref={frame} className={`flex aspect-[16/10] items-center justify-center overflow-hidden rounded-none bg-transparent ${className}`}>
+      <div className="h-[250px] w-[300px] shrink-0" style={{ transform: `scale(${scale})` }}>
+        <DisplaySlot spot={spot} />
+      </div>
+    </div>
   );
 }
 

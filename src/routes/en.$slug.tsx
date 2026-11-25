@@ -192,7 +192,7 @@ export function EnExperience({
             />
           ) : (
             <SafeBoundary>
-              <VideoGrid items={items} ads={gridAdsOn()} />
+              <VideoGrid items={items} catalog ads={gridAdsOn()} />
             </SafeBoundary>
           )}
 
