@@ -97,6 +97,20 @@ for (const p of paths) {
     j.observability.logs = { ...(j.observability.logs || {}), enabled: true };
   }
 
+  // Let the worker rewrite /robots.txt (videqsss sitemap host). Static assets
+  // otherwise win and serve the videyy template as-is.
+  if (j.assets && typeof j.assets === "object") {
+    const first = j.assets.run_worker_first;
+    const extra = ["/robots.txt"];
+    if (first === true) {
+      /* already first for every path */
+    } else if (Array.isArray(first)) {
+      j.assets.run_worker_first = [...new Set([...first, ...extra])];
+    } else {
+      j.assets.run_worker_first = extra;
+    }
+  }
+
   writeFileSync(p, JSON.stringify(j, null, 2) + "\n");
   console.log(
     "[cf-patch] updated",
@@ -107,3 +121,27 @@ for (const p of paths) {
     j.compatibility_date,
   );
 }
+
+
+function patchRobotsTxt(site) {
+  const host = site === "videqsss" ? "videqsss.icu" : "videyy.icu";
+  const files = [
+    join(root, ".output/public/robots.txt"),
+    join(root, ".output/server/public/robots.txt"),
+  ];
+  for (const file of files) {
+    if (!existsSync(file)) continue;
+    const src = readFileSync(file, "utf8");
+    const next = src.replaceAll("videyy.icu", host);
+    if (next === src) {
+      console.log("[cf-patch] robots.txt already has", host, "in", file);
+      continue;
+    }
+    writeFileSync(file, next);
+    console.log("[cf-patch] robots.txt sitemap host ->", host, "in", file);
+  }
+}
+
+const siteArgEnd = process.argv.indexOf("--site");
+const siteEnd = siteArgEnd >= 0 ? process.argv[siteArgEnd + 1] : process.env.VITE_SITE_ID || "videyy";
+patchRobotsTxt(siteEnd);

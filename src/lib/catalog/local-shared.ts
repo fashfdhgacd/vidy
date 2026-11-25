@@ -12,6 +12,7 @@ import {
 import siteLikesSnapshot from "./site-likes.json";
 import { isNewUpload } from "./feed-order";
 import { DRP_CATEGORY, DRP_SOURCES, drpKindOfItem } from "./drp-hosts.js";
+import { hasEpisodeMarker } from "./series";
 
 /** Our own D1 likes (video_likes), 12-hour snapshot written by the stats workflow. Cards only. */
 const SITE_LIKES = siteLikesSnapshot as unknown as Record<string, number>;
@@ -283,9 +284,10 @@ function slugOfRaw(item: RawItem): string {
   // Same for the 2026-10-26 SEO categories (#blunder, "kategori: kelas bintang", ...). No stored
   // category of a live video names one of them, so no live video moves.
   const seo = raw ? findCategory(raw)?.slug : undefined;
-  if (seo && seo in SEO_MIN_COUNT) return seo;
+  if (seo && seo in SEO_MIN_COUNT && !(seo === "ai-indo" && !hasEpisodeMarker(title))) return seo;
   if (isPutarin(item)) return "jav";
-  if (isStreamtape(item)) return "ai-plus";
+  // Streamtape used to dump every file into AI+; only episode-marked titles stay in AI Drama.
+  if (isStreamtape(item) && hasEpisodeMarker(title)) return "ai-plus";
   // Explicit source/bot category naming one of the newer categories (bule, bumil, tobrut, ...).
   const alias = RAW_CATEGORY_ALIASES[raw as keyof typeof RAW_CATEGORY_ALIASES];
   if (alias && findCategory(alias)) return alias;
@@ -293,9 +295,14 @@ function slugOfRaw(item: RawItem): string {
   const isSoft = Object.prototype.hasOwnProperty.call(SOFT_RAW_CATEGORY_ALIASES, raw);
   const mapped = raw && raw !== "lainnya" && !isSoft ? findCategory(raw) : undefined;
   if (mapped && mapped.slug !== "lainnya") {
-    // Explicit categories stay; only the generic / unlisted buckets can be refined.
-    if (mapped.slug === "teen-18") return refineCategory("abg", title);
-    return mapped.slug === "amatir" ? refineCategory(mapped.slug, title) : mapped.slug;
+    // Stored "ai-plus" / "ai" is often the old Streamtape default, not an owner choice.
+    if ((mapped.slug === "ai-plus" || mapped.slug === "ai-indo") && !hasEpisodeMarker(title)) {
+      // Fall through to title classification (ownerCategory already won in slugOf).
+    } else {
+      // Explicit categories stay; only the generic / unlisted buckets can be refined.
+      if (mapped.slug === "teen-18") return refineCategory("abg", title);
+      return mapped.slug === "amatir" ? refineCategory(mapped.slug, title) : mapped.slug;
+    }
   }
   const base = classify(title);
   if (!GENERIC_CATEGORY_SLUGS.has(base)) return refineCategory(base, title);
@@ -452,12 +459,15 @@ export function isUsable(item: RawItem): boolean {
   return play.length >= 6;
 }
 
+/** "1h 2m" on the English build (videqsss), "1j 2m" (jam) on videyy. */
+const HOUR_UNIT = (import.meta as { env?: { VITE_SITE_ID?: string } }).env?.VITE_SITE_ID === "videqsss" ? "h" : "j";
+
 function fmtDuration(sec: number): string {
   const s = Math.round(sec);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const r = s % 60;
-  return h ? `${h}j ${m}m` : m ? `${m}m ${r}s` : `${r}s`;
+  return h ? `${h}${HOUR_UNIT} ${m}m` : m ? `${m}m ${r}s` : `${r}s`;
 }
 
 export function toCard(item: RawItem, posters: Record<string, string>, videyNo?: Map<string, number>): VideoCard {

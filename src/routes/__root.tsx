@@ -1,9 +1,13 @@
-import { createRootRoute, HeadContent, Outlet, Scripts, redirect } from "@tanstack/react-router";
+import { usePublicLanguage } from "@/lib/public-ui";
+import { UI_EN } from "@/lib/ui-lang";
+import { LocaleHead } from "@/components/locale-head";
+import { createRootRoute, Outlet, Scripts, redirect } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { PresencePing } from "@/components/presence-ping";
 import { SwCleanup } from "@/components/sw-cleanup";
-import { DEFAULT_OG, HOME_DESCRIPTION, HOME_TITLE, OG_SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
+import { EXOCLICK_META_NAME, exoclickToken } from "@/lib/exoclick-verify";
+import { DEFAULT_OG, HOME_DESCRIPTION, HOME_TITLE, OG_SITE_NAME, SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
 import appCss from "../styles.css?url";
 import figtreeFont from "../assets/fonts/figtree-latin.woff2?url";
 
@@ -34,10 +38,9 @@ export const Route = createRootRoute({
         content: HOME_DESCRIPTION,
       },
       { name: "theme-color", content: "#0b0b14" },
-      // TrafficStars Client Hints (blog "Boost Earnings with Existing Ad Formats"): delegate UA hints
-      // to the TrafficStars ad servers (tsyndicate.com + our direct-link/VAST domain) for better mobile targeting.
+      // TrafficStars Client Hints. The direct-link domain is added with the new spot ids.
       { httpEquiv: "Accept-CH", content: "Sec-CH-UA, Sec-CH-UA-Mobile, Sec-CH-UA-Platform, Sec-CH-UA-Model, Sec-CH-UA-Platform-Version, Sec-CH-UA-Full-Version-List" },
-      { httpEquiv: "delegate-ch", content: "sec-ch-ua https://tsyndicate.com https://fozekikikiminu.com; sec-ch-ua-bitness https://tsyndicate.com https://fozekikikiminu.com; sec-ch-ua-arch https://tsyndicate.com https://fozekikikiminu.com; sec-ch-ua-model https://tsyndicate.com https://fozekikikiminu.com; sec-ch-ua-platform https://tsyndicate.com https://fozekikikiminu.com; sec-ch-ua-platform-version https://tsyndicate.com https://fozekikikiminu.com; sec-ch-ua-full-version https://tsyndicate.com https://fozekikikiminu.com; sec-ch-ua-full-version-list https://tsyndicate.com https://fozekikikiminu.com; sec-ch-ua-mobile https://tsyndicate.com https://fozekikikiminu.com" },
+      { httpEquiv: "delegate-ch", content: "sec-ch-ua https://tsyndicate.com; sec-ch-ua-bitness https://tsyndicate.com; sec-ch-ua-arch https://tsyndicate.com; sec-ch-ua-model https://tsyndicate.com; sec-ch-ua-platform https://tsyndicate.com; sec-ch-ua-platform-version https://tsyndicate.com; sec-ch-ua-full-version https://tsyndicate.com; sec-ch-ua-full-version-list https://tsyndicate.com; sec-ch-ua-mobile https://tsyndicate.com" },
       { name: "robots", content: "index,follow,max-image-preview:large" },
       { name: "rating", content: "adult" },
       // RTA label (rtalabel.org). Uppercase key so HeadContent does not dedupe it with "rating".
@@ -45,10 +48,12 @@ export const Route = createRootRoute({
       { name: "googlebot", content: "index,follow,max-image-preview:large" },
       // TrafficStars site verification (publisher account).
       { name: "Trafficstars", content: "91976" },
+      // ExoClick site-ownership. Token is baked per worker (videyy vs videqsss).
+      { name: EXOCLICK_META_NAME, content: exoclickToken() },
       { property: "og:site_name", content: OG_SITE_NAME },
       { property: "og:title", content: HOME_TITLE },
       { property: "og:type", content: "website" },
-      { property: "og:locale", content: "id_ID" },
+      { property: "og:locale", content: UI_EN ? "en_US" : "id_ID" },
       { property: "og:image", content: DEFAULT_OG },
       { property: "og:image:secure_url", content: DEFAULT_OG },
       { property: "og:image:type", content: "image/jpeg" },
@@ -63,8 +68,8 @@ export const Route = createRootRoute({
       { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png?v=3" },
       { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png?v=3" },
       { rel: "image_src", href: DEFAULT_OG },
-      { rel: "search", type: "application/opensearchdescription+xml", title: "Videy Hub", href: `${SITE_ORIGIN}/opensearch.xml` },
-      { rel: "alternate", type: "application/rss+xml", title: "Videy Hub - Video Terbaru", href: `${SITE_ORIGIN}/rss.xml` },
+      { rel: "search", type: "application/opensearchdescription+xml", title: SITE_NAME, href: `${SITE_ORIGIN}/opensearch.xml` },
+      { rel: "alternate", type: "application/rss+xml", title: UI_EN ? `${SITE_NAME} - Newest Videos` : "Videy Hub - Video Terbaru", href: `${SITE_ORIGIN}/rss.xml` },
       // Poster/thumbnail host (cards + preloaded hero images): open the connection with the HTML.
       { rel: "preconnect", href: "https://img.koleksidrpinguin.com" },
       { rel: "preconnect", href: "https://tv1.indoav.app" },
@@ -82,10 +87,11 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  const lang = usePublicLanguage();
   return (
-    <html lang="id" suppressHydrationWarning className="antialiased">
+    <html lang={lang} suppressHydrationWarning className="antialiased">
       <head>
-        <HeadContent />
+        <LocaleHead />
       </head>
       <body className="min-h-dvh bg-background font-sans text-foreground">
         <SwCleanup />

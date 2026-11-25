@@ -1,3 +1,6 @@
+import { usePublicText } from "@/lib/public-ui";
+import { isIndoAvCreator, NO_POP_CLASS } from "@/lib/ads/exo-popunder";
+import { tr, uiCategory } from "@/lib/ui-lang";
 import { cleanDisplayTitle } from "@/lib/seo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -5,8 +8,9 @@ import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { VideoCard as VideoCardType } from "@/lib/catalog/types";
 import { isRealMinor } from "@/lib/minor-terms";
-import { onCatalogCardClick } from "@/components/card-popunder";
-import { BRAND_POSTER, VideoThumb } from "./thumb";
+import { CardThumb } from "./card-thumb";
+import { posterProbeOk } from "@/lib/catalog/poster-known";
+import { videyFrameReady } from "@/lib/catalog/poster-status";
 
 const ROTATE_MS = 60 * 60 * 1000;
 
@@ -22,29 +26,22 @@ function isSpamDescription(text: unknown): boolean {
   return /nonton .+ bokep indo|streaming amatir, jilbab|konten 18\+/i.test(t);
 }
 
-function isUsableThumb(src: unknown): src is string {
-  if (typeof src !== "string" || !src) return false;
-  if (src === BRAND_POSTER || /brand-poster/i.test(src)) return false;
-  if (/\.(mp4|mov|webm)(\?|$)/i.test(src) || /cdn\.videy\.co\//i.test(src)) return false;
-  return /^https?:\/\//i.test(src) || src.startsWith("/");
-}
-
 function cleanHeroTitle(raw: string): string {
   return cleanDisplayTitle(raw);
 }
 
+function hasRealPoster(id: string): boolean {
+  return posterProbeOk(id) || videyFrameReady(id);
+}
+
 export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
-  const incoming = videos && videos.length > 0 ? videos : video ? [video] : [];
-  const list = useMemo(() => incoming.filter((v) => isUsableThumb(v.thumbnail) && !isRealMinor({ title: v.title, tags: v.category })), [incoming]);
-  const listKey = list.map((v) => v.id).join("|");
-  const [failedIds, setFailedIds] = useState<Set<string>>(() => new Set());
-  const [index, setIndex] = useState(0);
-
+  const tr = usePublicText();
   const usable = useMemo(() => {
-    return list.filter((v) => !failedIds.has(v.id));
-  }, [list, failedIds, listKey]);
-
+    const incoming = videos && videos.length > 0 ? videos : video ? [video] : [];
+    return incoming.filter((v) => hasRealPoster(v.id) && !isRealMinor({ title: v.title, tags: v.category }));
+  }, [videos, video]);
   const usableKey = usable.map((v) => v.id).join("|");
+  const [index, setIndex] = useState(0);
 
   const goTo = useCallback(
     (nextIdx: number) => {
@@ -81,17 +78,6 @@ export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
 
   const current = usable[Math.min(index, Math.max(0, usable.length - 1))];
 
-  const onThumbUnavailable = useCallback(() => {
-    if (!current) return;
-    const id = current.id;
-    setFailedIds((prev) => {
-      if (prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-  }, [current]);
-
   if (!current) return null;
 
   const showDuration = Boolean(current.durationLabel && current.durationLabel !== "\u2014");
@@ -102,22 +88,19 @@ export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
   return (
     // isolate + z-0: keep the hero's internal layering from competing with page content below
     <section
-      // Card-click popunder (card-popunder.ts): same once-per-session flag and popc_* counters as the
-      // catalog grid; opens in this click and never prevents or delays the navigation.
-      onClickCapture={(e) => onCatalogCardClick(e, (id) => String(usable.find((v) => v.id === id)?.creator || ""))}
       className="relative z-0 isolate overflow-hidden rounded-2xl bg-surface sm:rounded-[28px]"
       aria-roledescription="carousel"
     >
       <div className="relative aspect-[16/10] sm:aspect-[16/9] lg:aspect-[21/9]">
         {/* Decorative media — never steal taps meant for the CTA or page below */}
         <div className="pointer-events-none absolute inset-0">
-          <VideoThumb
+          <CardThumb
             key={current.id}
+            id={current.id}
             src={current.thumbnail}
             alt={heroTitle}
             eager
             className="size-full object-cover object-center transition-opacity duration-300"
-            onUnavailable={onThumbUnavailable}
           />
         </div>
 
@@ -128,8 +111,8 @@ export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
         <Link
           to="/watch/$id"
           params={{ id: current.id }}
-          className="absolute inset-0 z-10 flex items-center justify-center touch-manipulation md:hidden"
-          aria-label={`Putar ${heroTitle}`}
+          className={`absolute inset-0 z-10 flex items-center justify-center touch-manipulation md:hidden${isIndoAvCreator(current.creator) ? ` ${NO_POP_CLASS}` : ""}`}
+          aria-label={`${tr("Putar", "Play")} ${heroTitle}`}
         >
           <span
             className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_0_0_1px_color-mix(in_oklab,#f2f0fa_12%,transparent)]"
@@ -144,7 +127,7 @@ export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
         {/* Desktop (md+): same copy stack as before (label, title, meta, Putar sekarang). */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 hidden flex-col gap-4 p-8 pb-12 md:flex lg:max-w-2xl lg:p-10 lg:pb-14">
           <p className="w-fit rounded-full bg-black/50 px-2.5 py-1 text-xs font-medium uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm">
-            Pilihan koleksi
+            {tr("Pilihan koleksi", "Featured")}
             {usable.length > 1 ? (
               <span className="ml-2 tabular-nums text-white/70">
                 {displayIndex + 1}/{usable.length}
@@ -162,13 +145,13 @@ export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
             {current.year ? <span>{current.year}</span> : null}
             {showDuration ? <span>{current.durationLabel}</span> : null}
-            {current.category ? <span>{current.category}</span> : null}
+            {current.category ? <span>{uiCategory(current.category)}</span> : null}
           </div>
           <div className="pointer-events-auto pt-0.5">
             <Button asChild size="default" className="h-11 rounded-lg px-5 text-base">
-              <Link to="/watch/$id" params={{ id: current.id }}>
+              <Link to="/watch/$id" params={{ id: current.id }} className={isIndoAvCreator(current.creator) ? NO_POP_CLASS : ""}>
                 <Play className="size-4 fill-current" style={{ marginLeft: 2 }} />
-                Putar sekarang
+                {tr("Putar sekarang", "Play now")}
               </Link>
             </Button>
           </div>

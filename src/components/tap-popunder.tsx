@@ -1,3 +1,4 @@
+import { tr } from "@/lib/ui-lang";
 // One-shot popunder tap layer for the watch page (same pattern as the hosts' own players: the first
 // tap opens an ad tab, the next tap reaches the player). A transparent layer sits over the player
 // while the cap (card-popunder.ts: POP_MAX_PER_VIDEO per video, POP_MIN_GAP_MS apart) allows a pop.
@@ -58,7 +59,7 @@ export function PopTapLayer({
   return (
     <button
       type="button"
-      aria-label="Putar video"
+      aria-label={tr("Putar video", "Play video")}
       className="absolute inset-0 z-10 cursor-pointer bg-transparent"
       onClick={() => {
         if (!canPop(videoId, max)) {

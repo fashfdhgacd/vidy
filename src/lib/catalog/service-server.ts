@@ -13,31 +13,19 @@ import { fetchCatalog } from "./client";
 import { uploadDateOf } from "./sitemap-entries";
 import { listRanking, rankedAllTime, withVideyViews } from "./ranking-list";
 import { parseRankingKey } from "./rankings";
-import { LANDING_PAGE_SIZE, LANDING_POOL, acceptLandingCard, findLanding } from "./landing";
+import { LANDING_PAGE_SIZE, LANDING_POOL, acceptLandingCard, findLanding, freshFirst, mixOtherHosts } from "./landing";
 import { isSeoBlockedId } from "./seo-block";
 import { isMinorContentTitle } from "./minor-detector.js";
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "./types";
 import type { CatalogError, CatalogResponse, CatalogType, CategoryInfo, VideoCard } from "./types";
-
-/** Featured/hero: only keep thumbs that are known real art (not brand / speculative *-thumb). */
-function isRealFeaturedThumb(url: string | null | undefined): boolean {
-  const u = (url || "").trim();
-  if (!u || /brand-poster/i.test(u)) return false;
-  if (/\/api\/embed-thumb\?/i.test(u)) return false;
-  if (/\/api\/(tape|puterin)-thumb\?/i.test(u)) return false;
-  // Videy removed — never treat CDN / raw video as featured art.
-  if (/cdn\.videy\.co\/|videy\.co\//i.test(u)) return false;
-  if (/\.(mp4|mov|webm)(\?|$)/i.test(u)) return false;
-  if (/\/api\/img-proxy\?/i.test(u)) return false;
-  if (/^https?:\/\//i.test(u)) return true;
-  return false;
-}
+import { realPosterFirst, videyFrameReady } from "./poster-status";
+import { posterProbeOk } from "./poster-known";
 
 async function listFeaturedWithArt(page = 1, limit = 8, signal?: AbortSignal) {
   const want = Math.max(1, limit);
   // Over-fetch so we can drop speculative embed-thumb leftovers and still fill `limit`.
   const raw = await listFeatured(page, Math.max(want * 8, 64), signal);
-  const withArt = raw.items.filter((x) => isRealFeaturedThumb(x.thumbnail));
+  const withArt = raw.items.filter((x) => posterProbeOk(x.id) || videyFrameReady(x.id));
   // Homepage page 1 (hero included) is IndoAV-only; UserBokep starts from Terbaru page 2.
   const indo = withArt.filter((x) => x.creator === "IndoAV");
   const items = (indo.length >= want ? indo : withArt).slice(0, want);
@@ -167,7 +155,7 @@ export async function queryCatalogServer(query: CatalogQuery, signal?: AbortSign
         return { ok: true, type, ...data, items: await withVideyViews(data.items) };
       }
       case "landing": {
-        // /cari/<slug>: own catalog (IndoAV + UserBokep), clean titles, most viewed first,
+        // /cari/<slug>: every synced host but Videy, clean titles, fresh uploads then most viewed,
         // then /halaman/N. Blocklist ids never appear. School-word JAV is not a title block.
         const def = findLanding(query.q);
         if (!def || !findCategory(def.category)) return { ok: false, error: "Halaman tidak dikenal.", code: "not_found" };
@@ -178,10 +166,16 @@ export async function queryCatalogServer(query: CatalogQuery, signal?: AbortSign
           (c) => acceptLandingCard(c, def) && !isMinorContentTitle(c.title) && !isSeoBlockedId(c.id),
         );
         const withViews = await withVideyViews(clean);
-        const sorted = withViews
-          .map((c, i) => ({ c, i }))
-          .sort((a, b) => (b.c.views || 0) - (a.c.views || 0) || a.i - b.i)
-          .map((x) => x.c);
+        // Pool is newest first: its index ranks the other hosts' cards mixed in between.
+        const poolAt = new Map(withViews.map((c, i) => [c.id, i] as [string, number]));
+        const byViews = mixOtherHosts(
+          withViews
+            .map((c, i) => ({ c, i }))
+            .sort((a, b) => (b.c.views || 0) - (a.c.views || 0) || a.i - b.i)
+            .map((x) => x.c),
+          (c) => -(poolAt.get(c.id) ?? 0),
+        );
+        const sorted = freshFirst(realPosterFirst(byViews, (c) => posterProbeOk(c.id) || videyFrameReady(c.id)));
         const total = sorted.length;
         const last = Math.max(1, Math.ceil(total / limit) || 1);
         const safePage = Math.min(requested, last);

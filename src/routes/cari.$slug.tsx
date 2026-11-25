@@ -1,14 +1,18 @@
+import { usePublicHref, usePublicLanguage, usePublicText } from "@/lib/public-ui";
+import { collectionLabel } from "@/lib/page-copy";
 import { Outlet, createFileRoute, notFound, redirect, useMatches, useNavigate } from "@tanstack/react-router";
 import { Shell } from "@/components/layout/shell";
 import { EmptyState, ErrorState } from "@/components/states/feed-states";
 import { SafeBoundary } from "@/components/safe-boundary";
 import { CatalogPager } from "@/components/video/catalog-pager";
 import { VideoGrid } from "@/components/video/video-grid";
-import { keywordHref } from "@/lib/catalog/halaman";
+import { enHref, keywordHref } from "@/lib/catalog/halaman";
+import { englishTargetForIdLanding, halamanFromPath, enSlugForId, hreflangLinks } from "@/lib/catalog/en-landing";
 import { LANDING_INDEX_PAGES, LANDING_MIN_VIDEOS, LANDING_PAGE_SIZE, findLanding, landingsForSite } from "@/lib/catalog/landing";
 import { queryCatalog } from "@/lib/catalog/service";
 import type { CatalogResponse, VideoCard } from "@/lib/catalog/types";
 import { jsonLdString } from "@/lib/json-ld";
+import { gridAdsOn } from "@/lib/ads/spots";
 import { DEFAULT_OG, HOME_CANONICAL, IS_VIDEQSSS, SITE_NAME, SITE_ORIGIN, TITLE_SUFFIX, breadcrumbJsonLd, collectionPageJsonLd } from "@/lib/seo";
 import { landingDocumentTitle } from "@/lib/catalog/landing";
 
@@ -37,6 +41,8 @@ export function landingHead(slug: string, page: number, loaderData: unknown) {
     ...(page > 1 ? [{ rel: "prev", href: `${SITE_ORIGIN}${keywordHref(def.slug, page - 1)}` }] : []),
     ...(page < last ? [{ rel: "next", href: `${SITE_ORIGIN}${keywordHref(def.slug, page + 1)}` }] : []),
   ];
+  const enSlug = page === 1 ? enSlugForId(def.slug) : undefined;
+  const hreflang = enSlug ? hreflangLinks(keywordHref(def.slug, 1), enHref(enSlug, 1), SITE_ORIGIN) : [];
   return {
     meta: [
       { title },
@@ -50,7 +56,7 @@ export function landingHead(slug: string, page: number, loaderData: unknown) {
       { name: "robots", content: indexable ? "index,follow" : "noindex,follow" },
       ...(!indexable ? [{ name: "googlebot", content: "noindex,follow" }] : []),
     ],
-    links: [{ rel: "canonical", href: url }, ...pageLinks],
+    links: [{ rel: "canonical", href: url }, ...pageLinks, ...hreflang],
     scripts: indexable
       ? [
           {
@@ -73,11 +79,8 @@ export function landingHead(slug: string, page: number, loaderData: unknown) {
 
 /** /cari/<slug>: keyword landings. Page 2+ lives at /cari/<slug>/halaman/N. */
 export const Route = createFileRoute("/cari/$slug")({
-  beforeLoad: ({ params }) => {
+  beforeLoad: ({ params, location }) => {
     if (!findLanding(params.slug)) throw notFound();
-    if (IS_VIDEQSSS) {
-      throw redirect({ href: `${SITE_ORIGIN}${keywordHref(params.slug, 1)}`, statusCode: 301 });
-    }
   },
   loader: ({ params }) => loadLanding(params.slug, 1),
   head: ({ params, loaderData, matches }) => {
@@ -96,6 +99,9 @@ export function CariExperience({
   data: CatalogResponse;
   onPage: (next: number) => void;
 }) {
+  const publicHref = usePublicHref();
+  const language = usePublicLanguage();
+  const localText = usePublicText();
   const def = findLanding(slug);
   if (!def) return null;
   const items = data && data.ok && data.type === "landing" ? (data.items as VideoCard[]) : [];
@@ -108,34 +114,34 @@ export function CariExperience({
     <Shell>
       <section>
         <div className="mb-4">
-          <h1 className="text-xl font-semibold text-zinc-100">{def.h1}</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-400">{def.intro.replaceAll("videyy.icu", TITLE_SUFFIX)}</p>
-          {total ? <p className="mt-1 text-sm text-zinc-500">{total.toLocaleString("id-ID")} video · halaman {page}</p> : null}
+          <h1 className="text-xl font-semibold text-zinc-100">{language === "id" ? def.h1 : collectionLabel(def.slug, language)}</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-400">{language === "id" ? def.intro.replaceAll("videyy.icu", TITLE_SUFFIX) : language === "ms" ? `Terokai koleksi ${collectionLabel(def.slug, language)} dan pilih video untuk ditonton.` : `Browse the ${collectionLabel(def.slug, language)} collection.`}</p>
+          {total ? <p className="mt-1 text-sm text-zinc-500">{total.toLocaleString("id-ID")} {localText("video · halaman")} {page}</p> : null}
         </div>
 
         {data && !data.ok ? (
           <ErrorState message={(data as { error?: string }).error || "Gagal memuat"} onRetry={() => window.location.reload()} />
         ) : !items.length ? (
-          <EmptyState title="Video segera hadir" description="Belum ada video untuk halaman ini. Cek lagi nanti ya." />
+          <EmptyState title={localText("Video segera hadir")} description={localText("Belum ada video untuk halaman ini. Cek lagi nanti ya.")} />
         ) : (
           <SafeBoundary>
-            <VideoGrid items={items} ads={!IS_VIDEQSSS} />
+            <VideoGrid items={items} catalog ads={gridAdsOn()} />
           </SafeBoundary>
         )}
 
         <CatalogPager page={page} total={total} limit={limit} onPage={onPage} pageHref={(n) => keywordHref(def.slug, n)} />
 
         <div className="mt-6 space-y-3">
-          <nav aria-label="Pencarian populer lain">
-            <p className="mb-2 text-xs text-zinc-500">Pencarian populer lain</p>
+          <nav aria-label={localText("Pencarian populer lain")}>
+            <p className="mb-2 text-xs text-zinc-500">{localText("Pencarian populer lain")}</p>
             <div className="flex flex-wrap gap-2">
               {others.map((l) => (
                 <a
                   key={l.slug}
-                  href={keywordHref(l.slug, 1)}
+                  href={publicHref(keywordHref(l.slug, 1))}
                   className="inline-flex h-8 items-center rounded-full border border-white/10 px-3 text-sm text-zinc-300 hover:border-white/40 hover:text-white"
                 >
-                  {l.h1}
+                  {language === "id" ? l.h1 : collectionLabel(l.slug, language)}
                 </a>
               ))}
             </div>

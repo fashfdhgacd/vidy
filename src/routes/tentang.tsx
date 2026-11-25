@@ -1,5 +1,8 @@
+import { usePublicHref, usePublicLanguage, usePublicText } from "@/lib/public-ui";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { LegalPage } from "@/components/legal-page";
+import { AboutEn } from "@/components/legal-en";
+import { UI_EN, UI_LANG } from "@/lib/ui-lang";
 import { jsonLdString } from "@/lib/json-ld";
 import {
   ABOUT_DESCRIPTION,
@@ -36,7 +39,7 @@ export const Route = createFileRoute("/tentang")({
           name: ABOUT_TITLE,
           url: URL_ABOUT,
           description: ABOUT_DESCRIPTION,
-          inLanguage: "id",
+          inLanguage: UI_LANG,
           isPartOf: { "@id": `${HOME_CANONICAL}#website` },
           about: { "@id": `${HOME_CANONICAL}#organization` },
         }),
@@ -46,62 +49,64 @@ export const Route = createFileRoute("/tentang")({
         children: jsonLdString(
           breadcrumbJsonLd([
             { name: SITE_NAME, url: HOME_CANONICAL },
-            { name: "Tentang", url: URL_ABOUT },
+            { name: UI_EN ? "About" : "Tentang", url: URL_ABOUT },
           ]),
         ),
       },
     ],
   }),
-  component: Page,
+  component: function LocalizedPage() {
+    return usePublicLanguage() === "en" ? <AboutEn /> : <Page />;
+  },
 });
 
 function Page() {
+  const publicHref = usePublicHref();
+  const localText = usePublicText();
   return (
     <LegalPage title={`Tentang ${SITE_NAME}`}>
       <p>
-        <strong>Videy Hub</strong> adalah situs resmi di <strong>videyy.icu</strong>. Kami mengkurasi katalog video
-        dewasa 18+ sendiri: bokep indo viral, video viral videy, JAV, dan AI+, yang bisa langsung ditonton di HP.
+        <strong>Videy Hub</strong> adalah situs resmi di <strong>videyy.icu</strong>{localText(". Kami mengkurasi katalog video dewasa 18+ sendiri: bokep indo viral, video viral videy, JAV, dan AI Drama, yang bisa langsung ditonton di HP.")}
       </p>
-      <h2 className="pt-2 text-lg font-semibold text-foreground">Situs asli vs. situs penyalin</h2>
+      <h2 className="pt-2 text-lg font-semibold text-foreground">{localText("Situs asli vs. situs penyalin")}</h2>
       <p>
-        Banyak situs menyalin judul dan daftar video kami. Satu-satunya alamat resmi adalah{" "}
-        <a className="underline" href={HOME_CANONICAL}>
+        {localText("Banyak situs menyalin judul dan daftar video kami. Satu-satunya alamat resmi adalah")}{" "}
+        <a className="underline" href={publicHref(HOME_CANONICAL)}>
           videyy.icu
         </a>
-        . Setiap video di sini punya halaman tonton sendiri dengan tanggal unggah asli, dan feed{" "}
-        <a className="underline" href="/rss.xml">
+        {localText(". Setiap video di sini punya halaman tonton sendiri dengan tanggal unggah asli, dan feed")}{" "}
+        <a className="underline" href={publicHref("/rss.xml")}>
           RSS
         </a>{" "}
-        kami mencatat kapan video pertama kali terbit.
+        {localText("kami mencatat kapan video pertama kali terbit.")}
       </p>
-      <h2 className="pt-2 text-lg font-semibold text-foreground">Mulai menjelajah</h2>
+      <h2 className="pt-2 text-lg font-semibold text-foreground">{localText("Mulai menjelajah")}</h2>
       <ul className="list-disc space-y-1 pl-5">
         <li>
           <Link className="underline" to="/">
-            Video terbaru
+            {localText("Video terbaru")}
           </Link>
         </li>
       </ul>
-      <h2 className="pt-2 text-lg font-semibold text-foreground">Aturan konten</h2>
+      <h2 className="pt-2 text-lg font-semibold text-foreground">{localText("Aturan konten")}</h2>
       <p>
-        Situs ini khusus untuk pengunjung berusia 18 tahun ke atas. Semua pemeran yang tampil harus dewasa; konten yang
-        melibatkan anak di bawah umur tidak pernah diterbitkan. Lihat juga{" "}
+        {localText("Situs ini khusus untuk pengunjung berusia 18 tahun ke atas. Semua pemeran yang tampil harus dewasa; konten yang melibatkan anak di bawah umur tidak pernah diterbitkan. Lihat juga")}{" "}
         <Link className="underline" to="/2257">
           2257
         </Link>
         ,{" "}
         <Link className="underline" to="/syarat">
-          Syarat
+          {localText("Syarat")}
         </Link>
-        , dan{" "}
+        {localText(", dan")}{" "}
         <Link className="underline" to="/privasi">
-          Privasi
+          {localText("Privasi")}
         </Link>
         .
       </p>
-      <h2 className="pt-2 text-lg font-semibold text-foreground">Kontak</h2>
+      <h2 className="pt-2 text-lg font-semibold text-foreground">{localText("Kontak")}</h2>
       <p>
-        Untuk DMCA atau laporan tautan rusak:{" "}
+        {localText("Untuk DMCA atau laporan tautan rusak:")}{" "}
         <a className="underline" href="mailto:dmca@videyy.icu">
           dmca@videyy.icu
         </a>

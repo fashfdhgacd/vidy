@@ -1,3 +1,4 @@
+import { languageFamily } from "../../src/lib/language-family";
 /**
  * Dynamic sitemap for Google Search Console.
  * Nitro middleware (Cloudflare) — do not keep static public/sitemap*.xml or they shadow this.
@@ -10,8 +11,9 @@ import { isMinorContentTitle } from "../../src/lib/catalog/minor-detector.js";
 import { isSeoBlockedId } from "../../src/lib/catalog/seo-block";
 import { STATIC_PAGE_LASTMOD } from "../../src/lib/catalog/lastmod.js";
 import { listSitemapWatchEntries } from "../../src/lib/catalog/sitemap-entries";
-import { keywordHref, keywordRoot } from "../../src/lib/catalog/halaman";
-import { SITE_ORIGIN, cleanDisplayTitle, publicWatchDescription, seoVideoThumbnail } from "../../src/lib/seo";
+import { enHref, keywordHref, keywordRoot } from "../../src/lib/catalog/halaman";
+import { indexableEnLandings } from "../../src/lib/catalog/en-landing-query";
+import { IS_VIDEQSSS, SITE_ORIGIN, cleanDisplayTitle, publicWatchDescription, seoVideoThumbnail } from "../../src/lib/seo";
 
 interface SitemapEvent {
   url: URL;
@@ -73,6 +75,7 @@ function pageEntries(
   lastmod: string | undefined,
   landings: Array<{ slug: string; pages: number }> = [],
   homePages = 1,
+  enLandings: Array<{ slug: string; pages: number }> = [],
 ): string[] {
   const out: string[] = [
     urlEntry(`${SITE_ORIGIN}/`, { changefreq: "hourly", priority: "1.0", lastmod }),
@@ -80,16 +83,36 @@ function pageEntries(
       urlEntry(`${SITE_ORIGIN}/halaman/${i + 2}`, { changefreq: "hourly", priority: "0.8", lastmod }),
     ),
   ];
-  const hub = keywordRoot() === "genre" ? "/genre" : "/cari";
-  out.push(urlEntry(`${SITE_ORIGIN}${hub}`, { changefreq: "weekly", priority: "0.6", lastmod: "2026-11-05" }));
-  for (const landing of landings) {
+  // videqsss is English-only: its Indonesian /genre pages 301 to /en, so only /en goes in its sitemap.
+  const idLandings = IS_VIDEQSSS ? [] : landings;
+  if (!IS_VIDEQSSS) {
+    const hub = keywordRoot() === "genre" ? "/genre" : "/cari";
+    out.push(urlEntry(`${SITE_ORIGIN}${hub}`, { changefreq: "weekly", priority: "0.6", lastmod: "2026-11-05" }));
+  }
+  for (const landing of idLandings) {
     out.push(urlEntry(`${SITE_ORIGIN}${keywordHref(landing.slug, 1)}`, { changefreq: "daily", priority: "0.6" }));
     for (let n = 2; n <= landing.pages; n++) {
       out.push(urlEntry(`${SITE_ORIGIN}${keywordHref(landing.slug, n)}`, { changefreq: "daily", priority: "0.5" }));
     }
   }
+  out.push(urlEntry(`${SITE_ORIGIN}/en`, { changefreq: "weekly", priority: "0.6", lastmod: IS_VIDEQSSS ? "2026-11-20" : "2026-11-13" }));
+  for (const landing of enLandings) {
+    out.push(urlEntry(`${SITE_ORIGIN}${enHref(landing.slug, 1)}`, { changefreq: "daily", priority: "0.6" }));
+    for (let n = 2; n <= landing.pages; n++) {
+      out.push(urlEntry(`${SITE_ORIGIN}${enHref(landing.slug, n)}`, { changefreq: "daily", priority: "0.5" }));
+    }
+  }
   for (const path of LEGAL_PATHS) {
     out.push(urlEntry(`${SITE_ORIGIN}${path}`, { changefreq: "monthly", priority: "0.3", lastmod: STATIC_PAGE_LASTMOD[path] }));
+  }
+  if (!IS_VIDEQSSS) {
+    out.push(
+      urlEntry(`${SITE_ORIGIN}/kirim`, {
+        changefreq: "monthly",
+        priority: "0.3",
+        lastmod: STATIC_PAGE_LASTMOD["/kirim"],
+      }),
+    );
   }
   return out;
 }
@@ -135,8 +158,24 @@ function watchEntries(
   });
 }
 
+function localizedEntries(entries: string[]) {
+  const seen = new Set<string>();
+  return entries.flatMap(entry => {
+    const value = /<loc>([^<]+)<\/loc>/.exec(entry)?.[1];
+    if (!value) return [entry];
+    const base = new URL(value.replaceAll("&amp;", "&"));
+    const urls = languageFamily(base.pathname + base.search);
+    return [...new Set(Object.values(urls))].flatMap(path => {
+      const url = new URL(path, base.origin).href;
+      if (seen.has(url)) return [];
+      seen.add(url);
+      return [entry.replace("<loc>" + value + "</loc>", "<loc>" + escapeXml(url) + "</loc>")];
+    });
+  });
+}
+
 function wrapUrlset(body: string[]): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">\n${body.join("\n")}\n</urlset>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">\n${localizedEntries(body).join("\n")}\n</urlset>\n`;
 }
 
 function wrapIndex(locs: Array<{ loc: string; lastmod?: string }>): string {
@@ -168,13 +207,14 @@ function errorXml(method: string, message: string): Response {
 }
 
 async function buildPagesXml(): Promise<string> {
-  const [entries, landings, latest] = await Promise.all([
+  const [entries, landings, enLandings, latest] = await Promise.all([
     listSitemapWatchEntries(),
     indexableLandings(),
+    indexableEnLandings(),
     listLatest(1, 1).catch(() => ({ total: 0 })),
   ]);
   const homePages = Math.min(5, Math.max(1, Math.ceil((latest.total || 0) / DEFAULT_PAGE_SIZE)));
-  return wrapUrlset(pageEntries(newestLastmod(entries), landings, homePages));
+  return wrapUrlset(pageEntries(newestLastmod(entries), landings, homePages, enLandings));
 }
 
 async function buildWatchXml(chunkIndex?: number): Promise<{ xml: string; total: number; chunks: number }> {

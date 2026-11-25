@@ -1,3 +1,4 @@
+import { tr } from "@/lib/ui-lang";
 import { curatedSeoTitle } from "@/lib/catalog/video-descriptions";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { queryCatalog } from "@/lib/catalog/service";
@@ -6,12 +7,14 @@ import {
   DEFAULT_OG,
   OG_SITE_NAME,
   SITE_ORIGIN,
+  TITLE_SUFFIX,
   categoryKeywords,
   cleanDisplayTitle,
   generatedVideoSeo,
   publicWatchDescription,
   videoJsonLd,
   videoSeoTitle,
+  seoVideoThumbnail,
 } from "@/lib/seo";
 import { WatchPage } from "@/lib/watch/watch-page";
 
@@ -31,7 +34,7 @@ function shareCardImage(thumbnail: string | null | undefined): string {
 /** BreadcrumbList (Beranda > Video) so Google can show the path in the result. */
 function watchBreadcrumb(title: string, url: string) {
   const crumbs: Array<{ name: string; url: string }> = [
-    { name: "Beranda", url: SITE_ORIGIN },
+    { name: tr("Beranda", "Home"), url: SITE_ORIGIN },
     { name: title, url },
   ];
   return {
@@ -48,6 +51,7 @@ export type WatchSearch = {
 
 /** MIME type for og:image:type from the image URL's extension (default jpeg). */
 function ogImageType(url: string): string {
+  if (/\/og\//i.test(url) || /og-v2\.jpg/i.test(url) || /brand-poster/i.test(url)) return "image/jpeg";
   const ext = /\.(webp|png|gif|jpe?g)(?:[?#]|$)/i.exec(url)?.[1]?.toLowerCase();
   if (ext === "webp") return "image/webp";
   if (ext === "png") return "image/png";
@@ -93,7 +97,7 @@ export const Route = createFileRoute("/watch/$id")({
       ? gen.title
       : item
         ? videoSeoTitle(item.title, item.category)
-        : "Video tidak ditemukan | videyy.icu";
+        : tr(`Video tidak ditemukan | ${TITLE_SUFFIX}`, `Video not found | ${TITLE_SUFFIX}`);
     const ogTitle = gen ? gen.ogTitle : item ? cleanDisplayTitle(item.title) : title;
     const description = item
       ? publicWatchDescription(
@@ -106,8 +110,8 @@ export const Route = createFileRoute("/watch/$id")({
           },
           160,
         )
-      : "Koleksi video dewasa. Konten 18+.";
-    const image = item ? shareCardImage(item.thumbnail) : DEFAULT_OG;
+      : tr("Koleksi video dewasa. Konten 18+.", "Adult video collection. 18+ only.");
+    const image = item ? seoVideoThumbnail(item.id, item.thumbnail) : DEFAULT_OG;
     const url = item ? `${SITE_ORIGIN}/watch/${item.id}` : SITE_ORIGIN;
     const embedUrl = item
       ? (item.video_url || item.qualities?.[0]?.url || "").trim() || null

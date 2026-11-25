@@ -81,7 +81,7 @@ describe("watch page", () => {
     assert.match(html, /Judul Contoh/);
     assert.match(html, /href="\/cari"/);
     assert.match(html, /durasi 1 menit/);
-    assert.equal(html.split("ada di kategori").length - 1, 1);
+    assert.equal(html.split("Videy viral update tiap hari").length - 1, 1);
     assert.equal(html.split("Judul Contoh").length - 1, 3);
     assert.match(html, /Bagikan/);
     assert.match(html, /1m 0s/);
@@ -93,7 +93,7 @@ describe("watch page", () => {
     const manual = "Deskripsi manual dari pemilik untuk video contoh ini, ditulis sendiri.";
     const html = await renderWatch({ ...video, description: manual });
     assert.ok(html.includes(manual));
-    assert.doesNotMatch(html, /ada di kategori/);
+    assert.doesNotMatch(html, /Videy viral update tiap hari/);
   });
 });
 
@@ -115,7 +115,8 @@ describe("manual description (seo.ts)", () => {
   it("keeps the generated description when the manual one is empty", async () => {
     const { publicWatchDescription, resolveVideoSeoDescription } = await vite.ssrLoadModule("/src/lib/seo.ts");
     const auto = publicWatchDescription(base, 160);
-    assert.match(auto, /ada di kategori/);
+    assert.match(auto, /Videy Hub/);
+    assert.match(auto, /videyy\.icu/);
     for (const description of ["", "   ", null, undefined, "Tidak ada sinopsis."]) {
       assert.equal(publicWatchDescription({ ...base, description }, 160), auto);
       assert.equal(resolveVideoSeoDescription({ ...base, description }), resolveVideoSeoDescription(base));
@@ -130,5 +131,20 @@ describe("manual description (seo.ts)", () => {
       assert.equal(publicWatchDescription({ ...base, description: bad }), auto);
     }
     assert.equal(isSafeManualDescription("Tante hijab viral"), true);
+  });
+});
+
+describe("satellite watch titles (seo.ts)", () => {
+  it("adds a Videy keyword tail so the title differs from koleksidrpinguin.com", async () => {
+    const { videoSeoTitle } = await vite.ssrLoadModule("/src/lib/seo.ts");
+    assert.equal(videoSeoTitle("Cewek hijab di kosan", "jilbab"), "Cewek hijab di kosan – Videy Viral | videyy.icu");
+    assert.equal(videoSeoTitle("Videy bokep tante", "tante"), "Videy bokep tante – Viral | videyy.icu");
+  });
+
+  it("keeps the site tail on long titles and stays short", async () => {
+    const { videoSeoTitle } = await vite.ssrLoadModule("/src/lib/seo.ts");
+    const t = videoSeoTitle("kata panjang ".repeat(12).trim(), "jilbab");
+    assert.match(t, / – Videy \| videyy\.icu$/);
+    assert.ok(t.length <= 58 + " | videyy.icu".length);
   });
 });

@@ -1,109 +1,118 @@
-// ExoClick 300x250 banners (zones AD_ZONES, one per slot) as cards in catalog grids.
-// - Same shell as a video card (rounded box 300:250, "iklan" / "sponsor" where the title goes).
-// - The 300x250 banner is centred in the box; when the card is narrower it is scaled down to fit.
-// - Server + client render identical markup (hydration safe); no layout shift.
-// - ad-provider.js loaded once, async, only when the slot nears the viewport.
-// - serve pushed once per mounted slot (SPA remount => new push). Ad blockers: fails silently.
-// - A slot hidden with display:none (other breakpoint) never intersects, so it never requests an ad.
+import { tr } from "@/lib/ui-lang";
+// Display slots. Zone ids live in src/lib/ads/spots.ts. A disabled slot (empty script)
+// renders nothing and does not load a network script. The popunder is not a box.
+// Banner and in-page push stay off on IndoAV watch pages (data-kdp-page-ad=off|wait).
 import { useEffect, useRef, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
+import { displayAdsAllowed, type PageAdMark } from "@/lib/ads/exo-popunder";
+import { ADS, type AdSpot } from "@/lib/ads/spots";
 
-/** Grid banner zone: ExoClick 300x250 6053864 for every grid slot (restored 26 Okt 2026, replacing the
- * TrafficStars MasterSpot whose 300x100/300x250 children paid $0.003-0.005 eCPM vs ExoClick ~$0.016). */
-export const AD_ZONES = ["6053864"] as const;
-const SCRIPT_ID = "exo-ad-provider";
-const SCRIPT_SRC = "https://a.magsrv.com/ad-provider.js";
-
-const UNFILLED_STYLE = {
-  backgroundColor: "#0e0d12",
-  backgroundImage: "url(/brand-poster-6x5.jpg)",
-  backgroundPosition: "center",
-  backgroundRepeat: "no-repeat",
-  backgroundSize: "contain",
-} as const;
-
-type AdWindow = Window & { AdProvider?: Array<Record<string, unknown>> };
-
-function ensureScript() {
-  if (document.getElementById(SCRIPT_ID)) return;
-  const s = document.createElement("script");
-  s.id = SCRIPT_ID;
-  s.async = true;
-  s.type = "application/javascript";
-  s.src = SCRIPT_SRC;
-  s.onerror = () => {};
-  document.head.appendChild(s);
+function pageAdMark(): PageAdMark {
+  const el = document.querySelector("[data-kdp-page-ad]");
+  const value = el?.getAttribute("data-kdp-page-ad");
+  if (value === "off" || value === "on" || value === "wait") return value;
+  return null;
 }
 
-export function AdSlot({ className = "", zoneId = AD_ZONES[0] }: { className?: string; zoneId?: string } = {}) {
+/** False on IndoAV watch pages (and while the watch page is still resolving the host). */
+function useDisplayAdsAllowed(): boolean {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const href = useRouterState({ select: (s) => s.location.href });
+  const watch = pathname === "/watch" || pathname.startsWith("/watch/");
+  const [allowed, setAllowed] = useState(!watch);
+  const [seenHref, setSeenHref] = useState(href);
+  if (href !== seenHref) {
+    setSeenHref(href);
+    setAllowed(!watch);
+  }
+  useEffect(() => {
+    const sync = () => setAllowed(displayAdsAllowed(pageAdMark()));
+    sync();
+    const mo = new MutationObserver(sync);
+    mo.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["data-kdp-page-ad"],
+    });
+    return () => mo.disconnect();
+  }, [href, watch]);
+  return allowed;
+}
+
+function ensureExoProvider(src: string): void {
+  if (document.querySelector("script[data-kdp-exo-provider]")) return;
+  const script = document.createElement("script");
+  script.async = true;
+  script.src = src;
+  script.dataset.kdpExoProvider = "1";
+  document.head.appendChild(script);
+}
+
+function DisplaySlot({ spot, className = "" }: { spot: AdSpot; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const host = ref.current;
+    if (!host || !spot.enabled || !spot.script || !spot.zoneId) return;
+    host.replaceChildren();
+    const ins = document.createElement("ins");
+    if (spot.insClass) ins.className = spot.insClass;
+    ins.setAttribute("data-zoneid", spot.zoneId);
+    host.appendChild(ins);
+    ensureExoProvider(spot.script);
+    const w = window as Window & { AdProvider?: Array<{ serve: Record<string, never> }> };
+    w.AdProvider = w.AdProvider || [];
+    w.AdProvider.push({ serve: {} });
+    return () => {
+      host.replaceChildren();
+    };
+  }, [spot.enabled, spot.script, spot.zoneId, spot.insClass]);
+  if (!spot.enabled || !spot.script || !spot.zoneId) return null;
+  return <div ref={ref} data-kdp-ad="exoclick" className={className} aria-label={tr("Iklan", "Advertisement")} />;
+}
+
+/** Catalog card. Off while banner300x250 is disabled. */
+export function GridMasterspot({ className = "" }: { className?: string }) {
+  const frame = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const fit = () => {
-      const w = el.clientWidth;
-      const h = el.clientHeight;
-      if (w > 0 && h > 0) setScale(Math.min(1, w / 300, h / 250));
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  useEffect(() => {
-    const el = ref.current;
+    const el = frame.current;
     if (!el) return;
-    let done = false;
-    const serve = () => {
-      if (done) return;
-      done = true;
-      try {
-        ensureScript();
-        const w = window as AdWindow;
-        (w.AdProvider = w.AdProvider || []).push({ serve: {} });
-      } catch {
-        /* blocked or failed: stay blank */
-      }
-    };
-    if (typeof IntersectionObserver === "undefined") {
-      serve();
-      return;
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          io.disconnect();
-          serve();
-        }
-      },
-      { rootMargin: "400px 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
+    const resize = () => setScale(Math.min(1, el.clientWidth / 300, el.clientHeight / 250));
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
-
+  const spot = ADS.banner300x250;
+  if (!spot.enabled || !spot.script || !spot.zoneId) return null;
   return (
-    <div data-kdp-ad="exoclick" className={`block rounded-xl p-1 sm:p-1.5 ${className}`} aria-label="Iklan">
-      <div
-        ref={ref}
-        className="relative flex aspect-[300/250] items-center justify-center overflow-hidden rounded-xl bg-surface-2"
-        // No-fill (ExoClick often returns nothing, ad blockers): the penguin card shows instead of an
-        // empty dark box that looks like a broken poster. A served banner is drawn on top of it.
-        style={UNFILLED_STYLE}
-      >
-        <div
-          className="flex h-[250px] w-[300px] shrink-0 items-center justify-center"
-          style={{ transform: scale < 1 ? `scale(${scale})` : undefined, transformOrigin: "center" }}
-        >
-          <ins className="eas6a97888e2" data-zoneid={zoneId} />
-        </div>
-      </div>
-      <div className="px-1 pb-1 pt-2.5 sm:px-1.5 sm:pt-3">
-        <h3 className="line-clamp-2 min-h-[2.5em] text-[13px] font-medium leading-snug text-foreground sm:text-[15px]">
-          iklan
-        </h3>
-        <div className="mt-1.5 text-[11px] text-muted sm:text-xs">sponsor</div>
+    <div ref={frame} className={`flex aspect-[16/10] items-center justify-center overflow-hidden rounded-none bg-transparent ${className}`}>
+      <div className="h-[250px] w-[300px] shrink-0" style={{ transform: `scale(${scale})` }}>
+        <DisplaySlot spot={spot} />
       </div>
     </div>
   );
+}
+
+/** 300x250 banner. There is no 300x100 zone. */
+export function Banner300x250({ className = "" }: { className?: string }) {
+  return <DisplaySlot spot={ADS.banner300x250} className={className} />;
+}
+
+/** @deprecated Alias of Banner300x250 (the only display banner size). */
+export function Banner300x100({ className = "" }: { className?: string }) {
+  return <Banner300x250 className={className} />;
+}
+
+/** In-page push. Off while the slot is disabled, and never on IndoAV watch pages. */
+export function InPagePush() {
+  const allowed = useDisplayAdsAllowed();
+  if (!allowed) return null;
+  return <DisplaySlot spot={ADS.inPagePush} />;
+}
+
+/** Video slider. Off while the slot is disabled. */
+export function VideoSlider() {
+  return <DisplaySlot spot={ADS.videoSlider} />;
 }

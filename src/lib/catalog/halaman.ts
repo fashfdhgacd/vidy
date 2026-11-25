@@ -30,7 +30,11 @@ export function keywordHref(slug: string, page: number): string {
   return landingPath(keywordRoot(), slug, page);
 }
 
-export function landingPath(root: "cari" | "genre", slug: string, page: number): string {
+export function enHref(slug: string, page: number): string {
+  return landingPath("en", slug, page);
+}
+
+export function landingPath(root: "cari" | "genre" | "en", slug: string, page: number): string {
   const base = `/${root}/${encodeURIComponent(slug)}`;
   return page > 1 ? `${base}/halaman/${page}` : base;
 }
@@ -59,7 +63,7 @@ export function legacyPageRedirect(pathname: string, search = ""): string | null
   const homeHal = /^\/halaman\/([1-9]\d*)$/.exec(path);
   if (homeHal && Number(homeHal[1]) < 2) return "/";
 
-  const nested = /^\/(cari|genre)\/([^/]+)\/halaman\/([1-9]\d*)$/.exec(path);
+  const nested = /^\/(cari|genre|en)\/([^/]+)\/halaman\/([1-9]\d*)$/.exec(path);
   if (nested && Number(nested[3]) < 2) {
     url.searchParams.delete("page");
     const qs = url.searchParams.toString();
@@ -71,7 +75,7 @@ export function legacyPageRedirect(pathname: string, search = ""): string | null
   if (!/^[1-9]\d{0,4}$/.test(pageRaw)) return null;
   // Hanya path halaman katalog yang boleh di-rewrite — /api/* dan route lain dengan
   // ?page= (mis. /api/data?type=home&page=1) jangan disentuh.
-  const isCatalogPage = path === "/" || /^\/(cari|genre)\/[^/]+$/.test(path);
+  const isCatalogPage = path === "/" || /^\/(cari|genre|en)\/[^/]+$/.test(path);
   if (!isCatalogPage) return null;
   const n = Number(pageRaw);
   url.searchParams.delete("page");
@@ -79,7 +83,7 @@ export function legacyPageRedirect(pathname: string, search = ""): string | null
   const tail = qs ? `?${qs}` : "";
   if (n === 1) return `${path}${tail}`;
   if (path === "/") return `/halaman/${n}${tail}`;
-  const keyed = /^\/(cari|genre)\/([^/]+)$/.exec(path);
+  const keyed = /^\/(cari|genre|en)\/([^/]+)$/.exec(path);
   if (keyed) return `/${keyed[1]}/${keyed[2]}/halaman/${n}${tail}`;
   return null;
 }

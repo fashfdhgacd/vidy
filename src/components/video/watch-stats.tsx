@@ -1,3 +1,5 @@
+import { usePublicText } from "@/lib/public-ui";
+import { tr } from "@/lib/ui-lang";
 import { useEffect, useState } from "react";
 import { Clock, Eye, Heart } from "lucide-react";
 import { noteSiteLike } from "@/lib/live-likes";
@@ -44,6 +46,7 @@ export function WatchStats({
   durationLabel?: string | null;
   sourceLikes?: number | null;
 }) {
+  const tr = usePublicText();
   const base = typeof sourceLikes === "number" && sourceLikes > 0 ? sourceLikes : 0;
   const [ours, setOurs] = useState(0);
   const [liked, setLiked] = useState(false);
@@ -108,13 +111,13 @@ export function WatchStats({
   return (
     <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 normal-case tracking-normal tabular-nums">
       {showViews ? (
-        <span className="inline-flex items-center gap-1" aria-label={`${views} kali ditonton`}>
+        <span className="inline-flex items-center gap-1" aria-label={tr(`${views} kali ditonton`, `${views} views`)}>
           <Eye className="size-3.5" aria-hidden="true" />
           {compactNumber(views as number)}
         </span>
       ) : null}
       {showDuration ? (
-        <span className="inline-flex items-center gap-1" aria-label="Durasi">
+        <span className="inline-flex items-center gap-1" aria-label={tr("Durasi", "Duration")}>
           <Clock className="size-3.5" aria-hidden="true" />
           {durationLabel}
         </span>
@@ -123,7 +126,7 @@ export function WatchStats({
         type="button"
         onClick={toggle}
         aria-pressed={liked}
-        aria-label={liked ? "Batal suka" : "Suka video ini"}
+        aria-label={liked ? tr("Batal suka", "Unlike") : tr("Suka video ini", "Like this video")}
         className={`-my-1 inline-flex touch-manipulation items-center gap-1 rounded-full px-2 py-1 transition-colors ${
           liked ? "text-rose-400" : "hover:text-foreground"
         }`}
@@ -132,7 +135,7 @@ export function WatchStats({
           className={`size-4 transition-transform duration-300 ${liked ? "fill-current" : ""} ${pop ? "scale-125" : "scale-100"}`}
           aria-hidden="true"
         />
-        {total > 0 ? compactNumber(total) : "Suka"}
+        {total > 0 ? compactNumber(total) : tr("Suka", "Like")}
       </button>
     </span>
   );

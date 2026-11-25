@@ -240,7 +240,7 @@ export function OwnerImportQueue({ secret }: { secret: string }) {
             <option value="">Kategori: otomatis</option>
             <option value="amatir">Amatir</option>
             <option value="jav">JAV</option>
-            <option value="ai-plus">AI+</option>
+            <option value="ai-plus">AI Drama</option>
             <option value="viral">Viral</option>
             <option value="live">Live</option>
           </select>

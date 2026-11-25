@@ -1,34 +1,43 @@
+import { usePublicLanguage, usePublicText } from "@/lib/public-ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LegalPage } from "@/components/legal-page";
+import { EN_LEGAL, Statement2257En, legalHeadEn } from "@/components/legal-en";
+import { UI_EN } from "@/lib/ui-lang";
 import { SITE_ORIGIN } from "@/lib/seo";
 
 export const Route = createFileRoute("/2257")({
-  head: () => ({
-    meta: [
-      { title: "18 U.S.C. 2257 Exemption Statement | Videy Hub" },
-      {
-        name: "description",
-        content:
-          "18 U.S.C. 2257 exemption and compliance statement for videyy.icu. The operator is not a primary or secondary producer of any content.",
-      },
-      { name: "robots", content: "index,follow" },
-    ],
-    links: [{ rel: "canonical", href: `${SITE_ORIGIN}/2257` }],
-  }),
-  component: Page,
+  head: () =>
+    UI_EN
+      ? legalHeadEn("/2257", EN_LEGAL.s2257.title, EN_LEGAL.s2257.description, "2257 Statement")
+      : {
+          meta: [
+            { title: "18 U.S.C. 2257 Exemption Statement | Videy Hub" },
+            {
+              name: "description",
+              content:
+                "18 U.S.C. 2257 exemption and compliance statement for videyy.icu. The operator is not a primary or secondary producer of any content.",
+            },
+            { name: "robots", content: "index,follow" },
+          ],
+          links: [{ rel: "canonical", href: `${SITE_ORIGIN}/2257` }],
+        },
+  component: function LocalizedPage() {
+    return usePublicLanguage() === "en" ? <Statement2257En /> : <Page />;
+  },
 });
 
 function Page() {
+  const localText = usePublicText();
   return (
     <LegalPage title="18 U.S.C. 2257 Exemption Statement">
       <p className="text-xs text-muted/70">Last updated: 7 October 2026</p>
 
       <h2 className="pt-2 text-base font-semibold text-foreground">Exemption statement</h2>
       <p>
-        videyy.icu (&ldquo;Videy Hub&rdquo;, &ldquo;the Site&rdquo;) is a catalog/index
-        of links and embedded players. The operator of the Site is not a &ldquo;producer&rdquo;
-        (primary or secondary) of any of the visual content that may be accessed through the Site,
-        as that term is defined in 18 U.S.C. &sect; 2257 and 28 C.F.R. &sect; 75.
+        videyy.icu (&ldquo;Videy Hub&rdquo;, &ldquo;the Site&rdquo;) is a catalog/index of links and
+        embedded players. The operator of the Site is not a &ldquo;producer&rdquo; (primary or
+        secondary) of any of the visual content that may be accessed through the Site, as that term
+        is defined in 18 U.S.C. &sect; 2257 and 28 C.F.R. &sect; 75.
       </p>
       <p>
         The Site does not produce, film, commission, upload, or host video files. All videos shown
@@ -47,8 +56,8 @@ function Page() {
         depiction was created. Records required under 18 U.S.C. &sect; 2257 and 28 C.F.R. &sect; 75,
         where applicable, are maintained by the original producers of the content and/or the
         third-party hosts on which the content is stored &mdash; not by the operator of this Site.
-        Inquiries about records should be directed to the original producer or host of the
-        specific video.
+        Inquiries about records should be directed to the original producer or host of the specific
+        video.
       </p>
 
       <h2 className="pt-2 text-base font-semibold text-foreground">Zero-tolerance policy</h2>
@@ -65,7 +74,7 @@ function Page() {
       <p>
         To report a video or request removal of a catalog entry, please contact us via the{" "}
         <Link to="/kontak" className="underline">
-          Kontak
+          {localText("Kontak")}
         </Link>{" "}
         page, including the full URL of the page on this Site and a short description of the issue.
         Copyright notices can be submitted following the{" "}
@@ -75,17 +84,17 @@ function Page() {
         procedure.
       </p>
 
-      <h2 className="pt-2 text-base font-semibold text-foreground">Ringkasan (Bahasa Indonesia)</h2>
+      <h2 className="pt-2 text-base font-semibold text-foreground">{localText("Ringkasan (Bahasa Indonesia)")}</h2>
       <p>
-        Pengelola videyy.icu bukan produsen (primer maupun sekunder) konten apa pun. Situs
-        ini hanya katalog yang menampilkan judul, thumbnail, dan tautan/embed ke video yang di-host
-        oleh layanan pihak ketiga (misalnya Streamtape). Menurut pengunggah dan host, semua orang
-        yang tampil berusia 18 tahun ke atas saat produksi; catatan usia disimpan oleh produsen asli
-        atau host terkait. Kami menolak keras konten yang melibatkan siapa pun di bawah 18 tahun
-        maupun konten tanpa persetujuan &mdash; entri yang dilaporkan akan dihapus setelah ditinjau.
+        Pengelola videyy.icu bukan produsen (primer maupun sekunder) konten apa pun. Situs ini hanya
+        katalog yang menampilkan judul, thumbnail, dan tautan/embed ke video yang di-host oleh
+        layanan pihak ketiga (misalnya Streamtape). Menurut pengunggah dan host, semua orang yang
+        tampil berusia 18 tahun ke atas saat produksi; catatan usia disimpan oleh produsen asli atau
+        host terkait. Kami menolak keras konten yang melibatkan siapa pun di bawah 18 tahun maupun
+        konten tanpa persetujuan &mdash; entri yang dilaporkan akan dihapus setelah ditinjau.
         Laporan dan permintaan penghapusan dapat dikirim melalui halaman{" "}
         <Link to="/kontak" className="underline">
-          Kontak
+          {localText("Kontak")}
         </Link>
         .
       </p>

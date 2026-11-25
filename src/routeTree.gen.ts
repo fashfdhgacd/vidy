@@ -13,8 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as R2257RouteImport } from './routes/2257'
 import { Route as CampurRouteImport } from './routes/campur'
 import { Route as DmcaRouteImport } from './routes/dmca'
+import { Route as EnRouteImport } from './routes/en'
 import { Route as GenreRouteImport } from './routes/genre'
 import { Route as KategoriRouteImport } from './routes/kategori'
+import { Route as KirimRouteImport } from './routes/kirim'
 import { Route as KontakRouteImport } from './routes/kontak'
 import { Route as PemilikRouteImport } from './routes/pemilik'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -48,11 +50,14 @@ import { Route as ApiTapeThumbRouteImport } from './routes/api/tape-thumb'
 import { Route as ApiTelegramRouteImport } from './routes/api/telegram'
 import { Route as CariIndexRouteImport } from './routes/cari.index'
 import { Route as CariSlugRouteImport } from './routes/cari.$slug'
+import { Route as EnIndexRouteImport } from './routes/en.index'
+import { Route as EnSlugRouteImport } from './routes/en.$slug'
 import { Route as GenreIndexRouteImport } from './routes/genre.index'
 import { Route as GenreSlugRouteImport } from './routes/genre.$slug'
 import { Route as HalamanPageRouteImport } from './routes/halaman.$page'
 import { Route as KategoriIndexRouteImport } from './routes/kategori.index'
 import { Route as KategoriSlugRouteImport } from './routes/kategori.$slug'
+import { Route as OgIdRouteImport } from './routes/og.$id'
 import { Route as ThumbIdRouteImport } from './routes/thumb.$id'
 import { Route as VIdRouteImport } from './routes/v.$id'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
@@ -62,6 +67,7 @@ import { Route as ApiAnalyticsOverviewRouteImport } from './routes/api/analytics
 import { Route as ApiAnalyticsTrackRouteImport } from './routes/api/analytics.track'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as CariSlugHalamanPageRouteImport } from './routes/cari.$slug.halaman.$page'
+import { Route as EnSlugHalamanPageRouteImport } from './routes/en.$slug.halaman.$page'
 import { Route as GenreSlugHalamanPageRouteImport } from './routes/genre.$slug.halaman.$page'
 import { Route as KategoriSlugHalamanPageRouteImport } from './routes/kategori.$slug.halaman.$page'
 
@@ -85,6 +91,11 @@ const DmcaRoute = DmcaRouteImport.update({
   path: '/dmca',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EnRoute = EnRouteImport.update({
+  id: '/en',
+  path: '/en',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GenreRoute = GenreRouteImport.update({
   id: '/genre',
   path: '/genre',
@@ -93,6 +104,11 @@ const GenreRoute = GenreRouteImport.update({
 const KategoriRoute = KategoriRouteImport.update({
   id: '/kategori',
   path: '/kategori',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KirimRoute = KirimRouteImport.update({
+  id: '/kirim',
+  path: '/kirim',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KontakRoute = KontakRouteImport.update({
@@ -260,6 +276,16 @@ const CariSlugRoute = CariSlugRouteImport.update({
   path: '/cari/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EnIndexRoute = EnIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EnRoute,
+} as any)
+const EnSlugRoute = EnSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => EnRoute,
+} as any)
 const GenreIndexRoute = GenreIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -284,6 +310,11 @@ const KategoriSlugRoute = KategoriSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => KategoriRoute,
+} as any)
+const OgIdRoute = OgIdRouteImport.update({
+  id: '/og/$id',
+  path: '/og/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ThumbIdRoute = ThumbIdRouteImport.update({
   id: '/thumb/$id',
@@ -330,6 +361,11 @@ const CariSlugHalamanPageRoute = CariSlugHalamanPageRouteImport.update({
   path: '/halaman/$page',
   getParentRoute: () => CariSlugRoute,
 } as any)
+const EnSlugHalamanPageRoute = EnSlugHalamanPageRouteImport.update({
+  id: '/halaman/$page',
+  path: '/halaman/$page',
+  getParentRoute: () => EnSlugRoute,
+} as any)
 const GenreSlugHalamanPageRoute = GenreSlugHalamanPageRouteImport.update({
   id: '/halaman/$page',
   path: '/halaman/$page',
@@ -346,8 +382,10 @@ export interface FileRoutesByFullPath {
   '/2257': typeof R2257Route
   '/campur': typeof CampurRoute
   '/dmca': typeof DmcaRoute
+  '/en': typeof EnRouteWithChildren
   '/genre': typeof GenreRouteWithChildren
   '/kategori': typeof KategoriRouteWithChildren
+  '/kirim': typeof KirimRoute
   '/kontak': typeof KontakRoute
   '/pemilik': typeof PemilikRoute
   '/privacy': typeof PrivacyRoute
@@ -380,13 +418,16 @@ export interface FileRoutesByFullPath {
   '/api/tape-thumb': typeof ApiTapeThumbRoute
   '/api/telegram': typeof ApiTelegramRoute
   '/cari/$slug': typeof CariSlugRouteWithChildren
+  '/en/$slug': typeof EnSlugRouteWithChildren
   '/genre/$slug': typeof GenreSlugRouteWithChildren
   '/halaman/$page': typeof HalamanPageRoute
   '/kategori/$slug': typeof KategoriSlugRouteWithChildren
+  '/og/$id': typeof OgIdRoute
   '/thumb/$id': typeof ThumbIdRoute
   '/v/$id': typeof VIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/cari/': typeof CariIndexRoute
+  '/en/': typeof EnIndexRoute
   '/genre/': typeof GenreIndexRoute
   '/kategori/': typeof KategoriIndexRoute
   '/api/analytics/health': typeof ApiAnalyticsHealthRoute
@@ -395,6 +436,7 @@ export interface FileRoutesByFullPath {
   '/api/analytics/track': typeof ApiAnalyticsTrackRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/cari/$slug/halaman/$page': typeof CariSlugHalamanPageRoute
+  '/en/$slug/halaman/$page': typeof EnSlugHalamanPageRoute
   '/genre/$slug/halaman/$page': typeof GenreSlugHalamanPageRoute
   '/kategori/$slug/halaman/$page': typeof KategoriSlugHalamanPageRoute
 }
@@ -403,6 +445,7 @@ export interface FileRoutesByTo {
   '/2257': typeof R2257Route
   '/campur': typeof CampurRoute
   '/dmca': typeof DmcaRoute
+  '/kirim': typeof KirimRoute
   '/kontak': typeof KontakRoute
   '/pemilik': typeof PemilikRoute
   '/privacy': typeof PrivacyRoute
@@ -435,13 +478,16 @@ export interface FileRoutesByTo {
   '/api/tape-thumb': typeof ApiTapeThumbRoute
   '/api/telegram': typeof ApiTelegramRoute
   '/cari/$slug': typeof CariSlugRouteWithChildren
+  '/en/$slug': typeof EnSlugRouteWithChildren
   '/genre/$slug': typeof GenreSlugRouteWithChildren
   '/halaman/$page': typeof HalamanPageRoute
   '/kategori/$slug': typeof KategoriSlugRouteWithChildren
+  '/og/$id': typeof OgIdRoute
   '/thumb/$id': typeof ThumbIdRoute
   '/v/$id': typeof VIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/cari': typeof CariIndexRoute
+  '/en': typeof EnIndexRoute
   '/genre': typeof GenreIndexRoute
   '/kategori': typeof KategoriIndexRoute
   '/api/analytics/health': typeof ApiAnalyticsHealthRoute
@@ -450,6 +496,7 @@ export interface FileRoutesByTo {
   '/api/analytics/track': typeof ApiAnalyticsTrackRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/cari/$slug/halaman/$page': typeof CariSlugHalamanPageRoute
+  '/en/$slug/halaman/$page': typeof EnSlugHalamanPageRoute
   '/genre/$slug/halaman/$page': typeof GenreSlugHalamanPageRoute
   '/kategori/$slug/halaman/$page': typeof KategoriSlugHalamanPageRoute
 }
@@ -459,8 +506,10 @@ export interface FileRoutesById {
   '/2257': typeof R2257Route
   '/campur': typeof CampurRoute
   '/dmca': typeof DmcaRoute
+  '/en': typeof EnRouteWithChildren
   '/genre': typeof GenreRouteWithChildren
   '/kategori': typeof KategoriRouteWithChildren
+  '/kirim': typeof KirimRoute
   '/kontak': typeof KontakRoute
   '/pemilik': typeof PemilikRoute
   '/privacy': typeof PrivacyRoute
@@ -493,13 +542,16 @@ export interface FileRoutesById {
   '/api/tape-thumb': typeof ApiTapeThumbRoute
   '/api/telegram': typeof ApiTelegramRoute
   '/cari/$slug': typeof CariSlugRouteWithChildren
+  '/en/$slug': typeof EnSlugRouteWithChildren
   '/genre/$slug': typeof GenreSlugRouteWithChildren
   '/halaman/$page': typeof HalamanPageRoute
   '/kategori/$slug': typeof KategoriSlugRouteWithChildren
+  '/og/$id': typeof OgIdRoute
   '/thumb/$id': typeof ThumbIdRoute
   '/v/$id': typeof VIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/cari/': typeof CariIndexRoute
+  '/en/': typeof EnIndexRoute
   '/genre/': typeof GenreIndexRoute
   '/kategori/': typeof KategoriIndexRoute
   '/api/analytics/health': typeof ApiAnalyticsHealthRoute
@@ -508,6 +560,7 @@ export interface FileRoutesById {
   '/api/analytics/track': typeof ApiAnalyticsTrackRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/cari/$slug/halaman/$page': typeof CariSlugHalamanPageRoute
+  '/en/$slug/halaman/$page': typeof EnSlugHalamanPageRoute
   '/genre/$slug/halaman/$page': typeof GenreSlugHalamanPageRoute
   '/kategori/$slug/halaman/$page': typeof KategoriSlugHalamanPageRoute
 }
@@ -518,8 +571,10 @@ export interface FileRouteTypes {
     | '/2257'
     | '/campur'
     | '/dmca'
+    | '/en'
     | '/genre'
     | '/kategori'
+    | '/kirim'
     | '/kontak'
     | '/pemilik'
     | '/privacy'
@@ -552,13 +607,16 @@ export interface FileRouteTypes {
     | '/api/tape-thumb'
     | '/api/telegram'
     | '/cari/$slug'
+    | '/en/$slug'
     | '/genre/$slug'
     | '/halaman/$page'
     | '/kategori/$slug'
+    | '/og/$id'
     | '/thumb/$id'
     | '/v/$id'
     | '/watch/$id'
     | '/cari/'
+    | '/en/'
     | '/genre/'
     | '/kategori/'
     | '/api/analytics/health'
@@ -567,6 +625,7 @@ export interface FileRouteTypes {
     | '/api/analytics/track'
     | '/api/auth/$'
     | '/cari/$slug/halaman/$page'
+    | '/en/$slug/halaman/$page'
     | '/genre/$slug/halaman/$page'
     | '/kategori/$slug/halaman/$page'
   fileRoutesByTo: FileRoutesByTo
@@ -575,6 +634,7 @@ export interface FileRouteTypes {
     | '/2257'
     | '/campur'
     | '/dmca'
+    | '/kirim'
     | '/kontak'
     | '/pemilik'
     | '/privacy'
@@ -607,13 +667,16 @@ export interface FileRouteTypes {
     | '/api/tape-thumb'
     | '/api/telegram'
     | '/cari/$slug'
+    | '/en/$slug'
     | '/genre/$slug'
     | '/halaman/$page'
     | '/kategori/$slug'
+    | '/og/$id'
     | '/thumb/$id'
     | '/v/$id'
     | '/watch/$id'
     | '/cari'
+    | '/en'
     | '/genre'
     | '/kategori'
     | '/api/analytics/health'
@@ -622,6 +685,7 @@ export interface FileRouteTypes {
     | '/api/analytics/track'
     | '/api/auth/$'
     | '/cari/$slug/halaman/$page'
+    | '/en/$slug/halaman/$page'
     | '/genre/$slug/halaman/$page'
     | '/kategori/$slug/halaman/$page'
   id:
@@ -630,8 +694,10 @@ export interface FileRouteTypes {
     | '/2257'
     | '/campur'
     | '/dmca'
+    | '/en'
     | '/genre'
     | '/kategori'
+    | '/kirim'
     | '/kontak'
     | '/pemilik'
     | '/privacy'
@@ -664,13 +730,16 @@ export interface FileRouteTypes {
     | '/api/tape-thumb'
     | '/api/telegram'
     | '/cari/$slug'
+    | '/en/$slug'
     | '/genre/$slug'
     | '/halaman/$page'
     | '/kategori/$slug'
+    | '/og/$id'
     | '/thumb/$id'
     | '/v/$id'
     | '/watch/$id'
     | '/cari/'
+    | '/en/'
     | '/genre/'
     | '/kategori/'
     | '/api/analytics/health'
@@ -679,6 +748,7 @@ export interface FileRouteTypes {
     | '/api/analytics/track'
     | '/api/auth/$'
     | '/cari/$slug/halaman/$page'
+    | '/en/$slug/halaman/$page'
     | '/genre/$slug/halaman/$page'
     | '/kategori/$slug/halaman/$page'
   fileRoutesById: FileRoutesById
@@ -688,8 +758,10 @@ export interface RootRouteChildren {
   R2257Route: typeof R2257Route
   CampurRoute: typeof CampurRoute
   DmcaRoute: typeof DmcaRoute
+  EnRoute: typeof EnRouteWithChildren
   GenreRoute: typeof GenreRouteWithChildren
   KategoriRoute: typeof KategoriRouteWithChildren
+  KirimRoute: typeof KirimRoute
   KontakRoute: typeof KontakRoute
   PemilikRoute: typeof PemilikRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -723,6 +795,7 @@ export interface RootRouteChildren {
   ApiTelegramRoute: typeof ApiTelegramRoute
   CariSlugRoute: typeof CariSlugRouteWithChildren
   HalamanPageRoute: typeof HalamanPageRoute
+  OgIdRoute: typeof OgIdRoute
   ThumbIdRoute: typeof ThumbIdRoute
   VIdRoute: typeof VIdRoute
   WatchIdRoute: typeof WatchIdRoute
@@ -764,6 +837,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DmcaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/en': {
+      id: '/en'
+      path: '/en'
+      fullPath: '/en'
+      preLoaderRoute: typeof EnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/genre': {
       id: '/genre'
       path: '/genre'
@@ -776,6 +856,13 @@ declare module '@tanstack/react-router' {
       path: '/kategori'
       fullPath: '/kategori'
       preLoaderRoute: typeof KategoriRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kirim': {
+      id: '/kirim'
+      path: '/kirim'
+      fullPath: '/kirim'
+      preLoaderRoute: typeof KirimRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kontak': {
@@ -1009,6 +1096,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CariSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/en/': {
+      id: '/en/'
+      path: '/'
+      fullPath: '/en/'
+      preLoaderRoute: typeof EnIndexRouteImport
+      parentRoute: typeof EnRoute
+    }
+    '/en/$slug': {
+      id: '/en/$slug'
+      path: '/$slug'
+      fullPath: '/en/$slug'
+      preLoaderRoute: typeof EnSlugRouteImport
+      parentRoute: typeof EnRoute
+    }
     '/genre/': {
       id: '/genre/'
       path: '/'
@@ -1043,6 +1144,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kategori/$slug'
       preLoaderRoute: typeof KategoriSlugRouteImport
       parentRoute: typeof KategoriRoute
+    }
+    '/og/$id': {
+      id: '/og/$id'
+      path: '/og/$id'
+      fullPath: '/og/$id'
+      preLoaderRoute: typeof OgIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/thumb/$id': {
       id: '/thumb/$id'
@@ -1107,6 +1215,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CariSlugHalamanPageRouteImport
       parentRoute: typeof CariSlugRoute
     }
+    '/en/$slug/halaman/$page': {
+      id: '/en/$slug/halaman/$page'
+      path: '/halaman/$page'
+      fullPath: '/en/$slug/halaman/$page'
+      preLoaderRoute: typeof EnSlugHalamanPageRouteImport
+      parentRoute: typeof EnSlugRoute
+    }
     '/genre/$slug/halaman/$page': {
       id: '/genre/$slug/halaman/$page'
       path: '/halaman/$page'
@@ -1123,6 +1238,29 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface EnSlugRouteChildren {
+  EnSlugHalamanPageRoute: typeof EnSlugHalamanPageRoute
+}
+
+const EnSlugRouteChildren: EnSlugRouteChildren = {
+  EnSlugHalamanPageRoute: EnSlugHalamanPageRoute,
+}
+
+const EnSlugRouteWithChildren =
+  EnSlugRoute._addFileChildren(EnSlugRouteChildren)
+
+interface EnRouteChildren {
+  EnSlugRoute: typeof EnSlugRouteWithChildren
+  EnIndexRoute: typeof EnIndexRoute
+}
+
+const EnRouteChildren: EnRouteChildren = {
+  EnSlugRoute: EnSlugRouteWithChildren,
+  EnIndexRoute: EnIndexRoute,
+}
+
+const EnRouteWithChildren = EnRoute._addFileChildren(EnRouteChildren)
 
 interface GenreSlugRouteChildren {
   GenreSlugHalamanPageRoute: typeof GenreSlugHalamanPageRoute
@@ -1191,8 +1329,10 @@ const rootRouteChildren: RootRouteChildren = {
   R2257Route: R2257Route,
   CampurRoute: CampurRoute,
   DmcaRoute: DmcaRoute,
+  EnRoute: EnRouteWithChildren,
   GenreRoute: GenreRouteWithChildren,
   KategoriRoute: KategoriRouteWithChildren,
+  KirimRoute: KirimRoute,
   KontakRoute: KontakRoute,
   PemilikRoute: PemilikRoute,
   PrivacyRoute: PrivacyRoute,
@@ -1226,6 +1366,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTelegramRoute: ApiTelegramRoute,
   CariSlugRoute: CariSlugRouteWithChildren,
   HalamanPageRoute: HalamanPageRoute,
+  OgIdRoute: OgIdRoute,
   ThumbIdRoute: ThumbIdRoute,
   VIdRoute: VIdRoute,
   WatchIdRoute: WatchIdRoute,

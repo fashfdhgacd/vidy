@@ -1,11 +1,13 @@
+import { usePublicText } from "@/lib/public-ui";
 // Ad-blocker gate for Videy watch pages only (watch-page.tsx wraps VideyPlayer with it). Every other
 // host (IndoAV, UserBokep, Putarin/Jav, Streamtape, ...) and every catalog page is never gated.
 // player.tsx and the iframe URLs stay as they are.
 // Detection, once per page load, client only, no polling:
 //  1. a bait element with ad-like class names; blockers' cosmetic filters hide it (height 0 /
 //     display none);
-//  2. a no-cors request to the ExoClick ad script we already load on grid cards
-//     (a.magsrv.com/ad-provider.js). A blocker rejects it at once; a slow network does not reject.
+//  2. a no-cors request to a display-slot script, only when that slot is enabled.
+//     A blocker rejects it at once; a slow network does not reject. While those slots
+//     are off this step is skipped, so the gate does not call an ad network.
 // Network rule against false positives: a rejected ad request only counts when the browser is
 // online and a same-origin control request (/robots.txt) succeeds, and anything that is still
 // pending after DETECT_TIMEOUT_MS is treated as "not blocked". The single setTimeout is the
@@ -13,8 +15,9 @@
 // Events go to /api/ad-log (existing D1 counters, host VideyAd): ad:adblock (detected) and
 // ad:gate_pass (visitor reloaded with the blocker off), each at most once per page view.
 import { useEffect, useState, type ReactNode } from "react";
+import { slotScript } from "@/lib/ads/spots";
 
-const AD_SCRIPT = "https://a.magsrv.com/ad-provider.js";
+const AD_SCRIPT = slotScript("banner300x250") || slotScript("inPagePush") || slotScript("videoSlider");
 const DETECT_TIMEOUT_MS = 4000;
 const FLAG = "kdp_adblock_seen";
 
@@ -46,7 +49,7 @@ function baitHidden(): boolean {
 
 /** Resolves true only when the ad request was rejected while the network clearly works. */
 function scriptBlocked(): Promise<boolean> {
-  if (!navigator.onLine) return Promise.resolve(false);
+  if (!AD_SCRIPT || !navigator.onLine) return Promise.resolve(false);
   const ad = fetch(AD_SCRIPT, { mode: "no-cors", cache: "no-store", credentials: "omit" }).then(
     () => true,
     () => false,
@@ -80,6 +83,7 @@ export function detectAdblock(): Promise<boolean> {
 }
 
 export function AdblockGate({ videoId, children }: { videoId: string; children: ReactNode }) {
+  const localText = usePublicText();
   const [verdict, setVerdict] = useState<Verdict>("checking");
 
   useEffect(() => {
@@ -115,7 +119,7 @@ export function AdblockGate({ videoId, children }: { videoId: string; children: 
         >
           <div className="max-w-sm space-y-3">
             <p id="kdp-adblock-title" className="text-base font-semibold sm:text-lg">
-              Matikan pemblokir iklan dulu ya
+              {localText("Matikan pemblokir iklan dulu ya")}
             </p>
             <p className="text-sm text-white/80">
               Videy Hub gratis karena iklan. Matikan AdBlock atau mode pemblokir iklan di browser
@@ -126,7 +130,7 @@ export function AdblockGate({ videoId, children }: { videoId: string; children: 
               onClick={() => window.location.reload()}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
             >
-              Sudah, muat ulang
+              {localText("Sudah, muat ulang")}
             </button>
           </div>
         </div>

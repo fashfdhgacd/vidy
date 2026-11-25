@@ -1,4 +1,6 @@
+import { usePublicLanguage, usePublicText } from "@/lib/public-ui";
 import { useEffect, useState } from "react";
+import { tr, UI_EN } from "@/lib/ui-lang";
 
 /**
  * Tombol "Pasang aplikasi" (PWA, pakai /site.webmanifest yang sudah ada).
@@ -40,6 +42,9 @@ function isIos(): boolean {
 }
 
 export function InstallApp() {
+  const tr = usePublicText();
+  const UI_EN = usePublicLanguage() === "en";
+  const localText = usePublicText();
   const [evt, setEvt] = useState<BipEvent | null>(null);
   const [ios, setIos] = useState(false);
   const [hint, setHint] = useState(false);
@@ -97,16 +102,25 @@ export function InstallApp() {
           onClick={install}
           className="inline-flex items-center gap-2 rounded-full border border-teal-400/60 px-4 py-2 text-sm font-medium text-teal-300 transition-colors hover:bg-teal-400/10"
         >
-          📲 Pasang aplikasi
+          📲 {tr("Pasang aplikasi", "Install app")}
         </button>
         <button type="button" onClick={dismiss} className="text-xs text-muted underline-offset-2 hover:underline">
-          Nanti saja
+          {tr("Nanti saja", "Not now")}
         </button>
       </div>
       {ios && hint ? (
         <p className="text-xs text-zinc-400">
-          Di Safari: tap tombol <strong>Bagikan</strong> (kotak dengan panah ke atas), lalu pilih{" "}
-          <strong>Tambah ke Layar Utama</strong>.
+          {UI_EN ? (
+            <>
+              In Safari: tap <strong>Share</strong> (the box with an up arrow), then choose{" "}
+              <strong>Add to Home Screen</strong>.
+            </>
+          ) : (
+            <>
+              {localText("Di Safari: tap tombol")} <strong>{localText("Bagikan")}</strong> {localText("(kotak dengan panah ke atas), lalu pilih")}{" "}
+              <strong>{localText("Tambah ke Layar Utama")}</strong>.
+            </>
+          )}
         </p>
       ) : null}
     </div>

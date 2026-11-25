@@ -1,3 +1,4 @@
+import { tr, UI_EN } from "@/lib/ui-lang";
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle, LoaderCircle } from "lucide-react";
@@ -541,9 +542,9 @@ export function VideoPlayer({ item }: { item: VideoDetail }) {
             ) : null}
             {showGone ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/80 px-6 text-center">
-                <p className="text-sm font-medium text-foreground">Dihapus oleh sumber</p>
+                <p className="text-sm font-medium text-foreground">{tr("Dihapus oleh sumber", "Removed by the source")}</p>
                 <p className="max-w-sm text-xs text-muted">
-                  Video ini sudah tidak tersedia di {displayHost(gone?.host || host)}.
+                  {tr("Video ini sudah tidak tersedia di", "This video is no longer available on")} {displayHost(gone?.host || host)}.
                 </p>
                 <button
                   type="button"
@@ -553,7 +554,7 @@ export function VideoPlayer({ item }: { item: VideoDetail }) {
                     start();
                   }}
                 >
-                  Tetap coba putar
+                  {tr("Tetap coba putar", "Try to play anyway")}
                 </button>
               </div>
             ) : (
@@ -565,7 +566,7 @@ export function VideoPlayer({ item }: { item: VideoDetail }) {
                 onTouchStart={() => preconnect(playUrl)}
                 onFocus={() => preconnect(playUrl)}
                 disabled={!current}
-                aria-label={current ? `Putar ${cleanDisplayTitle(item.title)}` : "Video tidak tersedia"}
+                aria-label={current ? `${tr("Putar", "Play")} ${cleanDisplayTitle(item.title)}` : tr("Video tidak tersedia", "Video unavailable")}
               >
                 <PixelPlayButton />
               </button>
@@ -644,26 +645,26 @@ export function VideoPlayer({ item }: { item: VideoDetail }) {
         {failed ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/85 px-6 text-center">
             <AlertTriangle className="size-7 text-destructive" />
-            <p className="max-w-sm text-sm text-muted">Pemutar gagal. Coba lagi atau buka di situs sumbernya.</p>
+            <p className="max-w-sm text-sm text-muted">{tr("Pemutar gagal. Coba lagi atau buka di situs sumbernya.", "The player failed. Try again or open it on the source site.")}</p>
             <div className="flex flex-wrap justify-center gap-2">
               <Button size="sm" onClick={retryQuiet}>
-                Coba lagi
+                {tr("Coba lagi", "Try again")}
               </Button>
               {playUrl ? (
                 <Button size="sm" variant="outline" onClick={openSource}>
-                  Buka di {hostName}
+                  {tr("Buka di", "Open on")} {hostName}
                 </Button>
               ) : null}
               {alt ? (
                 <Button size="sm" variant="outline" asChild>
                   <Link to="/watch/$id" params={{ id: alt.id }} onClick={() => acted("alt2")}>
-                    Coba server lain
+                    {tr("Coba server lain", "Try another server")}
                   </Link>
                 </Button>
               ) : null}
               {current ? (
                 <Button size="sm" variant="ghost" onClick={report} disabled={reported}>
-                  {reported ? "Laporan terkirim" : "Laporkan"}
+                  {reported ? tr("Laporan terkirim", "Report sent") : tr("Laporkan", "Report")}
                 </Button>
               ) : null}
             </div>
@@ -672,28 +673,30 @@ export function VideoPlayer({ item }: { item: VideoDetail }) {
 
         {!current && !started ? (
           <div className="absolute inset-x-0 bottom-0 p-4 text-center text-sm text-muted">
-            Video tidak tersedia untuk judul ini.
+            {tr("Video tidak tersedia untuk judul ini.", "No video is available for this title.")}
           </div>
         ) : null}
       </div>
       {!started && current && current.mode === "iframe" && !showGone ? (
         <p className="px-3 py-2 text-[11px] leading-snug text-muted sm:text-xs">
-          Iklan dari penyedia video ({hostName}) bisa muncul saat diputar.
+          {UI_EN
+            ? `The video host (${hostName}) may show its own ads when playing.`
+            : `Iklan dari penyedia video (${hostName}) bisa muncul saat diputar.`}
         </p>
       ) : null}
       {showHint ? (
         <div className="border-l-2 border-[#ecb43c] px-3 py-2" role="status">
           <p className="text-[11px] leading-snug text-foreground sm:text-xs">
             {stError
-              ? `${hostName} melaporkan error untuk video ini.`
-              : `Player ${hostName} lambat merespons. Tunggu sebentar, atau:`}
+              ? tr(`${hostName} melaporkan error untuk video ini.`, `${hostName} reported an error for this video.`)
+              : tr(`Player ${hostName} lambat merespons. Tunggu sebentar, atau:`, `The ${hostName} player is slow to respond. Wait a moment, or:`)}
           </p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             <button type="button" className={hintBtn} onClick={retryCurrent}>
-              Coba lagi
+              {tr("Coba lagi", "Try again")}
             </button>
             <button type="button" className={hintBtn} onClick={openSource}>
-              Buka di {hostName}
+              {tr("Buka di", "Open on")} {hostName}
             </button>
             {alt ? (
               <Link
@@ -702,35 +705,35 @@ export function VideoPlayer({ item }: { item: VideoDetail }) {
                 className={hintBtn}
                 onClick={() => acted("alt2")}
               >
-                Coba server lain ({displayHost(alt.host)})
+                {tr("Coba server lain", "Try another server")} ({displayHost(alt.host)})
               </Link>
             ) : null}
             <button type="button" className={hintBtn} onClick={report} disabled={reported}>
-              {reported ? "Laporan terkirim" : "Lapor"}
+              {reported ? tr("Laporan terkirim", "Report sent") : tr("Lapor", "Report")}
             </button>
           </div>
         </div>
       ) : started && playUrl && !failed ? (
         <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 px-3 py-2 text-[11px] leading-snug text-muted sm:text-xs">
-          <span>Belum jalan?</span>
+          <span>{tr("Belum jalan?", "Not playing?")}</span>
           <button type="button" className={linkBtn} onClick={retryCurrent}>
-            Coba lagi
+            {tr("Coba lagi", "Try again")}
           </button>
           <span aria-hidden="true">·</span>
           <button type="button" className={linkBtn} onClick={openSource}>
-            Buka sumber
+            {tr("Buka sumber", "Open original")}
           </button>
           {alt ? (
             <>
               <span aria-hidden="true">·</span>
               <Link to="/watch/$id" params={{ id: alt.id }} className={linkBtn} onClick={() => acted("alt2")}>
-                Coba server lain
+                {tr("Coba server lain", "Try another server")}
               </Link>
             </>
           ) : null}
           <span aria-hidden="true">·</span>
           <button type="button" className={linkBtn} onClick={report} disabled={reported}>
-            {reported ? "Laporan terkirim" : "Lapor"}
+            {reported ? tr("Laporan terkirim", "Report sent") : tr("Lapor", "Report")}
           </button>
         </p>
       ) : null}

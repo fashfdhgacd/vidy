@@ -1,18 +1,19 @@
-# Once a day. Pulls the koleksidrpinguin.com catalog (JSON only; a Cloudflare
-# challenge is ignored) and writes data/synced-catalog.json. The same run fills
-# data/videqsss-catalog.json: one bulk import of sites.videqsss.folderUrl when
-# that link is set, then new pemilik uploads from videos-latest. folderUrl stays
-# empty until the owner sets it. The Worker bundles both files. No Worker cron,
-# no per-visit fetch, no KV write on this path.
-# Toggles: data/videyy-sync.config.json, or the JSON at remoteConfigUrl.
-# KV key videyy:sync:config is reserved for a later panel; this job does not read it
-# unless a remoteConfigUrl is set, so a visit never touches that key.
+# Once a day (00:30 WIB) plus on request. Pulls the koleksidrpinguin.com catalog export
+# (/api/satelit/catalog.json) and the per-site panel settings (/api/satelit/config.json), writes
+# data/synced-catalog.json, data/satelit-config.json and public/sync-status.json. The Worker bundles
+# the data files; sync-status.json is a static asset the /pemilik panel reads for "Sync terakhir".
+# No Worker cron, no per-visit fetch, no KV write on this path.
+# "Sync sekarang" in /pemilik: workflow_dispatch / repository_dispatch (satelit-sync) from the main
+# Worker, and as a fallback the 2-hourly poll below syncs when config.json has a newer request.
 name: Videy catalog sync
 
 on:
   schedule:
     - cron: "30 17 * * *"
+    - cron: "10 */2 * * *"
   workflow_dispatch:
+  repository_dispatch:
+    types: [satelit-sync]
 
 permissions:
   contents: write
@@ -36,19 +37,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VIDEY_SYNC_TOKEN: ${{ secrets.VIDEY_SYNC_TOKEN }}
+          SYNC_MODE: ${{ github.event_name == 'schedule' && github.event.schedule != '30 17 * * *' && 'poll' || 'full' }}
+          SYNC_TRIGGER: ${{ github.event_name == 'schedule' && (github.event.schedule == '30 17 * * *' && 'daily' || 'panel-request') || (github.event_name == 'workflow_dispatch' && 'manual' || 'panel-request') }}
         run: node scripts/videyy-sync.mjs
 
-      - name: Commit snapshot when the catalog changed
+      - name: Commit snapshot when something changed
         run: |
           set -e
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- data/synced-catalog.json data/videqsss-catalog.json src/lib/catalog/catalog-blocklist.json
+          git add -- data/videqsss-catalog.json data/synced-catalog.json data/satelit-config.json public/sync-status.json src/lib/catalog/catalog-blocklist.json
           if git diff --cached --quiet; then
-            echo "No catalog changes."
+            echo "No changes."
             exit 0
           fi
-          git commit -m "chore(sync): daily koleksidrpinguin catalog snapshot"
+          git commit -m "chore(sync): koleksidrpinguin catalog snapshot + sync status"
           for i in 1 2 3 4 5; do
             git pull --rebase origin main || true
             if git push origin HEAD:main; then

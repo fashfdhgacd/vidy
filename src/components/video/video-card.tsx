@@ -1,10 +1,12 @@
+import { isIndoAvCreator, NO_POP_CLASS } from "@/lib/ads/exo-popunder";
+import { useTr } from "@/lib/ui-lang";
 import { IS_VIDEQSSS, cleanDisplayTitle } from "@/lib/seo";
 import { Link } from "@tanstack/react-router";
 import { Clock, Eye, Heart, Play } from "lucide-react";
 import type { VideoCard as VideoCardType } from "@/lib/catalog/types";
 import { rememberCatalog } from "@/lib/catalog/last-catalog";
 import { useSiteLikes } from "@/lib/live-likes";
-import { VideoThumb } from "./thumb";
+import { CardThumb } from "./card-thumb";
 
 function compactNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M`;
@@ -16,13 +18,17 @@ type VideoCardPreload = false | "intent" | "viewport";
 
 export function VideoCard({
   video,
+  catalog = false,
   eager = false,
   preload = false,
 }: {
   video: VideoCardType;
+  catalog?: boolean;
   eager?: boolean;
   preload?: VideoCardPreload;
 }) {
+  const tr = useTr();
+  const en = tr("id", "en") === "en";
   // 0 is shown too (own-pageview sources start at 0); null = no count known.
   const views = typeof video.views === "number" && video.views >= 0 ? video.views : null;
   // Likes = source likes (folder stats) + our own D1 likes, 0 when none. Our likes start from the
@@ -39,16 +45,18 @@ export function VideoCard({
       preload={preload}
       onClick={() => rememberCatalog()}
       className={
-        IS_VIDEQSSS
-          ? "group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4b942]"
-          : "group block rounded-xl p-1 transition-colors duration-150 ease-out hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-1.5"
+        (isIndoAvCreator(video.creator) ? `${NO_POP_CLASS} ` : "") +
+        (catalog ? "rounded-none " : IS_VIDEQSSS ? "rounded-lg " : "rounded-xl ") +
+        (IS_VIDEQSSS
+          ? "group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4b942]"
+          : "group block p-1 transition-colors duration-150 ease-out hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-1.5")
       }
     >
-      <div className={IS_VIDEQSSS ? "relative aspect-video overflow-hidden rounded-lg bg-surface-2" : "relative aspect-video overflow-hidden rounded-xl bg-surface-2"}>
-        <VideoThumb
+      <div className={catalog ? "relative aspect-[16/10] overflow-hidden rounded-none bg-surface-2" : IS_VIDEQSSS ? "relative aspect-video overflow-hidden rounded-lg bg-surface-2" : "relative aspect-video overflow-hidden rounded-xl bg-surface-2"}>
+        <CardThumb
+          id={video.id}
           src={typeof video.thumbnail === "string" ? video.thumbnail : ""}
           alt={cleanDisplayTitle(video.title)}
-          videoId={video.id}
           eager={eager}
         />
         {IS_VIDEQSSS ? null : (
@@ -56,7 +64,7 @@ export function VideoCard({
         )}
         {video.isNew ? (
           <span className="pointer-events-none absolute left-2 top-2 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground sm:text-[11px]">
-            Baru
+            {tr("Baru", "New")}
           </span>
         ) : null}
         <div className="pointer-events-none absolute inset-0 hidden items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 sm:flex">
@@ -73,24 +81,24 @@ export function VideoCard({
           {typeof video.periodViews === "number" && video.periodLabel ? (
             <span
               className="inline-flex items-center gap-1"
-              aria-label={`${video.periodViews} kali ditonton ${video.periodLabel}`}
+              aria-label={tr(`${video.periodViews} kali ditonton ${video.periodLabel}`, `${video.periodViews} views ${video.periodLabel}`)}
             >
               <Eye className="size-3.5" aria-hidden="true" />
-              {video.periodViews.toLocaleString("id-ID")} tayangan {video.periodLabel}
+              {video.periodViews.toLocaleString(en ? "en-US" : "id-ID")} {tr("tayangan", "views")} {video.periodLabel}
             </span>
           ) : views != null ? (
-            <span className="inline-flex items-center gap-1" aria-label={`${views} kali ditonton`}>
+            <span className="inline-flex items-center gap-1" aria-label={tr(`${views} kali ditonton`, `${views} views`)}>
               <Eye className="size-3.5" aria-hidden="true" />
               {compactNumber(views)}
             </span>
           ) : null}
           {showDuration ? (
-            <span className="inline-flex items-center gap-1" aria-label="Durasi">
+            <span className="inline-flex items-center gap-1" aria-label={tr("Durasi", "Duration")}>
               <Clock className="size-3.5" aria-hidden="true" />
-              {video.durationLabel}
+              {en ? video.durationLabel?.replace(/(\d+)j\b/, "$1h") : video.durationLabel}
             </span>
           ) : null}
-          <span className="inline-flex items-center gap-1" aria-label={`${likes} suka`}>
+          <span className="inline-flex items-center gap-1" aria-label={tr(`${likes} suka`, `${likes} likes`)}>
             <Heart className="size-3.5" aria-hidden="true" />
             {compactNumber(likes)}
           </span>

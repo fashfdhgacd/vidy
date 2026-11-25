@@ -36,10 +36,52 @@ export const LANDING_POOL = 144;
 export const LANDING_INDEX_PAGES = 5;
 
 /**
- * Genre landings use only these sources (already in our catalog). The Videy landing is the
- * exception: it is a source page, not a genre page.
+ * Sources kept off genre landings: Videy has its own source landing (/cari/videy), and its
+ * files carry generic numbered titles. Every other host the main site syncs here is allowed.
  */
-export const OWN_CATALOG_SOURCES = new Set(["IndoAV", "UserBokep"]);
+export const GENRE_EXCLUDED_SOURCES = new Set(["Videy"]);
+
+/** Hosts with their own view counts; other hosts start at 0 views and would sink on a views sort. */
+const VIEW_COUNTED_SOURCES = new Set(["IndoAV", "UserBokep"]);
+
+/**
+ * Landing order: the most-viewed IndoAV/UserBokep cards (as given, already sorted by views) with
+ * one card from the other hosts (Byse, Vidara, LuluStream, ...), newest first, after every
+ * `every` of them. Each card appears once; when one side runs out the other continues.
+ */
+export function mixOtherHosts<T extends { creator?: string | null }>(
+  byViews: readonly T[],
+  newestRank: (card: T) => number,
+  every = 3,
+): T[] {
+  const own: T[] = [];
+  const other: T[] = [];
+  for (const c of byViews) (VIEW_COUNTED_SOURCES.has(String(c.creator || "")) ? own : other).push(c);
+  if (!own.length || !other.length) return byViews.slice();
+  const newest = other
+    .map((c, i) => ({ c, i, t: newestRank(c) }))
+    .sort((a, b) => b.t - a.t || a.i - b.i)
+    .map((x) => x.c);
+  const out: T[] = [];
+  let o = 0;
+  let n = 0;
+  while (o < own.length || n < newest.length) {
+    for (let k = 0; k < every && o < own.length; k++) out.push(own[o++]);
+    if (n < newest.length) out.push(newest[n++]);
+  }
+  return out;
+}
+
+/**
+ * Stable split: videos still inside the "Baru" window (card.isNew) first, then the rest in the
+ * given order, so a fresh upload from any host shows on page 1 of a landing sorted by views.
+ */
+export function freshFirst<T extends { isNew?: boolean }>(cards: readonly T[]): T[] {
+  const fresh: T[] = [];
+  const rest: T[] = [];
+  for (const c of cards) (c.isNew ? fresh : rest).push(c);
+  return fresh.length ? [...fresh, ...rest] : cards.slice();
+}
 
 /**
  * Words a landing page (slug, H1, title, intro) and its video titles must never contain:
@@ -48,8 +90,12 @@ export const OWN_CATALOG_SOURCES = new Set(["IndoAV", "UserBokep"]);
 export const LANDING_BANNED =
   /\b(abg|smp|sma|smk|sd|bocil|bocah|pelajar|siswi|siswa|sekolah|seragam|anak|dibawah\s*umur|under\s*age|underage|loli|lolita|remaja|perawan|bocor|bocoran|kesebar|tersebar|direkam|rekam\s*diam|skandal|paksa|dipaksa|diperkosa|perkosa|mabuk|tidur|pingsan|ngintip|intip|hidden\s*cam|spy\s*cam)\b/i;
 
+/** Titles kept out of every SEO surface (keyword pages, their ItemList), owner decision 2026-11-20. */
+export const SEO_EXCLUDED_TITLE = /andini\s*permata/i;
+
 export function hasBannedWord(text: string): boolean {
-  return LANDING_BANNED.test(String(text || ""));
+  const t = String(text || "");
+  return LANDING_BANNED.test(t) || SEO_EXCLUDED_TITLE.test(t);
 }
 
 export const LANDINGS: LandingDef[] = [
@@ -149,7 +195,7 @@ export const LANDINGS: LandingDef[] = [
     description:
       "Bokep indo AI paling banyak ditonton: video buatan AI berbahasa Indonesia. Streaming di HP tanpa VPN. Khusus 18+.",
     intro:
-      "Bokep indo AI adalah video buatan kecerdasan buatan dengan judul dan cerita berbahasa Indonesia, bukan rekaman orang sungguhan. Halaman ini menampilkan yang paling banyak ditonton di videyy.icu dari kategori AI Indo, hanya yang sumbernya IndoAV atau UserBokep, diurutkan dari tayangan terbanyak. Gambarnya hasil generate dewasa, jadi tidak ada identitas pribadi di dalamnya. Videonya ringan dibuka di HP dan langsung bisa diputar tanpa VPN, tanpa aplikasi tambahan, dan tanpa login. Kalau ingin seluruh unggahan dalam urutan terbaru, buka kategori AI Indo lewat tautan di bawah. Simpan alamat situs ini supaya koleksi yang sama mudah ditemukan lagi nanti.",
+      "Bokep indo AI adalah video buatan kecerdasan buatan dengan judul dan cerita berbahasa Indonesia, bukan rekaman orang sungguhan. Halaman ini menampilkan yang paling banyak ditonton di videyy.icu dari kategori AI Drama Indo, hanya yang sumbernya IndoAV atau UserBokep, diurutkan dari tayangan terbanyak. Gambarnya hasil generate dewasa, jadi tidak ada identitas pribadi di dalamnya. Videonya ringan dibuka di HP dan langsung bisa diputar tanpa VPN, tanpa aplikasi tambahan, dan tanpa login. Kalau ingin seluruh unggahan dalam urutan terbaru, buka kategori AI Drama Indo lewat tautan di bawah. Simpan alamat situs ini supaya koleksi yang sama mudah ditemukan lagi nanti.",
     queries: ["bokep indo ai", "video ai indonesia", "bokep ai indo"],
   },
   {
@@ -297,7 +343,8 @@ export function landingTitleOk(title: string, match?: RegExp): boolean {
 }
 
 /**
- * A card may appear on /cari. Genre pages stay on IndoAV and UserBokep already in the catalog.
+ * A card may appear on /cari. Genre pages take every synced host except Videy (Byse, MXDrop,
+ * Vidara, LuluStream, Putarin, Dood, Streamtape, IndoAV, UserBokep, ...).
  * The Videy landing is the one source page and does not pull other hosts.
  * Blocklist ids are rejected by the caller (isSeoBlockedId), not by title school-words on JAV.
  */
@@ -307,7 +354,7 @@ export function acceptLandingCard(
 ): boolean {
   if (!landingTitleOk(String(card.title || ""), def.match)) return false;
   if (def.category === "videy") return card.category === "videy" || String(card.creator || "") === "Videy";
-  return OWN_CATALOG_SOURCES.has(String(card.creator || ""));
+  return !GENRE_EXCLUDED_SOURCES.has(String(card.creator || ""));
 }
 
 export function wordCount(text: string): number {

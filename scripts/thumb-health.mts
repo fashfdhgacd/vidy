@@ -22,7 +22,9 @@ const { loadAll } = require("./lib/latest-chunks.cjs");
 
 const DRY = process.env.DRY_RUN === "1";
 const SITE = "https://videyy.icu";
-const R2 = "https://img.videyy.icu/posters/typed/";
+// Cards already load posters from the main-site R2 host (src/components/video/thumb.tsx).
+// img.videyy.icu has no working custom domain (TLS fails), so every check used to error.
+const R2 = "https://img.koleksidrpinguin.com/posters/typed/";
 const REPAIR_CAP = Number(process.env.REPAIR_CAP || 600);
 const PUTARIN_CAP = Number(process.env.PUTARIN_CAP || 400);
 const DAY = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);

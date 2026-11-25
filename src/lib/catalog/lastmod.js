@@ -37,4 +37,5 @@ export const STATIC_PAGE_LASTMOD = {
   "/dmca": "2026-11-04",
   "/kontak": "2026-11-04",
   "/teman": "2026-10-15",
+  "/kirim": "2026-11-14",
 };

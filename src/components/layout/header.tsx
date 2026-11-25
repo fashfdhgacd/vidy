@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useTr } from "@/lib/ui-lang";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
-import { IS_VIDEQSSS } from "@/lib/seo";
+import { LanguageSwitcher } from "./language-switcher";
+import { showKirimNav } from "@/lib/kirim-videy";
+import { IS_VIDEQSSS, SITE_NAME } from "@/lib/seo";
 
 function BrandMark() {
   return (
@@ -30,8 +33,11 @@ function BrandMark() {
   );
 }
 
+
 export function Header({ query }: { query?: string }) {
+  const tr = useTr();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [draft, setDraft] = useState(query ?? "");
   const debounced = useDebounce(draft, 400);
 
@@ -64,7 +70,7 @@ export function Header({ query }: { query?: string }) {
         <Link
           to="/"
           search={{ q: undefined, category: undefined }}
-          aria-label="Videy Hub (beranda)"
+          aria-label={tr(`${SITE_NAME} (beranda)`, `${SITE_NAME} (home)`)}
           className="flex shrink-0 items-center"
         >
           <BrandMark />
@@ -85,25 +91,42 @@ export function Header({ query }: { query?: string }) {
           <Input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Cari judul…"
+            placeholder={tr("Cari judul…", "Search titles…")}
             className="h-10 rounded-full border-border bg-surface-2/80 pl-10 pr-9 text-sm shadow-none backdrop-blur transition-colors placeholder:text-muted focus-visible:border-primary/60 focus-visible:bg-surface-2 focus-visible:ring-2 focus-visible:ring-primary/25 sm:h-11"
             type="search"
             enterKeyHint="search"
             autoComplete="off"
-            aria-label="Cari judul"
+            aria-label={tr("Cari judul", "Search titles")}
           />
           {draft ? (
             <button
               type="button"
               className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors hover:bg-white/10 hover:text-foreground"
               onClick={() => setDraft("")}
-              aria-label="Hapus pencarian"
+              aria-label={tr("Hapus pencarian", "Clear search")}
             >
               <X className="size-4" />
             </button>
           ) : null}
         </form>
+        {showKirimNav(pathname, IS_VIDEQSSS) ? (
+          <Link
+            to="/kirim"
+            className="hidden shrink-0 whitespace-nowrap text-xs font-semibold text-primary underline-offset-2 hover:underline sm:inline sm:text-sm"
+          >
+            {tr("Kirim Video", "Submit a video")}
+          </Link>
+        ) : null}
+        {/* videqsss.icu is English site-wide: no ID/EN switch there. */}
+        <LanguageSwitcher />
       </div>
+      {showKirimNav(pathname, IS_VIDEQSSS) ? (
+        <div className="border-t border-border/60 px-3 py-2 sm:hidden">
+          <Link to="/kirim" className="text-sm font-semibold text-primary underline-offset-2 hover:underline">
+            {tr("Kirim Video", "Submit a video")}
+          </Link>
+        </div>
+      ) : null}
     </header>
   );
 }

@@ -20,26 +20,39 @@ export const SITE_LOGO = `${SITE_ORIGIN}/icon-512.png`;
 
 /** Snippet beranda: update harian + streaming tanpa VPN (pola growth, teks sendiri). */
 export const HOME_DESCRIPTION = IS_VIDEQSSS
-  ? "IndoAV dan UserBokep terbaru di videqsss.icu, dicampur jadi satu tanpa kategori. Streaming di HP, khusus 18+."
+  ? "The newest Indonesian amateur videos from IndoAV, UserBokep and other video hosts in one list, updated daily. Stream on your phone, no sign-up. Adults 18+ only."
   : "Nonton video terbaru, update setiap hari, di videyy.icu. Streaming lancar di HP tanpa VPN dan tanpa daftar akun. Khusus dewasa 18+.";
 
 /** Judul beranda. Brand di depan, frasa update harian, tetap di bawah 60 karakter. */
 export const HOME_TITLE = IS_VIDEQSSS
-  ? "Videqsss - Indo dan UserBokep Terbaru"
+  ? "Videqsss - Newest Indonesian Amateur Videos"
   : "Videy Hub - Video Terbaru Update Setiap Hari";
 
 /** H1 beranda, selaras dengan judul tab. */
-export const HOME_H1 = IS_VIDEQSSS ? "Indo dan UserBokep Terbaru" : "Video Terbaru Update Setiap Hari";
+export const HOME_H1 = IS_VIDEQSSS ? "Newest Indonesian Amateur Videos" : "Video Terbaru Update Setiap Hari";
 
 /** Kalimat pendek di bawah H1 beranda. */
 export const HOME_INTRO = IS_VIDEQSSS
-  ? "Hanya video IndoAV dan UserBokep, urut dari yang terbaru. Tidak ada halaman kategori. Putar langsung di HP, khusus 18+."
+  ? "Indonesian videos collected from IndoAV, UserBokep, Byse, Vidara, LuluStream and other hosts, newest first. Video titles stay in their original Indonesian. Plays right in your phone browser. Adults 18+ only."
   : "Video terbaru di Videy Hub, ditambah setiap hari dari katalog sendiri. Putar langsung di HP tanpa VPN, tanpa aplikasi, dan tanpa login. Konten khusus 18+.";
+
+/** English category names for the English build (videqsss.icu). Hand-written, not machine-translated. */
+export const EN_CATEGORY_LABELS: Record<string, string> = {
+  jav: "JAV", hentai: "Hentai", "ai-plus": "AI", "ai-gay": "AI Gay", "ai-indo": "Indonesian AI", jilbab: "Hijab",
+  tante: "Mature", amatir: "Amateur", viral: "Viral", percakapan: "Dirty Talk", kosan: "Boarding Room", colmek: "Solo",
+  istri: "Wife", live: "Live Cam", doggy: "Doggy Style", "open-bo": "Escort", malaysia: "Malay", chindo: "Chinese Indonesian",
+  gangbang: "Threesome", selingkuh: "Cheating", barat: "Western", sepong: "Blowjob", tobrut: "Busty", selebgram: "Influencer",
+  outdoor: "Outdoor", hotel: "Hotel", "kamar-mandi": "Bathroom", wot: "Cowgirl", "crot-dalam": "Creampie", hamil: "Pregnant",
+  ojol: "Ride-Hailing Driver", blunder: "Oops", "kelas-bintang": "Kelas Bintang", tiktok: "TikTok", mantan: "Ex-Girlfriend",
+  vcs: "Video Call", kompilasi: "Compilation", tetangga: "Neighbor", kacamata: "Glasses", kantor: "Office", anal: "Anal",
+  cantik: "Pretty Girl", lainnya: "Other", videy: "Videy", bokep: "Featured", "teen-18": "Young Adult (18+)", "college-18": "College (18+)",
+};
 
 function categoryLabel(slugOrLabel?: string | null): string {
   const key = (slugOrLabel || "").trim().toLowerCase();
   if (!key) return "Indo";
   const cat = findCategory(key) || findCategory(key.replace(/\s+/g, "-"));
+  if (IS_VIDEQSSS && cat && EN_CATEGORY_LABELS[cat.slug]) return EN_CATEGORY_LABELS[cat.slug];
   return (cat?.label || slugOrLabel || "Indo").trim();
 }
 
@@ -48,7 +61,7 @@ function categoryLabel(slugOrLabel?: string | null): string {
 function safeSeoLabel(slugOrLabel?: string | null): string {
   const label = categoryLabel(slugOrLabel);
   if (/\b(abg|teen|underage|bocil|anak|smp|sma|loli|shota|remap)\b/i.test(label)) {
-    return "Dewasa";
+    return IS_VIDEQSSS ? "Adult" : "Dewasa";
   }
   return label;
 }
@@ -112,7 +125,7 @@ function videoTextLabel(category?: string | null): string {
   const key = (category || "").trim().toLowerCase();
   // Videy first: its label is "drpinguin videy", which the /pinguin/ brand check would turn into "Indo".
   if (key === "videy") return "Videy";
-  if (!key || key === "bokep" || key === "lainnya" || /pinguin/i.test(categoryLabel(category))) return "Indo";
+  if (!key || key === "bokep" || key === "lainnya" || /pinguin/i.test(categoryLabel(category))) return IS_VIDEQSSS ? "Indonesian" : "Indo";
   return safeSeoLabel(category);
 }
 
@@ -145,6 +158,22 @@ function seoBaseTitle(raw?: string | null): string {
   return withoutDomainSuffix(cleanDisplayTitle(withoutDomainSuffix(raw)));
 }
 
+/** Ekor judul tonton per situs: videyy pakai kata kunci "Videy", videqsss pakai "Bokep Indo". */
+function siteTitleTails(base: string, label: string, hasLabel: boolean, hasBokep: boolean): string[] {
+  if (IS_VIDEQSSS) {
+    // English tails: the stored (Indonesian) title stays, the tail tells foreign searchers what it is.
+    const hasIndo = /\bindo(nesia|nesian)?\b/i.test(base);
+    if (hasIndo) return [" – Indonesian Amateur Video", " – Amateur Video", " – Videqsss"];
+    // Generic categories map to the label "Indonesian": no "Indonesian Indonesian Video".
+    return hasLabel || /^indonesian$/i.test(label.trim())
+      ? [" – Indonesian Amateur Video", " – Indonesian Video"]
+      : [` – Indonesian ${label} Video`, " – Indonesian Video"];
+  }
+  const hasVidey = /\bvidey\b/i.test(base);
+  if (hasVidey) return hasBokep ? [" – Viral"] : [" – Bokep Viral", " – Viral"];
+  return [" – Videy Viral", " – Videy"];
+}
+
 export function videoSeoTitle(title: string, category?: string | null): string {
   const base = seoBaseTitle(title);
   const label = videoTextLabel(category);
@@ -152,10 +181,14 @@ export function videoSeoTitle(title: string, category?: string | null): string {
   const hasLabel = new RegExp(`(?:^|[^\\p{L}\\p{N}])${esc}(?![\\p{L}\\p{N}])`, "iu").test(base);
   const hasBokep = /\bbokep\b/i.test(base);
   // Kategori hanya ditempel kalau muat utuh; tidak pernah jadi potongan seperti "– Bo…".
-  const tails = hasLabel ? (hasBokep ? [] : [" – Bokep"]) : hasBokep ? [` – ${label}`] : [` – Bokep ${label}`, " – Bokep"];
+  // Ekor judul beda per situs supaya judul satelit tidak identik dengan koleksidrpinguin.com.
+  const tails = siteTitleTails(base, label, hasLabel, hasBokep);
   for (const tail of tails) {
     if (base.length + tail.length <= VIDEO_TITLE_HEAD_MAX) return pageTitle([`${base}${tail}`]);
   }
+  // Judul panjang: potong judul supaya ekor situs tetap muat (judul tetap beda dari situs utama).
+  const last = tails[tails.length - 1];
+  if (last) return pageTitle([`${clipTitleText(base, VIDEO_TITLE_HEAD_MAX - last.length)}${last}`]);
   return pageTitle([clipTitleText(base, VIDEO_TITLE_HEAD_MAX)]);
 }
 
@@ -187,6 +220,12 @@ function durationPhrase(sec?: number | null): string {
   if (!s || s < 30) return "";
   const m = Math.round(s / 60);
   if (m < 1) return "";
+  if (IS_VIDEQSSS) {
+    if (m < 60) return `${m} min`;
+    const hh = Math.floor(m / 60);
+    const rr = m % 60;
+    return rr ? `${hh} h ${rr} min` : `${hh} h`;
+  }
   if (m < 60) return `${m} menit`;
   const h = Math.floor(m / 60);
   const r = m % 60;
@@ -228,9 +267,12 @@ export function publicWatchDescription(item: SeoVideoInput, max = 0): string {
   const title = seoBaseTitle(item.title);
   const label = videoTextLabel(item.category);
   const dur = durationPhrase(item.duration);
-  const name = title ? `“${clipTitleText(title, 80)}”` : "Koleksi ini";
-  const durBit = dur ? `, durasi ${dur}` : "";
-  const text = `${name} ada di kategori ${label}${durBit}. Putar langsung di videyy.icu tanpa daftar akun. Khusus 18+.`;
+  const name = title ? `“${clipTitleText(title, 80)}”` : IS_VIDEQSSS ? "This video" : "Koleksi ini";
+  const durBit = dur ? (IS_VIDEQSSS ? `, ${dur} long` : `, durasi ${dur}`) : "";
+  // Template per situs: meta satelit tidak sama persis dengan koleksidrpinguin.com (konten duplikat).
+  const text = IS_VIDEQSSS
+    ? `${name}: an Indonesian ${/^indonesian$/i.test(label.trim()) ? "" : `${label.toLowerCase()} `}video${durBit} on Videqsss. New uploads daily, stream free with no sign-up at videqsss.icu. 18+.`
+    : `Nonton ${name} di Videy Hub, video ${label}${durBit}. Videy viral update tiap hari, tanpa VPN di videyy.icu. 18+.`;
   return max > 0 ? clipAtWord(text, max) : text;
 }
 
@@ -275,9 +317,29 @@ function buildSentences(item: SeoVideoInput): { lead: string; detail: string; cl
   const year = (item.year || "").trim();
   const tags = safeTags(item, label);
   const tagTxt = tags.length ? tags.join(" & ") : "";
-  const seed = `${item.id || ""}|${rawTitle}`;
+  const seed = `${SITE_ID}|${item.id || ""}|${rawTitle}`;
   const pick = <T,>(arr: T[], salt: string) => arr[stablePick(seed + salt, arr.length)]!;
 
+  if (IS_VIDEQSSS) {
+    const subjEn = t ? `“${t}”` : "this video";
+    // The generic "Indonesian" label would read "an Indonesian indonesian video".
+    const lab = /^indonesian$/i.test(label.trim()) ? "amateur" : label.toLowerCase();
+    const leadsEn = [
+      `${subjEn} is an Indonesian ${lab} video${dur ? ` running about ${dur}` : ""}.`,
+      `Watch ${subjEn}, an Indonesian ${lab} clip${dur ? ` of about ${dur}` : ""}.`,
+      `${subjEn} is part of the Indonesian ${lab} collection${year ? ` from ${year}` : ""}${dur ? `, about ${dur} long` : ""}.`,
+      `Stream ${subjEn} online, an Indonesian ${lab} video${dur ? ` (${dur})` : ""} with no sign-up.`,
+    ];
+    const detailsEn = [
+      src ? `Collected from ${src}${tagTxt ? `, tagged ${tagTxt}` : ""}.` : "Plays through an embed from a third-party host.",
+      src ? `Source: ${src}. Works on phone and desktop.` : "Works on phone and desktop.",
+      tagTxt ? `For fans of ${tagTxt}.` : `For fans of Indonesian ${lab} videos.`,
+      "The title is kept in its original Indonesian.",
+    ];
+    const closesEn = ["Adults 18+ only.", "For viewers 18 and over.", "Adult content, 18+ only."];
+    const l = pick(leadsEn, "L");
+    return { lead: l.charAt(0).toUpperCase() + l.slice(1), detail: pick(detailsEn, "D"), close: pick(closesEn, "C") };
+  }
   const subj = t ? `“${t}”` : "video ini";
   const leads = [
     `${subj} adalah video kategori ${label}${dur ? ` berdurasi sekitar ${dur}` : ""}.`,
@@ -312,7 +374,9 @@ function fitLength(parts: string[], min: number, max: number): string {
     out = next;
   }
   if (out.length < min) {
-    const pad = ["Update koleksi berkala.", "Putar langsung tanpa ribet.", "Gratis, tanpa daftar akun.", "Selamat menonton."];
+    const pad = IS_VIDEQSSS
+      ? ["Updated regularly.", "Plays instantly.", "Free, no account needed.", "Enjoy the video."]
+      : ["Update koleksi berkala.", "Putar langsung tanpa ribet.", "Gratis, tanpa daftar akun.", "Selamat menonton."];
     for (const p of pad) {
       if (out.length >= min) break;
       if (`${out} ${p}`.length <= max) out = `${out} ${p}`;
@@ -380,7 +444,7 @@ export function isGoogleVideoThumbFormat(url: string): boolean {
   if (/\.(webp|avif|svg|gif|bmp|ico)($|\/)/i.test(path)) return false;
   if (/\.(jpe?g|png)($|\/)/i.test(path)) return true;
   // same-origin OG/proxy endpoints that we force to JPEG
-  if (/\/api\/og(\?|$)/i.test(url) || /\/og(-v2)?\.jpg(\?|$)/i.test(url) || /\/brand-poster(-v2)?\.jpg(\?|$)/i.test(url)) {
+  if (/\/api\/og(\?|$)/i.test(url) || /\/og\/[A-Za-z0-9_-]+(?:\.jpe?g)?(\?|$)/i.test(url) || /\/og(-v2)?\.jpg(\?|$)/i.test(url) || /\/brand-poster(-v2)?\.jpg(\?|$)/i.test(url)) {
     return true;
   }
   return false;
@@ -388,12 +452,12 @@ export function isGoogleVideoThumbFormat(url: string): boolean {
 
 /**
  * Thumbnail for VideoObject / GSC video indexing.
- * Prefer same-origin /api/og (JPEG) so bots are not sent unreachable .webp hosters.
+ * Prefer same-origin /og/<id>.jpg (JPEG) so bots are not sent unreachable .webp hosters.
  */
 export function seoVideoThumbnail(id?: string | null, thumbnail?: string | null): string {
   const idClean = (id || "").trim();
   if (idClean && /^[A-Za-z0-9_-]{3,64}$/.test(idClean)) {
-    return `${SITE_ORIGIN}/thumb/${encodeURIComponent(idClean)}.jpg`;
+    return `${SITE_ORIGIN}/og/${encodeURIComponent(idClean)}.jpg`;
   }
   const raw = String(thumbnail || "").trim();
   if (raw && isGoogleVideoThumbFormat(raw)) {
@@ -408,8 +472,8 @@ export const HOME_CANONICAL = `${SITE_ORIGIN}/`;
 export function homeSeo(q?: string, category?: string) {
   if (q) {
     return {
-      title: pageTitle([`Cari “${q}”`]),
-      description: `Hasil pencarian “${q}” di ${SITE_NAME}. Konten 18+.`,
+      title: pageTitle([IS_VIDEQSSS ? `Search “${q}”` : `Cari “${q}”`]),
+      description: IS_VIDEQSSS ? `Search results for “${q}” on ${SITE_NAME}. Adults 18+ only.` : `Hasil pencarian “${q}” di ${SITE_NAME}. Konten 18+.`,
       keywords: `${q}, ${SITE_NAME}`,
     };
   }
@@ -417,15 +481,19 @@ export function homeSeo(q?: string, category?: string) {
   if (cat) {
     const label = safeSeoLabel(cat.slug || cat.label);
     return {
-      title: pageTitle([`Bokep ${label}`]),
-      description: `Katalog bokep ${label} 18+ di ${SITE_NAME}. Streaming embed, update berkala.`,
+      title: pageTitle([IS_VIDEQSSS ? `Indonesian ${label} Videos` : `Bokep ${label}`]),
+      description: IS_VIDEQSSS
+        ? `Indonesian ${label.toLowerCase()} videos on ${SITE_NAME}, adults 18+ only. Embedded streaming, updated regularly.`
+        : `Katalog bokep ${label} 18+ di ${SITE_NAME}. Streaming embed, update berkala.`,
       keywords: categoryKeywords(cat.slug),
     };
   }
   return {
     title: HOME_TITLE,
     description: HOME_DESCRIPTION,
-    keywords: "videy hub, bokep indo, bokep viral, video 18+, nonton bokep",
+    keywords: IS_VIDEQSSS
+      ? "indonesian amateur, indonesian porn videos, indoav, userbokep, indo viral, videqsss"
+      : "videy hub, bokep indo, bokep viral, video 18+, nonton bokep",
   };
 }
 
@@ -488,7 +556,7 @@ export function videoJsonLd(input: {
     description: (input.description || "").trim().slice(0, 300),
     thumbnailUrl: thumb,
     uploadDate: realUploadDate(input.uploadDate) || uploadDateFromId(input.id),
-    inLanguage: "id",
+    inLanguage: IS_VIDEQSSS ? "en" : "id",
     isPartOf: { "@id": `${HOME_CANONICAL}#website` },
     copyrightHolder: { "@id": `${HOME_CANONICAL}#organization` },
     publisher: {
@@ -532,7 +600,7 @@ function websiteNode() {
     name: BRAND_NAME,
     alternateName: BRAND_ALT_NAMES,
     url: HOME_CANONICAL,
-    inLanguage: "id",
+    inLanguage: IS_VIDEQSSS ? "en" : "id",
     description: HOME_DESCRIPTION,
     publisher: { "@id": `${HOME_CANONICAL}#organization` },
     potentialAction: {
@@ -571,22 +639,55 @@ export function breadcrumbJsonLd(items: Array<{ name: string; url: string }>) {
 }
 
 /** CollectionPage untuk halaman kategori, terhubung ke WebSite brand. */
-export function collectionPageJsonLd(input: { name: string; url: string; description: string }) {
+export type JsonLdListItem = { id: string; title: string };
+
+/** First grid page items for ItemList (watch URLs). Drops excluded/blank titles. */
+export function listItemsFrom(items: ReadonlyArray<{ id: string; title?: string | null }> | undefined | null): JsonLdListItem[] {
+  return (items || [])
+    .map((v) => ({ id: String(v.id || ""), title: cleanDisplayTitle(String(v.title || "")) }))
+    .filter((v) => v.id && v.title && !/andini\s*permata/i.test(v.title));
+}
+
+export function collectionPageJsonLd(input: {
+  name: string;
+  url: string;
+  description: string;
+  lang?: "id" | "en";
+  items?: JsonLdListItem[];
+  startPosition?: number;
+}) {
+  const items = input.items || [];
+  const start = input.startPosition || 1;
   return {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name: input.name,
     url: input.url,
     description: input.description,
-    inLanguage: "id",
+    inLanguage: input.lang || (IS_VIDEQSSS ? "en" : "id"),
     isPartOf: { "@id": `${HOME_CANONICAL}#website` },
     publisher: { "@id": `${HOME_CANONICAL}#organization` },
+    ...(items.length
+      ? {
+          mainEntity: {
+            "@type": "ItemList",
+            numberOfItems: items.length,
+            itemListElement: items.map((v, i) => ({
+              "@type": "ListItem",
+              position: start + i,
+              url: `${SITE_ORIGIN}/watch/${encodeURIComponent(v.id)}`,
+              name: v.title,
+            })),
+          },
+        }
+      : {}),
   };
 }
 
-export const ABOUT_TITLE = `Tentang ${SITE_NAME} - Situs Resmi videyy.icu`;
-export const ABOUT_DESCRIPTION =
-  "Tentang Videy Hub: situs resmi videyy.icu, katalog video dewasa 18+ yang dikurasi sendiri. Cara mengenali situs asli dan kontak.";
+export const ABOUT_TITLE = IS_VIDEQSSS ? `About ${SITE_NAME} - Official videqsss.icu` : `Tentang ${SITE_NAME} - Situs Resmi videyy.icu`;
+export const ABOUT_DESCRIPTION = IS_VIDEQSSS
+  ? "About Videqsss: the official videqsss.icu, a curated 18+ catalog of Indonesian videos. How to recognise the real site and how to reach us."
+  : "Tentang Videy Hub: situs resmi videyy.icu, katalog video dewasa 18+ yang dikurasi sendiri. Cara mengenali situs asli dan kontak.";
 
 export function websiteJsonLd() {
   return { "@context": "https://schema.org", ...websiteNode() };
@@ -635,6 +736,14 @@ export function isWeakVideoTitle(raw?: string | null): boolean {
 function generatedPhrases(raw: string, category?: string | null): string[] {
   const t = String(raw || "");
   const cjk = /[\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF]/.test(t);
+  const key = (category || "").trim().toLowerCase();
+  if (IS_VIDEQSSS) {
+    if (cjk) return ["Chinese AI Short Drama Video", "Chinese Adult Short Film", "Asian Adult Video"];
+    const lab = safeSeoLabel(category);
+    return !key || key === "bokep" || key === "lainnya"
+      ? ["Indonesian Amateur Video", "New Indonesian Viral Video", "Indonesian Homemade Video"]
+      : [`Indonesian ${lab} Video`, `New Indonesian ${lab} Video`, `Indonesian ${lab} Clip`];
+  }
   if (cjk && /(ai短剧|短剧|\bai\b|ＡＩ)/i.test(t)) {
     return [
       "Bokep AI China Short Drama Terbaru",
@@ -644,7 +753,6 @@ function generatedPhrases(raw: string, category?: string | null): string[] {
     ];
   }
   if (cjk) return ["Bokep China Terbaru", "Video Bokep China Viral", "Bokep Asia China Hot Terbaru"];
-  const key = (category || "").trim().toLowerCase();
   if (key === "videy") return ["Video Viral Videy Terbaru", "Bokep Videy Viral Terbaru", "Video Videy Indo Viral"];
   if (!key || key === "bokep" || key === "lainnya") {
     return ["Bokep Indo Viral Terbaru", "Video Bokep Indo Terbaru", "Bokep Indo Hot Viral", "Koleksi Bokep Indo Terbaru"];
@@ -663,14 +771,20 @@ export function generatedVideoSeo(item: { id?: string | null; title: string; cat
   const n = 100 + stablePick(`${id}|n`, 9900);
   const ogTitle = `${phrase} #${n}`;
   const title = `${ogTitle} | ${SITE_NAME}`;
-  const leads = [
+  const leads = IS_VIDEQSSS ? [
+    `Watch ${phrase} #${n} free on your phone, no sign-up.`,
+    `${phrase} #${n}: smooth streaming on phone and desktop.`,
+    `Stream ${phrase} #${n}, new uploads daily on ${SITE_NAME}.`,
+  ] : [
     `Nonton ${phrase} #${n} gratis di HP, langsung putar tanpa daftar.`,
     `${phrase} #${n}: streaming lancar di HP maupun desktop, tanpa ribet.`,
     `Tonton ${phrase} #${n}, update koleksi tiap hari di ${SITE_NAME}.`,
   ];
-  const closes = ["Khusus penonton 18+.", "Hanya untuk usia 18 tahun ke atas.", "Konten dewasa, 18+ saja."];
+  const closes = IS_VIDEQSSS
+    ? ["Adults 18+ only.", "For viewers 18 and over.", "Adult content, 18+ only."]
+    : ["Khusus penonton 18+.", "Hanya untuk usia 18 tahun ke atas.", "Konten dewasa, 18+ saja."];
   const description = clipAtWord(
-    `${leads[stablePick(`${id}|l`, leads.length)]} Pilihan terbaru dari ${SITE_NAME}. ${closes[stablePick(`${id}|c`, closes.length)]}`,
+    `${leads[stablePick(`${id}|l`, leads.length)]} ${IS_VIDEQSSS ? `Latest picks from ${SITE_NAME}.` : `Pilihan terbaru dari ${SITE_NAME}.`} ${closes[stablePick(`${id}|c`, closes.length)]}`,
     158,
   );
   return { title, ogTitle, description };

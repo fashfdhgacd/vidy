@@ -1,17 +1,10 @@
-// TrafficStars direct-link popunder (spot 5210859), shared by every trigger: catalog card / hero click,
-// the one-shot tap layer over iframe players (tap-popunder.tsx) and the Videy player (ts-videy-popunder.tsx).
-// In-video taps keep the per-video cap below (sessionStorage, resets when another video is opened).
-// Catalog / hero clicks are the page popunder: those also stop after PAGE_POP_MAX_PER_DAY successful
-// opens per Asia/Jakarta calendar day (localStorage + cookie, shared by every page). Videy preroll
-// is a different spot and is not counted here. A blocked window.open counts nothing.
-// Counters: popc_fire / popc_ok / popc_block in player-log (once per video+event per session).
-// Every opened tab is also logged by its position for that video (pop_n1 / pop_n2 / pop_n3, one D1
-// upsert per opened tab, same beacon as today), so /pemilik can compare ALL our opens with
-// TrafficStars' paid impressions instead of only the first tab per video.
+// ExoClick popunder link (spots.ts popunderUrl). Page and card clicks do not open a window here:
+// exo-popunder-dom.ts loads the embed only while the Jakarta-day cap still allows it.
+// firePop is the per-video opener (iframe tap layer). IndoAV never opens. A blocked window.open
+// is not counted. Counters: pop_n1 / pop_n2 / pop_n3 in player-log.
 import { sendPlayerLog, type PlayerLogHost } from "@/lib/player-log-client";
-import { nextPagePop, pagePopAllowed, type PagePopDay } from "@/lib/page-pop-cap";
-
-const DIRECT_LINK = "https://fozekikikiminu.com/api/v1/direct/587547ff73c844b39ab9f02d1285154b";
+import { popunderUrl } from "@/lib/ads/spots";
+import { type PagePopDay } from "@/lib/page-pop-cap";
 const HOSTS = new Set(["IndoAV", "UserBokep", "Streamtape", "Putarin", "Videy", "Arsip"]);
 
 /** Max popunders per video id. Easy to change. */
@@ -75,10 +68,12 @@ export function firePop(
   max: number = POP_MAX_PER_VIDEO,
   host?: PlayerLogHost,
 ): "ok" | "block" | "skip" {
-  if (!canPop(videoId, max)) return "skip";
+  if (host === "IndoAV") return "skip";
+  const url = popunderUrl();
+  if (!url || !canPop(videoId, max)) return "skip";
   let w: Window | null = null;
   try {
-    w = window.open(DIRECT_LINK, "_blank");
+    w = window.open(url, "_blank");
     if (w) w.opener = null; // the ad tab cannot reach back into this page
   } catch {
     w = null;
@@ -110,7 +105,7 @@ function parsePagePop(raw: string | null): PagePopDay | null {
 }
 
 /** localStorage, with a cookie copy so the same browser still counts if storage throws. */
-function readPagePop(): PagePopDay | null {
+export function readPagePopState(): PagePopDay | null {
   let stored: PagePopDay | null = null;
   let cookie: PagePopDay | null = null;
   try {
@@ -128,7 +123,7 @@ function readPagePop(): PagePopDay | null {
   return stored || cookie;
 }
 
-function writePagePop(state: PagePopDay): void {
+export function writePagePopState(state: PagePopDay): void {
   try {
     localStorage.setItem(PAGE_POP_KEY, JSON.stringify(state));
   } catch {
@@ -141,27 +136,3 @@ function writePagePop(state: PagePopDay): void {
   }
 }
 
-/**
- * Catalog / hero card click (capture). This is the page popunder: at most
- * PAGE_POP_MAX_PER_DAY successful opens per Jakarta calendar day, on every page.
- * In-video taps and Videy preroll do not call this and are not counted here.
- * Never prevents navigation. A blocked window.open is not counted.
- */
-export function onCatalogCardClick(event: { target: EventTarget | null }, hostOf: (id: string) => string): void {
-  if (typeof window === "undefined") return;
-  const el = event.target instanceof Element ? event.target : null;
-  if (!el || el.closest("[data-kdp-ad]")) return;
-  const a = el.closest('a[href^="/watch/"]');
-  if (!a) return;
-  const id = decodeURIComponent((a.getAttribute("href") || "").slice("/watch/".length).split(/[?#/]/)[0] || "");
-  if (!id) return;
-  const now = Date.now();
-  const today = readPagePop();
-  if (!pagePopAllowed(today, now)) return;
-  if (!canPop(id)) return;
-  const host = popHost(hostOf(id));
-  sendPlayerLog(id, host, "popc_fire");
-  const opened = firePop(id, POP_MAX_PER_VIDEO, host) === "ok";
-  if (opened) writePagePop(nextPagePop(today, now));
-  sendPlayerLog(id, host, opened ? "popc_ok" : "popc_block");
-}

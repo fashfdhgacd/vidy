@@ -1,5 +1,7 @@
+import videqsssCatalog from "../../../data/videqsss-catalog.json";
 import { popularIds, tagOptions, titleTags } from "./title-tags";
 import { isIndoAiTitle } from "./title-text";
+import { hasEpisodeMarker } from "./series";
 import { findCategory } from "./categories";
 import type { PagedVideos } from "./types";
 import {
@@ -24,6 +26,8 @@ import {
   toCard,
   videyNoThumbHideAt,
 } from "./local-shared";
+import { realPosterFirst, videyFrameReady } from "./poster-status";
+import { posterProbeOk } from "./poster-known";
 import localCatalog from "./videos.json";
 import streamtapeBatch from "./streamtape.json";
 import streamtapeBatchSep25 from "./streamtape-batch-20260925.json";
@@ -71,9 +75,10 @@ import putarinFeedSnapshot from "./putarin-feed-20261007.json";
 // Extra videos written by the daily sync (scripts/videyy-sync.mjs). Empty until the upstream
 // catalog has an id that is not already bundled. Never fetched per visit.
 import syncedCatalog from "../../../data/synced-catalog.json";
-import videqsssCatalog from "../../../data/videqsss-catalog.json";
 import syncConfig from "../../../data/videyy-sync.config.json";
-import { allowsSource, siteIdFromEnv, videqsssUsesOwnCatalog, type SiteSyncConfig, type VideqsssCatalogFile } from "./site-sources";
+// /pemilik per-site lists (hide / upload exclude) and the catalog blocklist, copied by the daily sync.
+import satelitConfig from "../../../data/satelit-config.json";
+import { videqsssUsesOwnCatalog, allowsSource, siteIdFromEnv, type SiteSyncConfig } from "./site-sources";
 import { restoreBuild, serializeBuild } from "./build-snapshot";
 import { keepAlive, readSnapshot, snapshotKey, writeSnapshot } from "./build-snapshot-store";
 import {
@@ -88,6 +93,32 @@ import {
 
 // Re-bind mutable cache/inflight via shared module namespace
 import { runtime } from "./local-shared";
+
+type UpstreamMap = { merged?: Record<string, string>; gone?: string[]; unlisted?: string[] };
+/** Main-site merges / hides for bundled ids it no longer lists (satelit-config.json `upstream`, daily sync). */
+const UPSTREAM: UpstreamMap = (satelitConfig as { upstream?: UpstreamMap }).upstream || {};
+/** Ids the main site hid or removed: left out of this build like a panel skip. */
+const UPSTREAM_GONE: ReadonlySet<string> = new Set((UPSTREAM.gone || []).map(String));
+/** Ids the main site still serves but no longer lists: out of every list, /watch stays up. */
+const UPSTREAM_UNLISTED: ReadonlySet<string> = new Set((UPSTREAM.unlisted || []).map(String));
+/** Main-site merges as manual merge groups ([main, ...copies]); owner merges/splits here win. */
+const UPSTREAM_MERGES: string[][] = (() => {
+  const byMain = new Map<string, string[]>();
+  for (const [copy, main] of Object.entries(UPSTREAM.merged || {})) {
+    if (!copy || !main || copy === main) continue;
+    const g = byMain.get(main) || [main];
+    g.push(copy);
+    byMain.set(main, g);
+  }
+  return [...byMain.values()];
+})();
+
+export function withUpstreamMerges(manual: ManualMergesLite, upstream: string[][] = UPSTREAM_MERGES): ManualMergesLite {
+  if (!upstream.length) return manual;
+  const split = new Set(manual.splits);
+  const extra = upstream.map((g) => g.filter((id) => !split.has(id))).filter((g) => g.length >= 2);
+  return { merges: [...manual.merges, ...extra], splits: manual.splits };
+}
 
 function sourcePriority(item: RawItem): number {
   // Kategori/pencarian: IndoAV di atas Userbokep, lalu sumber lain
@@ -691,17 +722,17 @@ function categoryOrders(bySlug: Map<string, RawItem[]>, mainSorted: RawItem[]): 
   return out;
 }
 
-function hasDataPoster(it: RawItem, posters: Record<string, string>): boolean {
-  const p = String(it.poster || it.thumbnail || posters[it.id] || "").trim();
-  return /^https?:\/\//i.test(p);
+/** Confirmed R2 poster, or a Videy frame file this build actually has. */
+function hasListedPoster(it: RawItem): boolean {
+  return posterProbeOk(it.id) || (isVidey(it) && videyFrameReady(it.id));
 }
 
-/** Stable split: items with a poster URL in data, then the rest. */
-function postersFirst(list: RawItem[], posters: Record<string, string>): RawItem[] {
-  const withPoster: RawItem[] = [];
-  const without: RawItem[] = [];
-  for (const it of list) (hasDataPoster(it, posters) ? withPoster : without).push(it);
-  return [...withPoster, ...without];
+/**
+ * Stable split: videos whose poster URL exists, then the rest. Relative order inside each group
+ * stays put, and no video is removed (page counts and the sitemap stay the same).
+ */
+function postersFirst(list: RawItem[]): RawItem[] {
+  return realPosterFirst(list, hasListedPoster);
 }
 
 export function buildIndexes(
@@ -730,6 +761,10 @@ export function buildIndexes(
   let videyNoThumbNextAt = 0;
   for (const it of items) {
     byId.set(it.id, it);
+    if (UPSTREAM_UNLISTED.has(it.id)) {
+      videyNoThumbIds.add(it.id);
+      continue;
+    }
     const hideAt = videyNoThumbHideAt(it, timeKey(it));
     if (!hideAt) continue;
     if (hideAt <= now) videyNoThumbIds.add(it.id);
@@ -739,7 +774,7 @@ export function buildIndexes(
   // Multi-server: copies of one video on other hosts fold into its main page (multi-server.ts).
   // Built from the published items only, so a hidden copy is never a server. Nothing is deleted.
   // Owner "Gabung jadi satu" / "Pisahkan" (MERGES) apply on top of the automatic groups.
-  const groups = applyManualMerges(items, mergeServers(items).groups, MERGES);
+  const groups = applyManualMerges(items, mergeServers(items).groups, withUpstreamMerges(MERGES));
   const multi = multiServerFrom(items, groups);
   if (multi.mainOf.size) {
     // A main page with no poster of its own shows the best poster of its other copies.
@@ -775,14 +810,12 @@ export function buildIndexes(
   // Homepage = semua item (urut tanggal), tanpa batasi cuma IndoAV/UserBokep
   const mainSorted = sortByNewest(core);
   for (const [slug, list] of bySlug) {
-    const sorted = sortByNewest(list, false);
-    // /kategori/bokep: videos with a real poster in data first, logo-only ones after (stable, so the
-    // newest-first order holds inside each group). A poster added to data/drp-bokep.json later moves
-    // the video up on the next build. Other categories keep their order.
-    bySlug.set(slug, slug === "bokep" ? postersFirst(sorted, posters) : sorted);
+    // Newest first inside each group, then videos with a real poster ahead of the rest.
+    bySlug.set(slug, postersFirst(sortByNewest(list, false)));
   }
-  const terbaruSorted = terbaruOrder(mainSorted);
   const listOrder = categoryOrders(bySlug, mainSorted);
+  for (const [slug, list] of listOrder) listOrder.set(slug, postersFirst(list));
+  const terbaruSorted = postersFirst(terbaruOrder(mainSorted));
   return {
     at,
     items,
@@ -819,16 +852,35 @@ export function catalogSlugs(it: RawItem, popular: ReadonlySet<string>, multi?: 
   return slugs;
 }
 
+function ownerAiDramaOverride(it: RawItem): "in" | "out" | null {
+  const main = findCategory(typeof it.ownerCategory === "string" ? it.ownerCategory : "")?.slug;
+  const extras = Array.isArray(it.ownerExtraCategories) ? it.ownerExtraCategories : [];
+  const extraIn = extras.some((x) => {
+    const slug = typeof x === "string" ? findCategory(x)?.slug : undefined;
+    return slug === "ai-plus" || slug === "ai-indo";
+  });
+  if (main === "ai-plus" || main === "ai-indo" || extraIn) return "in";
+  if (main) return "out";
+  return null;
+}
+
 function ownSlugs(it: RawItem, popular: ReadonlySet<string>): string[] {
   // Multi-category (title-tags.ts): the video joins its primary category and every tag category.
-  const slugs = titleTags(it.title, slugOf(it), tagOptions(it, popular));
+  let slugs = titleTags(it.title, slugOf(it), tagOptions(it, popular));
   // Owner-chosen extra categories (/pemilik > Edit): the video also shows up in each of them.
   const extra = Array.isArray(it.ownerExtraCategories) ? (it.ownerExtraCategories as unknown[]) : [];
   for (const x of extra) {
     const cat = typeof x === "string" ? findCategory(x) : undefined;
     if (cat && !slugs.includes(cat.slug)) slugs.push(cat.slug);
   }
-  // AI Indo: AI+ videos with an Indonesian title also sit in /kategori/ai-indo (never AI GAY ones).
+  // AI Drama: auto membership needs an episode marker. /pemilik can force a video in or out.
+  const aiOv = ownerAiDramaOverride(it);
+  if (aiOv === "in") {
+    if (!slugs.includes("ai-plus")) slugs.push("ai-plus");
+  } else if (aiOv === "out" || !hasEpisodeMarker(it.title)) {
+    slugs = slugs.filter((s) => s !== "ai-plus" && s !== "ai-indo");
+  }
+  // AI Drama Indo: AI Drama videos with an Indonesian title also sit in /kategori/ai-indo (never AI GAY ones).
   if (slugs.includes("ai-plus") && !slugs.includes("ai-gay") && !slugs.includes("ai-indo") && isIndoAiTitle(it.title)) {
     slugs.push("ai-indo");
   }
@@ -902,15 +954,16 @@ export function assembleLocal(): { items: RawItem[]; posters: Record<string, str
   // First, like the live feed it replaces (remote items used to be merged in front of the bundle).
   const feed = withIds(asList(putarinFeedSnapshot)).filter(isUsable);
   const synced = withIds(asList(syncedCatalog)).filter(isUsable);
-  // Folder bulk import + later /pemilik uploads. Empty until folderUrl is set and the daily sync runs.
-  const videqsssOwn = withIds(asList(videqsssCatalog)).filter(isUsable);
   const posters: Record<string, string> = localPosters();
   const siteId = siteIdFromEnv((import.meta.env as { VITE_SITE_ID?: string }).VITE_SITE_ID);
-  const cfg = syncConfig as SiteSyncConfig;
-  const pool = videqsssUsesOwnCatalog(videqsssCatalog as VideqsssCatalogFile, siteId)
-    ? videqsssOwn
-    : mergeById([...videqsssOwn, ...synced, ...feed, ...latest, ...pl, ...st, ...st2, ...pu, ...local, ...fb, ...drp]);
-  const items = pool.filter((it) => allowsSource(it, siteId, cfg));
+  const panel = satelitConfig as { blockedIds?: string[]; sites?: Record<string, { skipIds?: string[] }> };
+  const skip = new Set([...(panel.blockedIds || []), ...(panel.sites?.[siteId]?.skipIds || []), ...UPSTREAM_GONE].map(String));
+  const own = siteId === "videqsss" ? withIds(asList(videqsssCatalog)).filter(isUsable) : [];
+  const pool = videqsssUsesOwnCatalog(videqsssCatalog, siteId) ? own
+    : mergeById([...own, ...synced, ...feed, ...latest, ...pl, ...st, ...st2, ...pu, ...local, ...fb, ...drp]);
+  const items = pool.filter(
+    (it) => allowsSource(it, siteId, syncConfig as SiteSyncConfig) && !skip.has(String(it.id)),
+  );
   return { items, posters };
 }
 

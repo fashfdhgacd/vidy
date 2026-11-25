@@ -1,16 +1,18 @@
 import { Outlet, createFileRoute, notFound, redirect, useMatches, useNavigate } from "@tanstack/react-router";
 import { findLanding } from "@/lib/catalog/landing";
+import { englishTargetForIdLanding, halamanFromPath } from "@/lib/catalog/en-landing";
 import { IS_VIDEQSSS, SITE_ORIGIN } from "@/lib/seo";
 import { CariExperience, landingHead, loadLanding } from "./cari.$slug";
 
 /** /genre/<slug>: canonical keyword page on videqsss. videyy 301s to /cari. */
 export const Route = createFileRoute("/genre/$slug")({
-  beforeLoad: ({ params }) => {
+  beforeLoad: ({ params, location }) => {
     if (!findLanding(params.slug)) throw notFound();
     if (!IS_VIDEQSSS) {
       throw redirect({ href: `${SITE_ORIGIN}/cari/${encodeURIComponent(params.slug)}`, statusCode: 301 });
     }
     if (params.slug && findLanding(params.slug)?.category === "videy") throw notFound();
+    // videqsss is English site-wide: the Indonesian keyword page moves to its English page.
   },
   loader: ({ params }) => loadLanding(params.slug, 1),
   head: ({ params, loaderData, matches }) => {

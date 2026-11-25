@@ -1,6 +1,9 @@
+import { collectionLabel } from "@/lib/page-copy";
+import { languageFamily } from "@/lib/language-family";
+import { usePublicHref, usePublicLanguage, usePublicText } from "@/lib/public-ui";
 import { useEffect } from "react";
 import { SafeBoundary } from "@/components/safe-boundary";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { Shell } from "@/components/layout/shell";
 import { EmptyState, ErrorState } from "@/components/states/feed-states";
 import { CatalogPager } from "@/components/video/catalog-pager";
@@ -13,7 +16,10 @@ import { useCatalogFeed } from "../hooks/use-catalog";
 import { jsonLdString } from "@/lib/json-ld";
 import { homeHref } from "@/lib/catalog/halaman";
 import { landingsForSite } from "@/lib/catalog/landing";
-import { keywordHref } from "@/lib/catalog/halaman";
+import { enHref } from "@/lib/catalog/halaman";
+import { enSlugForId, findEnLanding } from "@/lib/catalog/en-landing";
+import { fmtNum, tr } from "@/lib/ui-lang";
+import { gridAdsOn } from "@/lib/ads/spots";
 import { DEFAULT_OG, HOME_CANONICAL, HOME_H1, HOME_INTRO, IS_VIDEQSSS, SITE_NAME, SITE_ORIGIN, TITLE_SUFFIX, homeJsonLd, homeSeo } from "@/lib/seo";
 import { ReturnVisitor } from "@/components/return-visitor";
 
@@ -126,8 +132,17 @@ export const Route = createFileRoute("/")({
     const q = typeof match.search.q === "string" ? match.search.q : undefined;
     const page = typeof match.search.page === "number" ? match.search.page : 1;
     const seo = homeSeo(q);
-    const title = !q && page > 1 ? `Bokep Indo Terbaru Halaman ${page} | ${SITE_NAME}` : seo.title;
-    const description = !q && page > 1 ? `Halaman ${page}: bokep indo terbaru, update setiap hari, streaming di ${TITLE_SUFFIX}. Khusus 18+.` : seo.description;
+    const title =
+      !q && page > 1
+        ? tr(`Bokep Indo Terbaru Halaman ${page} | ${SITE_NAME}`, `Newest Indonesian Amateur Videos – Page ${page} | ${SITE_NAME}`)
+        : seo.title;
+    const description =
+      !q && page > 1
+        ? tr(
+            `Halaman ${page}: bokep indo terbaru, update setiap hari, streaming di ${TITLE_SUFFIX}. Khusus 18+.`,
+            `Page ${page}: the newest Indonesian amateur videos, updated daily, streaming on ${TITLE_SUFFIX}. Adults 18+ only.`,
+          )
+        : seo.description;
     const url = q ? HOME_CANONICAL : `${SITE_ORIGIN}${homeHref(page)}`;
     const indexable = !q && page <= DEEP_PAGE_NOINDEX;
     return {
@@ -163,6 +178,9 @@ export function HomeExperience({
   loaderData: Awaited<ReturnType<typeof loadHome>>;
   onPage: (next: number) => void;
 }) {
+  const publicHref = usePublicHref();
+  const language = usePublicLanguage();
+  const tr = usePublicText();
   const seed = seedFromLoader(loaderData);
   const mode = q ? "search" : "home";
   const feed = useCatalogFeed({ mode, q, page }, seed);
@@ -170,18 +188,11 @@ export function HomeExperience({
   const heroIds = new Set(heroVideos.map((v) => v.id));
   const gridItems = heroIds.size ? feed.items.filter((item) => !heroIds.has(item.id)) : feed.items;
 
-  const title = q ? `Hasil untuk “${q}”` : HOME_H1;
-  const subtitle = q
-    ? feed.loading && !feed.items.length
-      ? "Mencari…"
-      : `${(gridItems.length ? feed.total : 0).toLocaleString("id-ID")} hasil`
-    : feed.total
-    ? `${feed.total.toLocaleString("id-ID")} judul · videyy.icu`
-    : "videyy.icu";
-  const intro =
-    q
-      ? `Hasil pencarian “${q}” di katalog Videy Hub. Konten dewasa 18+.`
-      : HOME_INTRO;
+  const ms = language === "ms";
+  const title = q ? (ms ? `Hasil carian untuk “${q}”` : language === "en" ? `Results for “${q}”` : `Hasil untuk “${q}”`) : ms ? "Video terkini" : language === "en" ? "Latest videos" : IS_VIDEQSSS ? "Video Indonesia terbaru" : HOME_H1;
+  const count = (q && !gridItems.length ? 0 : feed.total).toLocaleString(language);
+  const subtitle = q && feed.loading && !gridItems.length ? (ms ? "Sedang mencari…" : language === "en" ? "Searching…" : "Mencari…") : count + " " + (q ? ms ? "hasil carian" : language === "en" ? "results" : "hasil" : ms ? "tajuk" : language === "en" ? "titles" : "judul");
+  const intro = language === "id" ? (q ? `Hasil pencarian “${q}”. Khusus dewasa 18+.` : IS_VIDEQSSS ? "Jelajahi koleksi video terbaru. Khusus pengunjung berusia 18 tahun ke atas." : HOME_INTRO) : ms ? "Terokai koleksi video untuk penonton berumur 18 tahun ke atas." : "Explore the collection for viewers aged 18 and over.";
 
   // Search result pages past the end (e.g. stale ?page=N kept in the URL) jump back to page 1,
   // so the count and the grid always come from the same result array.
@@ -202,7 +213,7 @@ export function HomeExperience({
     return (
       <Shell>
         <ErrorState
-          message={(loaderData as { error?: string }).error || "Gagal memuat"}
+          message={(loaderData as { error?: string }).error || tr("Gagal memuat", "Could not load")}
           onRetry={() => feed.retry()}
         />
       </Shell>
@@ -210,7 +221,7 @@ export function HomeExperience({
   }
 
   return (
-    <Shell>
+    <Shell query={q}>
       <div className="space-y-6">
         {heroVideos.length ? (
           <SafeBoundary>
@@ -229,33 +240,47 @@ export function HomeExperience({
             <h1 className="text-xl font-semibold tracking-tight text-zinc-100">{title}</h1>
             <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>
             <p className="mt-1 max-w-2xl text-sm text-zinc-600">{intro}</p>
+            {!IS_VIDEQSSS && !q && page === 1 ? (
+              <p className="mt-3 text-sm text-zinc-400">
+                {tr("Punya link Videy?", "Have a Videy link?")}{" "}
+                <Link to="/kirim" className="font-medium text-primary underline-offset-2 hover:underline">
+                  {tr("Kirim Video", "Submit a video")}
+                </Link>
+              </p>
+            ) : null}
             {IS_VIDEQSSS && !q ? (
-              <nav aria-label="Topik" className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm">
-                {landingsForSite("videqsss").map((l) => (
-                  <a key={l.slug} href={keywordHref(l.slug, 1)} className="text-[#f4b942] underline-offset-2 hover:underline">
-                    {l.h1}
-                  </a>
-                ))}
+              <nav aria-label={tr("Kategori", "Categories")} className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm">
+                {landingsForSite("videqsss").map((l) => {
+                  const en = findEnLanding(enSlugForId(l.slug));
+                  return en ? (
+                    <a key={en.slug} href={languageFamily(enHref(en.slug, 1))[language]} className="text-[#f4b942] underline-offset-2 hover:underline">
+                      {language === "en" ? en.h1 : language === "id" ? l.h1 : collectionLabel(l.slug, language)}
+                    </a>
+                  ) : null;
+                })}
+                <a href={languageFamily("/genre")[language]} className="text-[#f4b942] underline-offset-2 hover:underline">
+                  {tr("Semua kategori →", "All categories →")}
+                </a>
               </nav>
             ) : null}
           </div>
 
           {feed.loading && !feed.items.length ? (
-            <VideoGridSkeleton count={12} ads />
+            <VideoGridSkeleton count={12} catalog />
           ) : feed.error && !feed.items.length ? (
             <ErrorState message={feed.error} onRetry={feed.retry} />
           ) : !gridItems.length ? (
             <EmptyState
-              title={q ? `Belum ada video untuk “${q}”` : "Kosong"}
+              title={q && language === "ms" ? `Tiada video untuk “${q}”` : q ? tr(`Belum ada video untuk “${q}”`, `No videos for “${q}” yet`) : tr("Kosong", "Empty")}
               description={
                 q
-                  ? "Coba kata kunci yang lebih pendek atau umum, misalnya “jilbab”, “indo”, atau “jav”."
-                  : "Belum ada video."
+                  ? tr("Coba kata kunci yang lebih pendek atau umum, misalnya “jilbab”, “indo”, atau “jav”.", "Try a shorter or more general keyword, for example “hijab”, “indo”, or “jav”.")
+                  : tr("Belum ada video.", "No videos yet.")
               }
             />
           ) : (
             <SafeBoundary>
-              <VideoGrid items={gridItems} ads={!IS_VIDEQSSS} />
+              <VideoGrid items={gridItems} catalog ads={gridAdsOn()} />
             </SafeBoundary>
           )}
 

@@ -1,3 +1,4 @@
+import { decodePublicPath, localizedPath } from "../../src/lib/public-locale.ts";
 /**
  * URL template /watch/$id (atau /watch/:id, /watch/{id}) yang sempat terindeks → 404 + noindex.
  * Hidden ids (minor/school-themed content, see src/lib/catalog/hidden-ids.js) → 410 Gone + noindex
@@ -46,7 +47,7 @@ export default async function watchPlaceholderMiddleware(
       headers: { "content-type": "text/plain; charset=utf-8", "x-robots-tag": "noindex" },
     });
   }
-  const path = event.url.pathname;
+  const { path, language } = decodePublicPath(event.url.pathname);
   if (PLACEHOLDER_RE.test(path)) return notFound();
   if (CAT_PLACEHOLDER_RE.test(path)) return notFound(410);
   if (
@@ -58,10 +59,10 @@ export default async function watchPlaceholderMiddleware(
     const clean = path.replace(/\/+$/, "") || "/";
     return new Response(null, {
       status: 301,
-      headers: { location: `${SITE_ORIGIN}${clean}${event.url.search}` },
+      headers: { location: `${SITE_ORIGIN}${localizedPath(clean, language)}${event.url.search}` },
     });
   }
-  const m = event.url.pathname.match(WATCH_ID_RE);
+  const m = path.match(WATCH_ID_RE);
   if (m) {
     try {
       if (await isPublicHidden(m[1])) return notFound(410);
@@ -70,7 +71,7 @@ export default async function watchPlaceholderMiddleware(
         return new Response(null, {
           status: 301,
           headers: {
-            location: `${SITE_ORIGIN}/watch/${encodeURIComponent(main)}`,
+            location: `${SITE_ORIGIN}${localizedPath("/watch/" + encodeURIComponent(main), language)}`,
             "cache-control": "public, max-age=3600",
           },
         });

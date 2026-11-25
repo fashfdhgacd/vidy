@@ -1,7 +1,10 @@
+import { usePublicHref, usePublicLanguage, usePublicText } from "@/lib/public-ui";
+import { collectionLabel } from "@/lib/page-copy";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Shell } from "@/components/layout/shell";
 import { LANDINGS } from "@/lib/catalog/landing";
 import { jsonLdString } from "@/lib/json-ld";
+import { hreflangLinks } from "@/lib/catalog/en-landing";
 import { DEFAULT_OG, HOME_CANONICAL, IS_VIDEQSSS, SITE_NAME, SITE_ORIGIN, breadcrumbJsonLd, collectionPageJsonLd } from "@/lib/seo";
 
 const TITLE = "Pencarian Populer Video Indo 18+ | videyy.icu";
@@ -10,9 +13,6 @@ const DESCRIPTION =
 
 /** /cari: hub linking every hand-reviewed search landing page (internal links for crawlers and visitors). */
 export const Route = createFileRoute("/cari/")({
-  beforeLoad: () => {
-    if (IS_VIDEQSSS) throw redirect({ href: `${SITE_ORIGIN}/genre`, statusCode: 301 });
-  },
   head: () => {
     const url = `${SITE_ORIGIN}/cari`;
     return {
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/cari/")({
         { name: "twitter:card", content: "summary_large_image" },
         { name: "robots", content: "index,follow" },
       ],
-      links: [{ rel: "canonical", href: url }],
+      links: [{ rel: "canonical", href: url }, ...hreflangLinks("/cari", "/en", SITE_ORIGIN)],
       scripts: [
         { type: "application/ld+json", children: jsonLdString(collectionPageJsonLd({ name: TITLE, url, description: DESCRIPTION })) },
         {
@@ -46,20 +46,29 @@ export const Route = createFileRoute("/cari/")({
 });
 
 function SearchHub() {
+  const publicHref = usePublicHref();
+  const language = usePublicLanguage();
+  const localText = usePublicText();
   return (
     <Shell>
       <section className="space-y-4">
-        <h1 className="font-display text-4xl leading-none text-foreground sm:text-6xl">Pencarian Populer</h1>
+        <h1 className="font-display text-4xl leading-none text-foreground sm:text-6xl">{localText("Pencarian Populer")}</h1>
         <p className="text-sm text-zinc-400">
-          Topik yang paling sering dicari pengunjung. Semua konten khusus dewasa 18+; video yang belum terverifikasi tidak ditampilkan.
+          {localText("Topik yang paling sering dicari pengunjung. Semua konten khusus dewasa 18+; video yang belum terverifikasi tidak ditampilkan.")}
+        </p>
+        <p className="text-sm text-zinc-500">
+          {language === "ms" ? "Koleksi bahasa Inggeris" : language === "id" ? "Koleksi berbahasa Inggris" : "English collections"}{" "}
+          <a href="/en" hrefLang="en" className="text-teal-200 underline-offset-2 hover:underline">
+            /en
+          </a>
         </p>
         <ul className="grid gap-3 sm:grid-cols-2">
           {LANDINGS.map((l) => (
             <li key={l.slug} className="rounded-lg border border-white/10 p-3">
-              <a href={`/cari/${l.slug}`} className="text-base font-semibold text-teal-200 hover:underline">
-                {l.h1}
+              <a href={publicHref(`/cari/${l.slug}`)} className="text-base font-semibold text-teal-200 hover:underline">
+                {language === "id" ? l.h1 : collectionLabel(l.slug, language)}
               </a>
-              <p className="mt-1 line-clamp-2 text-[13px] text-zinc-400">{l.description}</p>
+              <p className="mt-1 line-clamp-2 text-[13px] text-zinc-400">{language === "id" ? l.description : language === "ms" ? `Pilihan video dalam koleksi ${collectionLabel(l.slug, language)}.` : `Explore the ${collectionLabel(l.slug, language)} collection.`}</p>
             </li>
           ))}
         </ul>

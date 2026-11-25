@@ -1,3 +1,6 @@
+import { usePublicHref, usePublicLanguage } from "@/lib/public-ui";
+import { UI_LANG } from "@/lib/ui-lang";
+
 function windowPages(current: number, totalPages: number, span = 2): number[] {
   const size = span * 2 + 1;
   let start = Math.max(1, current - span);
@@ -18,6 +21,7 @@ export function CatalogPager({
   onPage,
   basePath,
   pageHref,
+  lang: explicitLanguage,
 }: {
   page: number;
   total: number;
@@ -30,11 +34,15 @@ export function CatalogPager({
   basePath?: string;
   /** Absolute path for page n, e.g. "/halaman/2". Wins over basePath so crawlers see /halaman links. */
   pageHref?: (page: number) => string;
+  lang?: "id" | "en";
 }) {
+  const publicHref = usePublicHref();
+  const selectedLanguage = usePublicLanguage();
+  const lang = explicitLanguage ?? selectedLanguage;
   const totalPages = Math.max(1, Math.ceil((total || 0) / Math.max(1, limit)));
   if (totalPages <= 1) {
     return total > 0 ? (
-      <p className="mt-8 text-center text-xs text-muted">{total.toLocaleString("id-ID")} judul</p>
+      <p className="mt-8 text-center text-xs text-muted">{total.toLocaleString(lang)} {lang === "en" ? "titles" : lang === "ms" ? "tajuk" : "judul"}</p>
     ) : null;
   }
 
@@ -73,7 +81,7 @@ export function CatalogPager({
 
   function linkProps(n: number) {
     return {
-      href: hrefFor(n),
+      href: publicHref(hrefFor(n)),
       onClick: (e: { preventDefault: () => void }) => {
         e.preventDefault();
         go(n);
@@ -82,17 +90,17 @@ export function CatalogPager({
   }
 
   return (
-    <nav className="relative z-10 mt-10 flex flex-col items-center gap-5 sm:mt-14 sm:gap-7" aria-label="Halaman katalog">
+    <nav className="relative z-10 mt-10 flex flex-col items-center gap-5 sm:mt-14 sm:gap-7" aria-label={lang === "en" ? "Catalog pages" : "Halaman katalog"}>
       <p className="text-center text-xs text-foreground/80 sm:text-base">
-        Halaman {page.toLocaleString("id-ID")} dari {totalPages.toLocaleString("id-ID")}
+        {lang === "en" ? "Page" : "Halaman"} {page.toLocaleString(lang)} {lang === "en" ? "of" : lang === "ms" ? "daripada" : "dari"} {totalPages.toLocaleString(lang)}
         {" · "}
-        {total.toLocaleString("id-ID")} video
+        {total.toLocaleString(lang)} {lang === "en" ? "videos" : "video"}
       </p>
       <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-3.5">
         <a
           {...(page > 1 ? { ...linkProps(page - 1), rel: "prev" } : { "aria-disabled": true })}
           className={`${btn} px-3 text-foreground sm:px-5`}
-          aria-label="Halaman sebelumnya"
+          aria-label={lang === "en" ? "Previous page" : lang === "ms" ? "Halaman sebelumnya" : "Halaman sebelumnya"}
         >
           <span aria-hidden="true" className="text-lg leading-none sm:text-2xl">←</span>
         </a>
@@ -128,9 +136,9 @@ export function CatalogPager({
         <a
           {...(page < totalPages ? { ...linkProps(page + 1), rel: "next" } : { "aria-disabled": true })}
           className={`${btn} gap-2 px-3 text-foreground sm:gap-3 sm:px-5`}
-          aria-label="Halaman berikutnya"
+          aria-label={lang === "en" ? "Next page" : lang === "ms" ? "Halaman seterusnya" : "Halaman berikutnya"}
         >
-          <span>Next</span>
+          <span>{lang === "ms" ? "Seterusnya" : lang === "en" ? "Next" : "Berikutnya"}</span>
           <span aria-hidden="true" className="text-lg leading-none sm:text-2xl">→</span>
         </a>
       </div>

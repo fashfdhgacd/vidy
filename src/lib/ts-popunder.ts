@@ -4,6 +4,7 @@
 // 07:00 WIB to 07:00 WIB the next morning, NOT from midnight WIB like our own site counters.
 // Pure functions only (no fetch), so they can be tested with node --test.
 
+/** Historical report id in public/data/trafficstars.json. Not the live tag. */
 export const POPUNDER_SPOT_ID = "5210859";
 
 type Spot = { id: string; impressions?: number; earnings?: number };

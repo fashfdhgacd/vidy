@@ -1,13 +1,11 @@
 // Grid: 2 / 3 / 4 kolom (mobile / tablet / desktop) for the watch page; catalog grids 1 / 3 / 4.
-// Catalog grids (home, kategori; `ads` prop): 1 / 3 / 4 columns (cards sized for a 300x250 ad),
-// card thumbs 300:250, and an ExoClick 300x250 card (ad-slot.tsx, zone 6053864) as every 8th card
-// (cells 8, 16, 24, 32; max 4), each one card footprint, lazy-loaded. Pages hold 36 videos; trailing videos are trimmed so rows stay full at 3 and 4 columns.
-// The watch page ("Tonton juga") keeps the default grid, no ads.
+// Catalog grids (`ads` prop): 1 / 3 / 4 columns, 16:10 thumbs, and a 300x250
+// banner spot as every 8th card when that spot is enabled.
+// The watch page ("Tonton juga") keeps the default grid unless ads is on.
 import type { VideoCard as VideoCardType } from "@/lib/catalog/types";
 import { isRealMinor } from "@/lib/minor-terms";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AdSlot } from "@/components/ad-slot";
-import { onCatalogCardClick } from "@/components/card-popunder";
+import { GridMasterspot } from "@/components/ad-slot";
 import { VideoCard } from "./video-card";
 import { useEffect } from "react";
 import { restoreCatalogScroll } from "@/lib/catalog/last-catalog";
@@ -15,7 +13,7 @@ import { restoreCatalogScroll } from "@/lib/catalog/last-catalog";
 const DEFAULT_GRID =
   "grid grid-cols-2 gap-x-2.5 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-7 lg:grid-cols-4";
 const CATALOG_GRID =
-  "grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-3 sm:gap-y-7 lg:grid-cols-4 [&>a>div:first-child]:aspect-[300/250]";
+  "grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-3 sm:gap-y-7 lg:grid-cols-4";
 
 /**
  * Rows full: hide trailing videos so the cell count (videos + ads) is a multiple of the column
@@ -45,11 +43,12 @@ function visibleCards(items: VideoCardType[]): VideoCardType[] {
 export function VideoGrid({
   items,
   eagerCount = 4,
+  catalog = false,
   ads = false,
 }: {
   items: VideoCardType[];
   eagerCount?: number;
-  /** Catalog layout (1 / 3 / 4 columns, 300:250 thumbs). Also enables the TrafficStars grid card. */
+  catalog?: boolean;
   ads?: boolean;
 }) {
   const shown = visibleCards(items);
@@ -65,18 +64,16 @@ export function VideoGrid({
   }, [ads, hasItems]);
   return (
     <div
-      className={ads ? CATALOG_GRID + trimClass(cells) : DEFAULT_GRID}
-      // Catalog grids only: first video-card click per session also opens the popunder.
-      onClickCapture={ads ? (e) => onCatalogCardClick(e, (id) => String(shown.find((v) => v.id === id)?.creator || "")) : undefined}
+      className={catalog ? CATALOG_GRID + trimClass(cells) : DEFAULT_GRID}
     >
       {shown.map((video, index) => {
         const s = slots.find((x) => x.at === index);
         return (
           <Cell
             key={video.id}
-            ad={s ? <AdSlot key={`exo-ad-${s.slot}`} /> : null}
+            ad={s ? <GridMasterspot key={`ts-grid-${s.slot}`} /> : null}
           >
-            <VideoCard video={video} eager={index < eagerCount} />
+            <VideoCard catalog={catalog} video={video} eager={index < eagerCount} />
           </Cell>
         );
       })}
@@ -95,12 +92,12 @@ function Cell({ ad, children }: { ad: React.ReactNode; children: React.ReactNode
   );
 }
 
-export function VideoGridSkeleton({ count = 12, ads = false }: { count?: number; ads?: boolean }) {
+export function VideoGridSkeleton({ count = 12, catalog = false }: { count?: number; catalog?: boolean }) {
   return (
-    <div className={ads ? CATALOG_GRID : DEFAULT_GRID}>
+    <div className={catalog ? CATALOG_GRID : DEFAULT_GRID}>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="p-1 sm:p-1.5">
-          <Skeleton className={ads ? "aspect-[300/250] rounded-xl" : "aspect-video rounded-xl"} />
+          <Skeleton className={catalog ? "aspect-[16/10] rounded-none" : "aspect-video rounded-xl"} />
           <Skeleton className="mt-3 h-4 w-4/5 rounded-sm" />
           <Skeleton className="mt-2 h-3 w-1/3 rounded-sm" />
         </div>

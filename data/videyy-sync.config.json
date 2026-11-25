@@ -6,10 +6,17 @@
   "excludeIds": [],
   "excludeSources": [],
   "sites": {
-    "videyy": { "enabled": true, "sources": "all" },
+    "videyy": {
+      "enabled": true,
+      "sources": "all"
+    },
     "videqsss": {
       "enabled": true,
-      "sources": ["indoav", "userbokep"],
+      "sources": "all",
+      "exclude": [
+        "videy",
+        "lulu"
+      ],
       "folderUrl": "",
       "panelMarker": "videqsss"
     }
@@ -19,10 +26,14 @@
     "tryHttp": true,
     "github": {
       "owner": "fashfdhgacd",
-      "repo": "vidy",
+      "repo": "koleksi_dr_pinguinn",
       "ref": "main"
     },
     "files": [
+      "api/satelit/catalog.json",
+      "api/satelit/catalog-blocklist.json"
+    ],
+    "localFiles": [
       "data/videos-latest.json",
       "data/videos-latest-p02.json",
       "data/videos-latest-p03.json",
@@ -31,10 +42,12 @@
       "src/lib/catalog/putarin.json",
       "src/lib/catalog/putarin-feed-20261007.json",
       "src/lib/catalog/folder-batch-20261007.json",
-      "src/lib/catalog/streamtape-batch-20260925.json",
-      "src/lib/catalog/catalog-blocklist.json"
+      "src/lib/catalog/streamtape-batch-20260925.json"
     ]
   },
   "blocklist": "src/lib/catalog/catalog-blocklist.json",
-  "output": "data/synced-catalog.json"
+  "output": "data/synced-catalog.json",
+  "siteConfigUrl": "https://koleksidrpinguin.com/api/satelit/config.json",
+  "statusOutput": "public/sync-status.json",
+  "siteConfigOutput": "data/satelit-config.json"
 }

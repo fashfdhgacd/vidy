@@ -47,6 +47,30 @@ Allow: /
 Disallow: /api/
 Disallow: /pemilik
 
+User-agent: Applebot
+Allow: /api/og
+Allow: /
+Disallow: /api/
+Disallow: /pemilik
+
+User-agent: MojeekBot
+Allow: /api/og
+Allow: /
+Disallow: /api/
+Disallow: /pemilik
+
+User-agent: SeznamBot
+Allow: /api/og
+Allow: /
+Disallow: /api/
+Disallow: /pemilik
+
+User-agent: Yeti
+Allow: /api/og
+Allow: /
+Disallow: /api/
+Disallow: /pemilik
+
 User-agent: *
 Allow: /
 Allow: /api/og
@@ -87,13 +111,22 @@ Disallow: /
 
 User-agent: Twitterbot
 Allow: /
+Allow: /og/
+Allow: /thumb/
 Allow: /api/og
 Allow: /og.jpg
+Allow: /og-v2.jpg
 Allow: /brand-poster.jpg
+Allow: /brand-poster-6x5.jpg
 
 User-agent: facebookexternalhit
 Allow: /
+Allow: /og/
+Allow: /thumb/
 Allow: /api/og
 Allow: /og.jpg
+Allow: /og-v2.jpg
+Allow: /brand-poster.jpg
+Allow: /brand-poster-6x5.jpg
 
 Sitemap: https://videyy.icu/sitemap.xml

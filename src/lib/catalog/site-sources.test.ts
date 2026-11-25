@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { allowsSource, videqsssUsesOwnCatalog } from "./site-sources.ts";
+import { videqsssUsesOwnCatalog, allowsSource } from "./site-sources.ts";
 
 const config = {
   sites: {
@@ -23,6 +23,29 @@ test("videyy keeps every source, including ones videqsss drops", () => {
 
 test("a disabled site config drops the catalog", () => {
   assert.equal(allowsSource({ embed: "https://tv1.indoav.app/e/a" }, "videqsss", { sites: { videqsss: { enabled: false, sources: ["indoav"] } } }), false);
+});
+
+test("videqsss: every host except Videy", () => {
+  const cfg = { sites: { videqsss: { enabled: true, sources: "all" as const, exclude: ["videy"] } } };
+  for (const it of [
+    { source: "IndoAV", embed: "https://tv1.indoav.app/e/x" },
+    { source: "Byse", embed: "https://byse.sx/e/x" },
+    { source: "Vidara", embed: "https://vidara.so/e/x" },
+    { source: "LuluStream", embed: "https://lulustream.com/e/x" },
+    { source: "Streamtape", embed: "https://streamtape.com/e/x" },
+  ])
+    assert.equal(allowsSource(it, "videqsss", cfg), true, it.source);
+  assert.equal(allowsSource({ source: "Videy", direct: "https://cdn.videy.co/x.mp4" }, "videqsss", cfg), false);
+  assert.equal(allowsSource({ source: "", direct: "https://cdn2.aceimg.com/abc.mp4" }, "videqsss", cfg), false);
+  assert.equal(allowsSource({ source: "Videy" }, "videyy", { sites: { videyy: { sources: "all" as const } } }), true);
+});
+
+test("videqsss can leave out LuluStream (embed restricted to whitelisted domains)", () => {
+  const cfg = { sites: { videqsss: { sources: "all" as const, exclude: ["videy", "lulu"] } } };
+  assert.equal(allowsSource({ source: "LuluStream", embed: "https://lplaygo.com/e/x" }, "videqsss", cfg), false);
+  assert.equal(allowsSource({ source: "lplaygo.com", embed: "https://lplaygo.com/e/x" }, "videqsss", cfg), false);
+  assert.equal(allowsSource({ source: "Byse", embed: "https://bysejikuar.com/e/x" }, "videqsss", cfg), true);
+  assert.equal(allowsSource({ source: "LuluStream", embed: "https://lplaygo.com/e/x" }, "videyy", { sites: { videyy: { sources: "all" as const } } }), true);
 });
 
 test("videqsss keeps the shared catalog until the folder import is recorded", () => {
