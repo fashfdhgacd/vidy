@@ -1,3 +1,4 @@
+import videqsssCatalog from "../../../data/videqsss-catalog.json";
 import { popularIds, tagOptions, titleTags } from "./title-tags";
 import { isIndoAiTitle } from "./title-text";
 import { hasEpisodeMarker } from "./series";
@@ -77,7 +78,7 @@ import syncedCatalog from "../../../data/synced-catalog.json";
 import syncConfig from "../../../data/videyy-sync.config.json";
 // /pemilik per-site lists (hide / upload exclude) and the catalog blocklist, copied by the daily sync.
 import satelitConfig from "../../../data/satelit-config.json";
-import { allowsSource, siteIdFromEnv, type SiteSyncConfig } from "./site-sources";
+import { videqsssUsesOwnCatalog, allowsSource, siteIdFromEnv, type SiteSyncConfig } from "./site-sources";
 import { restoreBuild, serializeBuild } from "./build-snapshot";
 import { keepAlive, readSnapshot, snapshotKey, writeSnapshot } from "./build-snapshot-store";
 import {
@@ -957,7 +958,10 @@ export function assembleLocal(): { items: RawItem[]; posters: Record<string, str
   const siteId = siteIdFromEnv((import.meta.env as { VITE_SITE_ID?: string }).VITE_SITE_ID);
   const panel = satelitConfig as { blockedIds?: string[]; sites?: Record<string, { skipIds?: string[] }> };
   const skip = new Set([...(panel.blockedIds || []), ...(panel.sites?.[siteId]?.skipIds || []), ...UPSTREAM_GONE].map(String));
-  const items = mergeById([...synced, ...feed, ...latest, ...pl, ...st, ...st2, ...pu, ...local, ...fb, ...drp]).filter(
+  const own = siteId === "videqsss" ? withIds(asList(videqsssCatalog)).filter(isUsable) : [];
+  const pool = videqsssUsesOwnCatalog(videqsssCatalog, siteId) ? own
+    : mergeById([...own, ...synced, ...feed, ...latest, ...pl, ...st, ...st2, ...pu, ...local, ...fb, ...drp]);
+  const items = pool.filter(
     (it) => allowsSource(it, siteId, syncConfig as SiteSyncConfig) && !skip.has(String(it.id)),
   );
   return { items, posters };

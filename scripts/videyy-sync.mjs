@@ -5,6 +5,7 @@
  * Pulls koleksidrpinguin.com catalog files when they answer JSON, drops the blocklist,
  * and writes only the new rows to data/synced-catalog.json. The Worker bundles that file.
  */
+import { folderPageUrl, parseFolderCatalog, parseFolderUrl, planVideqsssCatalog } from "./lib/videqsss-catalog.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -285,6 +286,10 @@ async function main() {
     writeJson(config.siteConfigOutput, keep);
   }
   const blockIds = idsFromBlock(extra.length ? mergeBlocklist(localBlock, extra).block : localBlock);
+  if (siteSettings?.sites?.videqsss?.sync !== false) {
+    const panelFeeds = (config.upstream?.localFiles || files).filter(rel => /videos-latest/.test(rel) && !rel.endsWith("-index.json"));
+    await syncVideqsss(config, [...blockIds, ...(config.excludeIds || []), ...(siteSettings?.blockedIds || [])], loadLocalItems(panelFeeds));
+  }
   const plan = planSync({ localItems, upstreamItems, blockIds, config });
   const output = config.output || "data/synced-catalog.json";
   const prev = (() => {
@@ -333,6 +338,95 @@ async function main() {
   });
   writeJson(statusRel, status(true));
   console.log("wrote", output, "added", plan.added, "dropped", plan.dropped);
+}
+
+const FOLDER_UA =
+  "Mozilla/5.0 (Linux; Android 13; SM-A536E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36";
+
+function isChallenge(text) {
+  return /just a moment|cf-browser-verification|attention required/i.test(String(text || "").slice(0, 800));
+}
+
+/** All pages of the configured folder. null = unread (keep the previous import). */
+async function crawlFolder(folder) {
+  const items = [];
+  const seen = new Set();
+  let empty = 0;
+  const date = new Date().toISOString().slice(0, 10);
+  for (let page = 1; page <= 200; page++) {
+    const url = folderPageUrl(folder, page);
+    let got;
+    try {
+      got = await fetchText(url, { "User-Agent": FOLDER_UA, Accept: "text/html" });
+    } catch (err) {
+      console.log("videqsss folder fail", url, err instanceof Error ? err.message : err);
+      return null;
+    }
+    if (got.status === 404) {
+      empty++;
+      if (empty >= 2) break;
+      continue;
+    }
+    if (!got.ok || isChallenge(got.text)) {
+      console.log("videqsss folder unread", url, got.status);
+      return null;
+    }
+    const rows = parseFolderCatalog(got.text, folder, date);
+    if (!rows.length) {
+      empty++;
+      if (empty >= 2) break;
+    } else {
+      empty = 0;
+      for (const row of rows) {
+        if (seen.has(row.id)) continue;
+        seen.add(row.id);
+        items.push(row);
+      }
+    }
+  }
+  return items;
+}
+
+async function syncVideqsss(config, blockIds, panelItems) {
+  const rule = config.sites?.videqsss;
+  if (!rule || rule.enabled === false) {
+    console.log("videqsss catalog skipped");
+    return;
+  }
+  const output = "data/videqsss-catalog.json";
+  const previous = (() => {
+    try {
+      return readJson(output);
+    } catch {
+      return { folderUrl: "", importedAt: null, items: [] };
+    }
+  })();
+  const folderUrl = String(rule.folderUrl || "").trim();
+  const parsed = parseFolderUrl(folderUrl);
+  const same = Boolean(parsed && previous.importedAt && previous.folderUrl === folderUrl);
+  let folderItems = null;
+  if (parsed && !same) {
+    console.log("videqsss folder import", folderUrl);
+    folderItems = await crawlFolder(parsed);
+  } else if (!parsed && folderUrl) {
+    console.log("videqsss folderUrl ignored (want https://<indoav|userbokep>/f/<id>)");
+  }
+  const next = planVideqsssCatalog({
+    previous,
+    folderItems,
+    panelItems,
+    blockIds,
+    config,
+    now: new Date().toISOString(),
+  });
+  const prevKey = JSON.stringify({ folderUrl: previous.folderUrl || "", importedAt: previous.importedAt || null, items: itemsFromUnknown(previous) });
+  const nextKey = JSON.stringify({ folderUrl: next.folderUrl || "", importedAt: next.importedAt || null, items: next.items });
+  if (prevKey === nextKey) {
+    console.log("videqsss catalog unchanged", { items: next.items.length, crawled: next.crawled });
+    return;
+  }
+  writeJson(output, { folderUrl: next.folderUrl, importedAt: next.importedAt, items: next.items });
+  console.log("wrote", output, "items", next.items.length, "crawled", next.crawled);
 }
 
 main().catch((err) => {

@@ -121,3 +121,15 @@ test("effectiveSkipIds: videqsss ignores automatic host excludes, keeps hides an
   assert.deepEqual(effectiveSkipIds("videyy", site, byId), ["by-1", "h1", "ia-1", "zz"]);
   assert.deepEqual(effectiveSkipIds("videqsss", { skipIds: ["by-1"] }, byId), ["by-1"]);
 });
+
+test("overlay can set the videqsss folder link without touching other sites", () => {
+  const next = applyConfigOverlay(
+    { enabled: true, sites: { videyy: { sources: "all" }, videqsss: { sources: ["indoav", "userbokep"], folderUrl: "" } }, upstream: {} },
+    { sites: { videqsss: { folderUrl: "https://tv1.indoav.app/f/AbC123", ignored: true } } },
+  );
+  assert.equal(next.sites.videqsss.folderUrl, "https://tv1.indoav.app/f/AbC123");
+  assert.equal(next.sites.videqsss.sources[0], "indoav");
+  assert.equal(next.sites.videyy.sources, "all");
+  assert.equal("ignored" in next.sites.videqsss, false);
+});
+

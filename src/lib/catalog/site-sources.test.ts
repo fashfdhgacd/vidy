@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { allowsSource } from "./site-sources.ts";
+import { videqsssUsesOwnCatalog, allowsSource } from "./site-sources.ts";
 
 const config = {
   sites: {
@@ -46,4 +46,10 @@ test("videqsss can leave out LuluStream (embed restricted to whitelisted domains
   assert.equal(allowsSource({ source: "lplaygo.com", embed: "https://lplaygo.com/e/x" }, "videqsss", cfg), false);
   assert.equal(allowsSource({ source: "Byse", embed: "https://bysejikuar.com/e/x" }, "videqsss", cfg), true);
   assert.equal(allowsSource({ source: "LuluStream", embed: "https://lplaygo.com/e/x" }, "videyy", { sites: { videyy: { sources: "all" as const } } }), true);
+});
+
+test("videqsss keeps the shared catalog until the folder import is recorded", () => {
+  assert.equal(videqsssUsesOwnCatalog({ importedAt: null, items: [] }, "videqsss"), false);
+  assert.equal(videqsssUsesOwnCatalog({ importedAt: "2026-11-10T00:00:00.000Z", items: [] }, "videqsss"), true);
+  assert.equal(videqsssUsesOwnCatalog({ importedAt: "2026-11-10T00:00:00.000Z" }, "videyy"), false);
 });

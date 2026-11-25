@@ -16,7 +16,9 @@
       "exclude": [
         "videy",
         "lulu"
-      ]
+      ],
+      "folderUrl": "",
+      "panelMarker": "videqsss"
     }
   },
   "upstream": {
