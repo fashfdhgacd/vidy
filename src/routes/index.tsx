@@ -266,7 +266,7 @@ export function HomeExperience({
           </div>
 
           {feed.loading && !feed.items.length ? (
-            <VideoGridSkeleton count={12} ads />
+            <VideoGridSkeleton count={12} catalog />
           ) : feed.error && !feed.items.length ? (
             <ErrorState message={feed.error} onRetry={feed.retry} />
           ) : !gridItems.length ? (
@@ -280,7 +280,7 @@ export function HomeExperience({
             />
           ) : (
             <SafeBoundary>
-              <VideoGrid items={gridItems} ads={gridAdsOn()} />
+              <VideoGrid items={gridItems} catalog ads={gridAdsOn()} />
             </SafeBoundary>
           )}
 

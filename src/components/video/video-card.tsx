@@ -18,10 +18,12 @@ type VideoCardPreload = false | "intent" | "viewport";
 
 export function VideoCard({
   video,
+  catalog = false,
   eager = false,
   preload = false,
 }: {
   video: VideoCardType;
+  catalog?: boolean;
   eager?: boolean;
   preload?: VideoCardPreload;
 }) {
@@ -44,12 +46,13 @@ export function VideoCard({
       onClick={() => rememberCatalog()}
       className={
         (isIndoAvCreator(video.creator) ? `${NO_POP_CLASS} ` : "") +
+        (catalog ? "rounded-none " : IS_VIDEQSSS ? "rounded-lg " : "rounded-xl ") +
         (IS_VIDEQSSS
-          ? "group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4b942]"
-          : "group block rounded-xl p-1 transition-colors duration-150 ease-out hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-1.5")
+          ? "group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4b942]"
+          : "group block p-1 transition-colors duration-150 ease-out hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-1.5")
       }
     >
-      <div className={IS_VIDEQSSS ? "relative aspect-video overflow-hidden rounded-lg bg-surface-2" : "relative aspect-video overflow-hidden rounded-xl bg-surface-2"}>
+      <div className={catalog ? "relative aspect-[16/10] overflow-hidden rounded-none bg-surface-2" : IS_VIDEQSSS ? "relative aspect-video overflow-hidden rounded-lg bg-surface-2" : "relative aspect-video overflow-hidden rounded-xl bg-surface-2"}>
         <CardThumb
           id={video.id}
           src={typeof video.thumbnail === "string" ? video.thumbnail : ""}

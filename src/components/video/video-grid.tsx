@@ -1,5 +1,5 @@
 // Grid: 2 / 3 / 4 kolom (mobile / tablet / desktop) for the watch page; catalog grids 1 / 3 / 4.
-// Catalog grids (`ads` prop): 1 / 3 / 4 columns, 300:250 thumbs, and a 300x250
+// Catalog grids (`ads` prop): 1 / 3 / 4 columns, 16:10 thumbs, and a 300x250
 // banner spot as every 8th card when that spot is enabled.
 // The watch page ("Tonton juga") keeps the default grid unless ads is on.
 import type { VideoCard as VideoCardType } from "@/lib/catalog/types";
@@ -13,7 +13,7 @@ import { restoreCatalogScroll } from "@/lib/catalog/last-catalog";
 const DEFAULT_GRID =
   "grid grid-cols-2 gap-x-2.5 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-7 lg:grid-cols-4";
 const CATALOG_GRID =
-  "grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-3 sm:gap-y-7 lg:grid-cols-4 [&>a>div:first-child]:aspect-[300/250]";
+  "grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-3 sm:gap-y-7 lg:grid-cols-4";
 
 /**
  * Rows full: hide trailing videos so the cell count (videos + ads) is a multiple of the column
@@ -43,11 +43,12 @@ function visibleCards(items: VideoCardType[]): VideoCardType[] {
 export function VideoGrid({
   items,
   eagerCount = 4,
+  catalog = false,
   ads = false,
 }: {
   items: VideoCardType[];
   eagerCount?: number;
-  /** Catalog layout (1 / 3 / 4 columns, 300:250 thumbs). Also enables the 300x250 grid banner. */
+  catalog?: boolean;
   ads?: boolean;
 }) {
   const shown = visibleCards(items);
@@ -63,7 +64,7 @@ export function VideoGrid({
   }, [ads, hasItems]);
   return (
     <div
-      className={ads ? CATALOG_GRID + trimClass(cells) : DEFAULT_GRID}
+      className={catalog ? CATALOG_GRID + trimClass(cells) : DEFAULT_GRID}
     >
       {shown.map((video, index) => {
         const s = slots.find((x) => x.at === index);
@@ -72,7 +73,7 @@ export function VideoGrid({
             key={video.id}
             ad={s ? <GridMasterspot key={`ts-grid-${s.slot}`} /> : null}
           >
-            <VideoCard video={video} eager={index < eagerCount} />
+            <VideoCard catalog={catalog} video={video} eager={index < eagerCount} />
           </Cell>
         );
       })}
@@ -91,12 +92,12 @@ function Cell({ ad, children }: { ad: React.ReactNode; children: React.ReactNode
   );
 }
 
-export function VideoGridSkeleton({ count = 12, ads = false }: { count?: number; ads?: boolean }) {
+export function VideoGridSkeleton({ count = 12, catalog = false }: { count?: number; catalog?: boolean }) {
   return (
-    <div className={ads ? CATALOG_GRID : DEFAULT_GRID}>
+    <div className={catalog ? CATALOG_GRID : DEFAULT_GRID}>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="p-1 sm:p-1.5">
-          <Skeleton className={ads ? "aspect-[300/250] rounded-xl" : "aspect-video rounded-xl"} />
+          <Skeleton className={catalog ? "aspect-[16/10] rounded-none" : "aspect-video rounded-xl"} />
           <Skeleton className="mt-3 h-4 w-4/5 rounded-sm" />
           <Skeleton className="mt-2 h-3 w-1/3 rounded-sm" />
         </div>

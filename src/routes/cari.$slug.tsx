@@ -125,7 +125,7 @@ export function CariExperience({
           <EmptyState title={localText("Video segera hadir")} description={localText("Belum ada video untuk halaman ini. Cek lagi nanti ya.")} />
         ) : (
           <SafeBoundary>
-            <VideoGrid items={items} ads={gridAdsOn()} />
+            <VideoGrid items={items} catalog ads={gridAdsOn()} />
           </SafeBoundary>
         )}
 
