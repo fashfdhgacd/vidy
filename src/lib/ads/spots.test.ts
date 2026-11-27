@@ -33,18 +33,18 @@ test("each host uses only its own ExoClick zones", () => {
     assert.match(popunderLink(ads.popunder), new RegExp(`idzone=${zone.popunder}`));
     assert.equal(popunderLink(ads.popunder).includes(other.popunder), false);
 
-    assert.equal(ads.banner300x250.enabled, true);
+    assert.equal(ads.banner300x250.enabled, false);
     assert.equal(ads.banner300x250.zoneId, zone.banner300x250);
-    assert.equal(ads.banner300x250.script, EXO_AD_PROVIDER);
+    assert.equal(ads.banner300x250.script, "");
     assert.equal(ads.banner300x250.insClass, EXO_INS_CLASS.banner300x250);
     assert.equal(ads.banner300x250.zoneId === other.banner300x250, false);
-    assert.equal(ads.inPagePush.enabled, true);
+    assert.equal(ads.inPagePush.enabled, false);
     assert.equal(ads.inPagePush.zoneId, zone.inPagePush);
-    assert.equal(ads.inPagePush.script, EXO_AD_PROVIDER);
+    assert.equal(ads.inPagePush.script, "");
     assert.equal(ads.inPagePush.insClass, EXO_INS_CLASS.inPagePush);
     assert.equal(ads.inPagePush.zoneId === other.inPagePush, false);
-    assert.equal(activeScript(ads.banner300x250), EXO_AD_PROVIDER);
-    assert.equal(activeScript(ads.inPagePush), EXO_AD_PROVIDER);
+    assert.equal(activeScript(ads.banner300x250), "");
+    assert.equal(activeScript(ads.inPagePush), "");
   }
 });
 

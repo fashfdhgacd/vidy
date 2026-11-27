@@ -30,7 +30,7 @@ export type AdSpot = {
 export type AdsConfig = {
   network: AdNetwork;
   popunder: AdSpot;
-  /** 300x250 banner. No 300x100 zone exists. */
+  /** 300x250 banner leftover (grid uses src/lib/grid-ads.ts). Kept wired, disabled. */
   banner300x250: AdSpot;
   videoSlider: AdSpot;
   inPagePush: AdSpot;
@@ -90,9 +90,9 @@ export function buildAds(zone: ZoneSet): AdsConfig {
       enabled: own,
       insClass: "",
     },
-    banner300x250: displaySpot(zone.banner300x250, EXO_INS_CLASS.banner300x250, true),
+    banner300x250: displaySpot(zone.banner300x250, EXO_INS_CLASS.banner300x250, false),
     videoSlider: displaySpot(zone.videoSlider, EXO_INS_CLASS.videoSlider, false),
-    inPagePush: displaySpot(zone.inPagePush, EXO_INS_CLASS.inPagePush, true),
+    inPagePush: displaySpot(zone.inPagePush, EXO_INS_CLASS.inPagePush, false),
     preroll: off(zone.preroll, zone.vastUrl),
   };
 }

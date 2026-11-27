@@ -29,10 +29,11 @@ export function PopTapLayer({
   const [armed, setArmed] = useState(false);
   const [fails, setFails] = useState(0);
   const max = popMaxFor(host);
+  const daily = host !== "Videy";
 
   useEffect(() => {
     const check = () => {
-      if (canPop(videoId, max)) setArmed(true);
+      if (canPop(videoId, max, daily)) setArmed(true);
     };
     check();
     const vis = () => {
@@ -52,7 +53,7 @@ export function PopTapLayer({
       window.removeEventListener("blur", check);
       window.removeEventListener("scroll", check);
     };
-  }, [videoId, mediaRef, max]);
+  }, [videoId, mediaRef, max, daily]);
 
   if (!armed || fails >= MAX_FAILS) return null;
   const lh = popHost(host);
@@ -60,15 +61,15 @@ export function PopTapLayer({
     <button
       type="button"
       aria-label={tr("Putar video", "Play video")}
-      className="absolute inset-0 z-10 cursor-pointer bg-transparent"
+      className="kdp-no-pop absolute inset-0 z-10 cursor-pointer bg-transparent"
       onClick={() => {
-        if (!canPop(videoId, max)) {
+        if (!canPop(videoId, max, daily)) {
           setArmed(false);
           onPass?.();
           return;
         }
         sendPlayerLog(videoId, lh, "pop_fire");
-        const r = firePop(videoId, max, lh);
+        const r = firePop(videoId, max, lh, daily);
         if (r === "ok") {
           sendPlayerLog(videoId, lh, "pop_ok");
           setArmed(false);

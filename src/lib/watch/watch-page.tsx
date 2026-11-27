@@ -12,7 +12,7 @@ import { VideoPlayer } from "@/components/video/player";
 import { PosterIdContext } from "@/components/video/thumb";
 import { VideyPlayer } from "@/components/video/videy-player";
 import { AdblockGate } from "@/components/adblock-gate";
-import { Banner300x250 } from "@/components/ad-slot";
+import { PopTapLayer } from "@/components/tap-popunder";
 import { isIndoAvPlayback } from "@/lib/ads/exo-popunder";
 import { syncExoPagePopunder } from "@/lib/ads/exo-popunder-dom";
 import { hostLabel } from "@/lib/catalog/embed";
@@ -452,20 +452,17 @@ export function WatchPage() {
                 <VideyPlayer key={item.id} item={item} />
               </AdblockGate>
             ) : hostLabel(catalogPlayUrl(playItem)) === "IndoAV" ? (
-              <div className="relative">
-                <VideoPlayer key={playItem.id} item={playItem} />
-              </div>
+              // IndoAV: no ads, no popunder (standing rule).
+              <VideoPlayer key={playItem.id} item={playItem} />
             ) : (
               <div className="relative">
                 <PosterIdContext.Provider value={item.id}>
                   <VideoPlayer key={playItem.id} item={playItem} />
                 </PosterIdContext.Provider>
+                <PopTapLayer key={`pop-${item.id}`} videoId={item.id} host={hostLabel(catalogPlayUrl(playItem)).replace("Puterin", "Putarin")} />
               </div>
             )}
             {server ? <ServerButtons item={item} current={server.id} /> : null}
-            {adMode === "on" ? (
-              <Banner300x250 className="mx-auto mt-3 w-[300px] max-w-full overflow-hidden rounded-xl bg-surface-2" />
-            ) : null}
             {(() => {
               const src = catalogPlayUrl(item);
               if (!src || /\.(mp4|webm|mov)($|\?)/i.test(src)) return null;

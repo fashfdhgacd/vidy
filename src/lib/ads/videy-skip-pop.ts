@@ -1,9 +1,12 @@
 /**
- * Videy player skip popunder count. Separate from the page/card cap of 3 per day.
- * Three successful opens per visitor per video id. IndoAV never uses this.
+ * Videy player skip popunder count. Separate from the shared page/card daily cap.
+ * Six successful opens per visitor per video id (first tap + resume-after-pause).
+ * IndoAV never uses this.
  */
 
-export const VIDEY_SKIP_POP_MAX = 3;
+export const VIDEY_SKIP_POP_MAX = 6;
+/** Minimum time between two Videy skip pops on the same video. */
+export const VIDEY_SKIP_POP_GAP_MS = 20_000;
 
 export function readSkipCounts(raw: string | null): Record<string, number> {
   if (!raw) return {};

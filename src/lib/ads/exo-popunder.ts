@@ -6,7 +6,7 @@
  */
 import { EXOCLICK_POPUNDER_SCRIPT } from "./exoclick-popunder-script.ts";
 
-/** Above the 3-per-day page cap, so our localStorage counter is the one that binds. */
+/** Above the 6-per-day page cap, so our localStorage counter is the one that binds. */
 export const EXO_FREQUENCY_COUNT = 99;
 /** Minutes. Long enough that ExoClick's window does not reset under our calendar day. */
 export const EXO_FREQUENCY_PERIOD = 1440;

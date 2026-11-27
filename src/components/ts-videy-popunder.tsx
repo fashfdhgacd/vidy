@@ -1,14 +1,15 @@
-// Videy player skip popunder. Clicks on the player overlay and the pre-roll Skip
-// button open this host's ExoClick popunder link, up to 3 times per visitor per
-// video id. This count is not the page/card cap. An empty spot opens nothing.
-// IndoAV pages never call this.
+// Videy player skip popunder. The first poster tap and later resume-after-pause
+// taps open this host's ExoClick popunder link, up to VIDEY_SKIP_POP_MAX (6) times
+// per visitor per video id, with VIDEY_SKIP_POP_GAP_MS between opens. This count
+// is not the page/card cap. An empty spot opens nothing. IndoAV pages never call this.
 import { sendPlayerLog } from "@/lib/player-log-client";
 import { popunderUrl } from "@/lib/ads/spots";
-import { noteSkipPop, readSkipCounts, skipPopOpen } from "@/lib/ads/videy-skip-pop";
+import { noteSkipPop, readSkipCounts, skipPopOpen, VIDEY_SKIP_POP_GAP_MS } from "@/lib/ads/videy-skip-pop";
 
 const KEY = "kdp_videy_skip_pop";
 const MAX_BLOCKS = 2;
 const blocks = new Map<string, number>();
+const lastAt = new Map<string, number>();
 
 function load(): Record<string, number> {
   try {
@@ -34,6 +35,8 @@ function pageBlocksAds(): boolean {
 export function videySkipArmed(videoId: string): boolean {
   if (pageBlocksAds() || !popunderUrl() || !videoId) return false;
   if ((blocks.get(videoId) || 0) >= MAX_BLOCKS) return false;
+  const at = lastAt.get(videoId) || 0;
+  if (at && Date.now() - at < VIDEY_SKIP_POP_GAP_MS) return false;
   return skipPopOpen(load(), videoId);
 }
 
@@ -62,7 +65,8 @@ export function takeVideySkipPop(videoId: string): boolean {
   const counts = load();
   const next = noteSkipPop(counts, videoId);
   save(next);
+  lastAt.set(videoId, Date.now());
   const n = next[videoId] || 1;
-  if (n >= 1 && n <= 3) sendPlayerLog(videoId, "Videy", `pop_n${n}` as "pop_n1" | "pop_n2" | "pop_n3");
+  if (n >= 1 && n <= 6) sendPlayerLog(videoId, "Videy", `pop_n${n}` as "pop_n1" | "pop_n2" | "pop_n3" | "pop_n4" | "pop_n5" | "pop_n6");
   return true;
 }

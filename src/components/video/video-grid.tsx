@@ -1,11 +1,12 @@
 // Grid: 2 / 3 / 4 kolom (mobile / tablet / desktop) for the watch page; catalog grids 1 / 3 / 4.
-// Catalog grids (`ads` prop): 1 / 3 / 4 columns, 16:10 thumbs, and a 300x250
-// banner spot as every 8th card when that spot is enabled.
+// Catalog grids (`ads` prop): 1 / 3 / 4 columns, 16:10 thumbs, and up to 6 grid
+// ad slots (src/lib/grid-ads.ts: same positions as the main site). Empty slots collapse.
 // The watch page ("Tonton juga") keeps the default grid unless ads is on.
 import type { VideoCard as VideoCardType } from "@/lib/catalog/types";
 import { isRealMinor } from "@/lib/minor-terms";
 import { Skeleton } from "@/components/ui/skeleton";
-import { GridMasterspot } from "@/components/ad-slot";
+import { GridAd } from "@/components/grid-ad";
+import { planGrid } from "@/lib/grid-ads";
 import { VideoCard } from "./video-card";
 import { useEffect } from "react";
 import { restoreCatalogScroll } from "@/lib/catalog/last-catalog";
@@ -52,43 +53,31 @@ export function VideoGrid({
   ads?: boolean;
 }) {
   const shown = visibleCards(items);
-  // Up to 4 slots, every 8th card; each lazy-loads (an unfilled slot keeps its footprint, showing the penguin card).
-  const slots = ads
-    ? AD_POSITIONS.map((at, slot) => ({ at, slot })).filter((x) => x.at < shown.length)
-    : [];
-  const cells = shown.length + slots.length;
   // "Kembali ke katalog" with a full load: scroll back to where the card was clicked.
   const hasItems = shown.length > 0;
   useEffect(() => {
     if (ads && hasItems) restoreCatalogScroll();
   }, [ads, hasItems]);
+  const cells = planGrid(shown.length, ads);
+  const cellCount = cells.length;
   return (
     <div
-      className={catalog ? CATALOG_GRID + trimClass(cells) : DEFAULT_GRID}
+      className={catalog ? CATALOG_GRID + (ads ? "" : trimClass(cellCount)) : DEFAULT_GRID}
     >
-      {shown.map((video, index) => {
-        const s = slots.find((x) => x.at === index);
-        return (
-          <Cell
-            key={video.id}
-            ad={s ? <GridMasterspot key={`ts-grid-${s.slot}`} /> : null}
-          >
-            <VideoCard catalog={catalog} video={video} eager={index < eagerCount} />
-          </Cell>
-        );
+      {cells.map((cell) => {
+        if (cell.kind === "ad") {
+          return (
+            <GridAd
+              key={cell.key}
+              slot={cell.slot}
+              className={cell.breakpoint === "mobile" ? "lg:hidden" : "hidden lg:block"}
+            />
+          );
+        }
+        const video = shown[cell.index];
+        return <VideoCard key={video.id} catalog={catalog} video={video} eager={cell.index < eagerCount} />;
       })}
     </div>
-  );
-}
-
-const AD_POSITIONS = [7, 14, 21, 28]; // every 8th card (cells 8, 16, 24, 32)
-
-function Cell({ ad, children }: { ad: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <>
-      {ad}
-      {children}
-    </>
   );
 }
 
