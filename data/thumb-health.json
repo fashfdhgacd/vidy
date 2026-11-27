@@ -1,22 +1,22 @@
 {
- "checkedAt": "2026-11-26T04:40:07.673Z",
+ "checkedAt": "2026-11-27T04:44:26.422Z",
  "dryRun": false,
  "partial": false,
- "checked": 11725,
+ "checked": 11805,
  "totals": {
-  "total": 11725,
-  "ok": 11372,
+  "total": 11805,
+  "ok": 11170,
   "placeholder": 0,
   "small": 5,
   "blank": 0,
   "notimage": 0,
-  "absent": 348,
-  "error": 0,
+  "absent": 349,
+  "error": 281,
   "repaired": 0,
   "stillBad": 46,
   "repairError": 0,
   "repairDeferred": 0,
-  "noSource": 307,
+  "noSource": 308,
   "putarinResolved": 0
  },
  "sources": {
@@ -69,32 +69,32 @@
    "putarinResolved": 0
   },
   "synced-catalog": {
-   "total": 424,
-   "ok": 412,
+   "total": 504,
+   "ok": 490,
    "placeholder": 0,
    "small": 0,
    "blank": 0,
    "notimage": 0,
-   "absent": 12,
+   "absent": 14,
    "error": 0,
    "repaired": 0,
-   "stillBad": 1,
+   "stillBad": 2,
    "repairError": 0,
    "repairDeferred": 0,
-   "noSource": 11,
+   "noSource": 12,
    "putarinResolved": 0
   },
   "videos": {
    "total": 6490,
-   "ok": 6439,
+   "ok": 6159,
    "placeholder": 0,
    "small": 0,
    "blank": 0,
    "notimage": 0,
-   "absent": 51,
-   "error": 0,
+   "absent": 50,
+   "error": 281,
    "repaired": 0,
-   "stillBad": 2,
+   "stillBad": 1,
    "repairError": 0,
    "repairDeferred": 0,
    "noSource": 49,
@@ -193,27 +193,7 @@
    "verdict": "small"
   },
   {
-   "id": "CFQwWMDJXV",
-   "src": "putarin-latest",
-   "verdict": "absent"
-  },
-  {
-   "id": "t6PyN5KNDA",
-   "src": "putarin-latest",
-   "verdict": "absent"
-  },
-  {
    "id": "9pv3AhzFcF",
-   "src": "putarin-latest",
-   "verdict": "absent"
-  },
-  {
-   "id": "CfEYKrD3gS",
-   "src": "putarin-latest",
-   "verdict": "absent"
-  },
-  {
-   "id": "3BXjd8Dav8",
    "src": "putarin-latest",
    "verdict": "absent"
   },
@@ -223,27 +203,22 @@
    "verdict": "absent"
   },
   {
-   "id": "zZP45cU6Ym",
-   "src": "putarin-latest",
-   "verdict": "absent"
-  },
-  {
-   "id": "dS4jfZyaqN",
-   "src": "putarin-latest",
-   "verdict": "absent"
-  },
-  {
    "id": "SkMYgxUWDD",
    "src": "putarin-latest",
    "verdict": "absent"
   },
   {
-   "id": "mSK4uAjKmT",
+   "id": "3BXjd8Dav8",
    "src": "putarin-latest",
    "verdict": "absent"
   },
   {
-   "id": "TfKmDXYWNj",
+   "id": "t6PyN5KNDA",
+   "src": "putarin-latest",
+   "verdict": "absent"
+  },
+  {
+   "id": "CFQwWMDJXV",
    "src": "putarin-latest",
    "verdict": "absent"
   },
@@ -253,17 +228,27 @@
    "verdict": "absent"
   },
   {
-   "id": "saav8btRCP",
-   "src": "putarin-latest",
-   "verdict": "absent"
-  },
-  {
    "id": "EmTJv8mrZB",
    "src": "putarin-latest",
    "verdict": "absent"
   },
   {
+   "id": "mSK4uAjKmT",
+   "src": "putarin-latest",
+   "verdict": "absent"
+  },
+  {
    "id": "M56R5zaNwb",
+   "src": "putarin-latest",
+   "verdict": "absent"
+  },
+  {
+   "id": "zZP45cU6Ym",
+   "src": "putarin-latest",
+   "verdict": "absent"
+  },
+  {
+   "id": "saav8btRCP",
    "src": "putarin-latest",
    "verdict": "absent"
   },
@@ -283,17 +268,27 @@
    "verdict": "absent"
   },
   {
+   "id": "TfKmDXYWNj",
+   "src": "putarin-latest",
+   "verdict": "absent"
+  },
+  {
    "id": "P5XzVjfd3d",
    "src": "putarin-latest",
    "verdict": "absent"
   },
   {
-   "id": "WV964EkHV7",
+   "id": "CfEYKrD3gS",
    "src": "putarin-latest",
    "verdict": "absent"
   },
   {
-   "id": "86SkHU2TgG",
+   "id": "dS4jfZyaqN",
+   "src": "putarin-latest",
+   "verdict": "absent"
+  },
+  {
+   "id": "WV964EkHV7",
    "src": "putarin-latest",
    "verdict": "absent"
   },
@@ -308,12 +303,12 @@
    "verdict": "absent"
   },
   {
-   "id": "AYJSpKHY3K",
+   "id": "f99Wt3HgS2",
    "src": "putarin-latest",
    "verdict": "absent"
   },
   {
-   "id": "f99Wt3HgS2",
+   "id": "AYJSpKHY3K",
    "src": "putarin-latest",
    "verdict": "absent"
   },
@@ -328,22 +323,27 @@
    "verdict": "absent"
   },
   {
+   "id": "86SkHU2TgG",
+   "src": "putarin-latest",
+   "verdict": "absent"
+  },
+  {
    "id": "VWGbsaM59u",
    "src": "putarin-latest",
    "verdict": "absent"
   },
   {
-   "id": "pBQACescQW",
-   "src": "putarin-latest",
-   "verdict": "absent"
-  },
-  {
-   "id": "dAzRNtTfJa",
+   "id": "XK9VbTczHY",
    "src": "putarin-latest",
    "verdict": "absent"
   },
   {
    "id": "Uw6ZPPB9Fs",
+   "src": "putarin-latest",
+   "verdict": "absent"
+  },
+  {
+   "id": "pBQACescQW",
    "src": "putarin-latest",
    "verdict": "absent"
   },
@@ -358,12 +358,12 @@
    "verdict": "absent"
   },
   {
-   "id": "WAHVB2PXyn",
+   "id": "te6cXjGpXj",
    "src": "putarin-latest",
    "verdict": "absent"
   },
   {
-   "id": "te6cXjGpXj",
+   "id": "WAHVB2PXyn",
    "src": "putarin-latest",
    "verdict": "absent"
   },
@@ -373,13 +373,18 @@
    "verdict": "absent"
   },
   {
-   "id": "XK9VbTczHY",
+   "id": "dAzRNtTfJa",
    "src": "putarin-latest",
    "verdict": "absent"
   },
   {
    "id": "XvsqrXvCB6",
    "src": "putarin-latest",
+   "verdict": "absent"
+  },
+  {
+   "id": "g19fxi5q",
+   "src": "synced-catalog",
    "verdict": "absent"
   },
   {
@@ -391,13 +396,89 @@
    "id": "hS0v3noeloVL",
    "src": "videos",
    "verdict": "absent"
-  },
-  {
-   "id": "mqEsJOJDvkdY",
-   "src": "videos",
-   "verdict": "absent"
   }
  ],
- "errorSamples": [],
+ "errorSamples": [
+  {
+   "id": "NKvDk4i1KWz1",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "HDjjZTnCuPqT",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "7QYrF4G5ddQP",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "mJHpk0FNjLYP",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "cSUFEKrEdk8A",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "khemO9cCh2aI",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "UfOzULeji3oo",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "mXs5zFErYJR0",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "9dptUuaIgmL1",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "4yhvjD7bJFFZ",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "JwyIi3CL9kHf",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "DY5CDFhvqeQz",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "IdVVNziIfHnr",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "37pCUS4jVNQd",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "NLbIDaQWZEeb",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "tBlc5QZr8rrs",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "bzQQ4KV5RTKu",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "k97kdVICwNxH",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "KWnO64kjUPsM",
+   "why": "exception TypeError: fetch failed"
+  },
+  {
+   "id": "bzQQ4KV5RTKu",
+   "why": "exception TypeError: fetch failed"
+  }
+ ],
  "repairErrorSamples": []
 }
