@@ -1,6 +1,7 @@
 // Grid: 2 / 3 / 4 kolom (mobile / tablet / desktop) for the watch page; catalog grids 1 / 3 / 4.
-// Catalog grids (`ads` prop): 1 / 3 / 4 columns, 16:10 thumbs, and up to 6 grid
-// ad slots (src/lib/grid-ads.ts: same positions as the main site). Empty slots collapse.
+// Catalog grids (`ads` prop): 1 / 3 / 4 columns, 16:10 thumbs, and 6 grid
+// ad slots (src/lib/grid-ads.ts: same positions as the main site; shorter pages
+// still get 6 banners). A slot without a zone ID still collapses.
 // The watch page ("Tonton juga") keeps the default grid unless ads is on.
 import type { VideoCard as VideoCardType } from "@/lib/catalog/types";
 import { isRealMinor } from "@/lib/minor-terms";
