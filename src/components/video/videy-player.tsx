@@ -89,6 +89,7 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
   const tokenRef = useRef(0);
   const [skipIn, setSkipIn] = useState<number | null>(null);
   const [skipTick, setSkipTick] = useState(0);
+  const [paused, setPaused] = useState(false);
 
   const settle = useCallback(
     (event: "slow2" | "fail2") => {
@@ -321,6 +322,23 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
     };
   }, [phase, endAd]);
 
+  useEffect(() => {
+    if (phase !== "main") {
+      setPaused(false);
+      return;
+    }
+    const v = videoRef.current;
+    if (!v) return;
+    const sync = () => setPaused(v.paused);
+    sync();
+    v.addEventListener("pause", sync);
+    v.addEventListener("play", sync);
+    return () => {
+      v.removeEventListener("pause", sync);
+      v.removeEventListener("play", sync);
+    };
+  }, [phase]);
+
   const start = useCallback(() => {
     if (phase !== "idle") return;
     if (!prerollUrl() || !prerollDue()) {
@@ -417,7 +435,12 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
           data-videy-skip=""
           onClick={(event) => {
             event.stopPropagation();
-            takeVideySkipPop(item.id);
+            // First tap is the popunder; the video stays on the poster until the next tap
+            // (or until 2 blocked opens, when takeVideySkipPop returns false).
+            if (takeVideySkipPop(item.id)) {
+              setSkipTick((n) => n + 1);
+              return;
+            }
             setSkipTick((n) => n + 1);
             start();
           }}
@@ -431,7 +454,7 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
           </span>
         </button>
       ) : null}
-      {phase === "main" && skipTick >= 0 && videySkipArmed(item.id) ? (
+      {phase === "main" && paused && videySkipArmed(item.id) ? (
         <button
           type="button"
           data-videy-skip=""
@@ -440,6 +463,8 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
+            // Resume-after-pause popunder (up to 6/video, 20s gap). The video stays paused
+            // so the next tap hits the native controls and plays.
             takeVideySkipPop(item.id);
             setSkipTick((n) => n + 1);
           }}
@@ -485,8 +510,6 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
               disabled={skipIn > 0}
               onClick={(event) => {
                 event.stopPropagation();
-                takeVideySkipPop(item.id);
-                setSkipTick((n) => n + 1);
                 endAd("skip");
               }}
               className="kdp-no-pop absolute bottom-3 right-0 rounded-l-md border border-white/30 bg-black/75 px-4 py-2 text-sm text-white disabled:opacity-80"

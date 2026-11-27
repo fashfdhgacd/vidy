@@ -1,21 +1,23 @@
 // ExoClick popunder link (spots.ts popunderUrl). Page and card clicks do not open a window here:
 // exo-popunder-dom.ts loads the embed only while the Jakarta-day cap still allows it.
 // firePop is the per-video opener (iframe tap layer). IndoAV never opens. A blocked window.open
-// is not counted. Counters: pop_n1 / pop_n2 / pop_n3 in player-log.
+// is not counted. Counters: pop_n1..pop_n6 in player-log.
 import { sendPlayerLog, type PlayerLogHost } from "@/lib/player-log-client";
 import { popunderUrl } from "@/lib/ads/spots";
-import { type PagePopDay } from "@/lib/page-pop-cap";
+import { nextPagePop, pagePopAllowed, type PagePopDay } from "@/lib/page-pop-cap";
 const HOSTS = new Set(["IndoAV", "UserBokep", "Streamtape", "Putarin", "Videy", "Arsip"]);
 
-/** Max popunders per video id. Easy to change. */
+/** Max popunders per video id for catalog-style openers. Easy to change. */
 export const POP_MAX_PER_VIDEO = 3;
+/** Non-Videy player tap layer: one popunder on the first tap, then the video loads. */
+export const POP_MAX_OTHER = 1;
 /** Minimum time between two popunders on the SAME video (a newly opened video may pop at once). */
 export const POP_MIN_GAP_MS = 20_000;
-/** Videy has its own pre-roll as well, so its popunder stops at 2 per video. */
-export const POP_MAX_VIDEY = 2;
-/** Per-video cap for a host label. */
+/** Videy popunder cap per video (independent of the shared daily cap). */
+export const POP_MAX_VIDEY = 6;
+/** Per-video cap for the player tap layer. */
 export function popMaxFor(host: string): number {
-  return host === "Videy" ? POP_MAX_VIDEY : POP_MAX_PER_VIDEO;
+  return host === "Videy" ? POP_MAX_VIDEY : POP_MAX_OTHER;
 }
 
 const KEY = "kdp_pop_v1";
@@ -45,8 +47,9 @@ function writeState(v: PopState): void {
 }
 
 /** True when a popunder for this video is allowed right now (per-video count + global gap). */
-export function canPop(videoId: string, max: number = POP_MAX_PER_VIDEO): boolean {
+export function canPop(videoId: string, max: number = POP_MAX_PER_VIDEO, daily = true): boolean {
   if (typeof window === "undefined" || !videoId) return false;
+  if (daily && !pagePopAllowed(readPagePopState(), Date.now())) return false;
   const st = readState();
   if (st.id !== videoId) return true; // another video: fresh count, no gap
   return st.n < max && Date.now() - st.at >= POP_MIN_GAP_MS;
@@ -67,10 +70,11 @@ export function firePop(
   videoId: string,
   max: number = POP_MAX_PER_VIDEO,
   host?: PlayerLogHost,
+  daily = true,
 ): "ok" | "block" | "skip" {
   if (host === "IndoAV") return "skip";
   const url = popunderUrl();
-  if (!url || !canPop(videoId, max)) return "skip";
+  if (!url || !canPop(videoId, max, daily)) return "skip";
   let w: Window | null = null;
   try {
     w = window.open(url, "_blank");
@@ -82,7 +86,10 @@ export function firePop(
   const st = readState();
   const n = (st.id === videoId ? st.n : 0) + 1;
   writeState({ id: videoId, n, at: Date.now() });
-  if (host && n >= 1 && n <= 3) sendPlayerLog(videoId, host, `pop_n${n}` as "pop_n1" | "pop_n2" | "pop_n3");
+  if (daily) writePagePopState(nextPagePop(readPagePopState(), Date.now()));
+  if (host && n >= 1 && n <= 6) {
+    sendPlayerLog(videoId, host, `pop_n${n}` as "pop_n1" | "pop_n2" | "pop_n3" | "pop_n4" | "pop_n5" | "pop_n6");
+  }
   return "ok";
 }
 
