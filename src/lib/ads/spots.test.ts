@@ -31,13 +31,14 @@ test("each host uses only its own ExoClick zones", () => {
     assert.equal(ads.banner300x250.script, "");
     assert.equal(ads.banner300x250.insClass, EXO_INS_CLASS.banner300x250);
     assert.equal(ads.banner300x250.zoneId === other.banner300x250, false);
-    assert.equal(ads.inPagePush.enabled, false);
+    // In-page push is on again (it was switched off on 27 Nov, which cut ExoClick revenue).
+    assert.equal(ads.inPagePush.enabled, true);
     assert.equal(ads.inPagePush.zoneId, zone.inPagePush);
-    assert.equal(ads.inPagePush.script, "");
+    assert.equal(ads.inPagePush.script, EXO_AD_PROVIDER);
     assert.equal(ads.inPagePush.insClass, EXO_INS_CLASS.inPagePush);
     assert.equal(ads.inPagePush.zoneId === other.inPagePush, false);
     assert.equal(activeScript(ads.banner300x250), "");
-    assert.equal(activeScript(ads.inPagePush), "");
+    assert.equal(activeScript(ads.inPagePush), EXO_AD_PROVIDER);
   }
 });
 

@@ -91,7 +91,7 @@ export function buildAds(zone: ZoneSet): AdsConfig {
     },
     banner300x250: displaySpot(zone.banner300x250, EXO_INS_CLASS.banner300x250, false),
     videoSlider: displaySpot(zone.videoSlider, EXO_INS_CLASS.videoSlider, false),
-    inPagePush: displaySpot(zone.inPagePush, EXO_INS_CLASS.inPagePush, false),
+    inPagePush: displaySpot(zone.inPagePush, EXO_INS_CLASS.inPagePush, true),
     preroll: off(zone.preroll, zone.vastUrl),
   };
 }

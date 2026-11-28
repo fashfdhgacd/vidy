@@ -6,11 +6,12 @@ import { useEffect, useRef, useState } from "react";
 import { ADS, type AdSpot } from "@/lib/ads/spots";
 
 function ensureExoProvider(src: string): void {
-  if (document.querySelector("script[data-kdp-exo-provider]")) return;
+  // Same id as the grid ad shell (grid-ad-shell.tsx): ad-provider.js loads once per page, never twice.
+  if (document.getElementById("exo-ad-provider")) return;
   const script = document.createElement("script");
+  script.id = "exo-ad-provider";
   script.async = true;
   script.src = src;
-  script.dataset.kdpExoProvider = "1";
   document.head.appendChild(script);
 }
 
