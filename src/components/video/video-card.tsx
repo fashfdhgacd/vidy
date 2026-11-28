@@ -1,4 +1,3 @@
-import { isIndoAvCreator, NO_POP_CLASS } from "@/lib/ads/exo-popunder";
 import { useTr } from "@/lib/ui-lang";
 import { IS_VIDEQSSS, cleanDisplayTitle } from "@/lib/seo";
 import { Link } from "@tanstack/react-router";
@@ -45,11 +44,13 @@ export function VideoCard({
       preload={preload}
       onClick={() => rememberCatalog()}
       className={
-        (isIndoAvCreator(video.creator) ? `${NO_POP_CLASS} ` : "") +
         (catalog ? "rounded-none " : IS_VIDEQSSS ? "rounded-lg " : "rounded-xl ") +
-        (IS_VIDEQSSS
-          ? "group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4b942]"
-          : "group block p-1 transition-colors duration-150 ease-out hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-1.5")
+        (catalog
+          ? // Catalog card = ad card shell (p-1 / sm:p-1.5 around a 16:10 frame), so video and ad cards line up.
+            "group block p-1 transition-colors duration-150 ease-out hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-1.5"
+          : IS_VIDEQSSS
+            ? "group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4b942]"
+            : "group block p-1 transition-colors duration-150 ease-out hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-1.5")
       }
     >
       <div className={catalog ? "relative aspect-[16/10] overflow-hidden rounded-none bg-surface-2" : IS_VIDEQSSS ? "relative aspect-video overflow-hidden rounded-lg bg-surface-2" : "relative aspect-video overflow-hidden rounded-xl bg-surface-2"}>
@@ -74,7 +75,7 @@ export function VideoCard({
         </div>
       </div>
       <div className="px-1 pb-1 pt-2.5 sm:px-1.5 sm:pt-3">
-        <h3 className="line-clamp-2 min-h-[2.5em] text-[13px] font-medium leading-snug text-foreground sm:text-[15px]">
+        <h3 className="line-clamp-2 min-h-[2.75em] text-[13px] font-medium leading-snug text-foreground sm:text-[15px]">
           {cleanDisplayTitle(video.title)}
         </h3>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] tabular-nums text-muted sm:text-xs">

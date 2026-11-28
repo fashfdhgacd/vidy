@@ -1,51 +1,17 @@
 import { tr } from "@/lib/ui-lang";
 // Display slots. Zone ids live in src/lib/ads/spots.ts. A disabled slot (empty script)
 // renders nothing and does not load a network script. The popunder is not a box.
-// Banner and in-page push stay off on IndoAV watch pages (data-kdp-page-ad=off|wait).
+// Ads (banner, push) are not hidden on IndoAV pages any more: same rule as the main site.
 import { useEffect, useRef, useState } from "react";
-import { useRouterState } from "@tanstack/react-router";
-import { displayAdsAllowed, type PageAdMark } from "@/lib/ads/exo-popunder";
 import { ADS, type AdSpot } from "@/lib/ads/spots";
 
-function pageAdMark(): PageAdMark {
-  const el = document.querySelector("[data-kdp-page-ad]");
-  const value = el?.getAttribute("data-kdp-page-ad");
-  if (value === "off" || value === "on" || value === "wait") return value;
-  return null;
-}
-
-/** False on IndoAV watch pages (and while the watch page is still resolving the host). */
-function useDisplayAdsAllowed(): boolean {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const href = useRouterState({ select: (s) => s.location.href });
-  const watch = pathname === "/watch" || pathname.startsWith("/watch/");
-  const [allowed, setAllowed] = useState(!watch);
-  const [seenHref, setSeenHref] = useState(href);
-  if (href !== seenHref) {
-    setSeenHref(href);
-    setAllowed(!watch);
-  }
-  useEffect(() => {
-    const sync = () => setAllowed(displayAdsAllowed(pageAdMark()));
-    sync();
-    const mo = new MutationObserver(sync);
-    mo.observe(document.body, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ["data-kdp-page-ad"],
-    });
-    return () => mo.disconnect();
-  }, [href, watch]);
-  return allowed;
-}
-
 function ensureExoProvider(src: string): void {
-  if (document.querySelector("script[data-kdp-exo-provider]")) return;
+  // Same id as the grid ad shell (grid-ad-shell.tsx): ad-provider.js loads once per page, never twice.
+  if (document.getElementById("exo-ad-provider")) return;
   const script = document.createElement("script");
+  script.id = "exo-ad-provider";
   script.async = true;
   script.src = src;
-  script.dataset.kdpExoProvider = "1";
   document.head.appendChild(script);
 }
 
@@ -105,10 +71,8 @@ export function Banner300x100({ className = "" }: { className?: string }) {
   return <Banner300x250 className={className} />;
 }
 
-/** In-page push. Off while the slot is disabled, and never on IndoAV watch pages. */
+/** In-page push. Off while the slot is disabled. */
 export function InPagePush() {
-  const allowed = useDisplayAdsAllowed();
-  if (!allowed) return null;
   return <DisplaySlot spot={ADS.inPagePush} />;
 }
 

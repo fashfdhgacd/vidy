@@ -6,12 +6,13 @@
 // its own zone; a slot without a zone ID renders nothing and never borrows another slot's
 // or another network's zone. No refresh / rotation.
 //
-// TrafficStars sites were rejected (Nov 13 2026) and no Wynq site/zones exist yet, so all
-// six slots are distinct ExoClick 300x250 No Refresh zones registered for that domain.
-// Main-site zone IDs are not reused here. TS / Wynq placeholders stay empty until those
-// networks are available for the satellites.
+// Layout is the main site's (koleksidrpinguin.com src/lib/grid-ads.ts): laptop grid is 3 columns, every
+// page gets exactly 6 banners per breakpoint, and trailing videos are hidden per breakpoint so every row
+// is full (no holes). TrafficStars sites were rejected for the satellites (Nov 13 2026) and Wynq is gone,
+// so all six slots are distinct ExoClick 300x250 No Refresh zones registered for that domain. Main-site
+// zone IDs are not reused here. TS spots stay empty until a TrafficStars site exists for the satellites.
 
-export type AdNetwork = "exoclick" | "trafficstars" | "wynq";
+export type AdNetwork = "exoclick" | "trafficstars";
 export type GridSlot = { network: AdNetwork; zoneId: string };
 export type Breakpoint = "mobile" | "desktop";
 
@@ -39,15 +40,9 @@ export const EXO_ZONES_VIDEQSSS = [
 export const EXO_ZONE_VIDEYY = EXO_ZONES_VIDEYY[0];
 export const EXO_ZONE_VIDEQSSS = EXO_ZONES_VIDEQSSS[0];
 
-/** Placeholders: fill only when a zone/spot exists for that domain. */
+/** Placeholders: fill only when a TrafficStars spot exists for that domain. */
 export const TS_SPOT_1 = "";
 export const TS_SPOT_2 = "";
-export const WYNQ_ZONE_1 = "";
-export const WYNQ_ZONE_2 = "";
-/** Wynq site tag stays off until a satellite Wynq site id exists. */
-export const WYNQ_ENABLED = false;
-export const WYNQ_SITE_SCRIPT_SRC = "https://rapidfire.cc/s.js";
-export const WYNQ_SITE_ID = "";
 
 export const MAX_GRID_ADS = 6;
 
@@ -62,7 +57,7 @@ function currentSiteId(): SiteId {
   }
 }
 
-/** Six distinct ExoClick zones for this satellite. TS / Wynq stay unused until registered. */
+/** Six distinct ExoClick zones for this satellite. TS stays unused until registered. */
 export function slotsForHost(siteId: SiteId = currentSiteId()): readonly GridSlot[] {
   const zones = siteId === "videqsss" ? EXO_ZONES_VIDEQSSS : EXO_ZONES_VIDEYY;
   return zones.map((zoneId) => ({ network: "exoclick" as const, zoneId }));
@@ -74,11 +69,10 @@ export const EXO_ZONES: readonly string[] = GRID_SLOTS.filter((s) => s.network =
   (s) => s.zoneId,
 );
 
-export function gridSlot(slotIndex: number, slots: readonly GridSlot[] = GRID_SLOTS, wynqEnabled = WYNQ_ENABLED): GridSlot | null {
+export function gridSlot(slotIndex: number, slots: readonly GridSlot[] = GRID_SLOTS): GridSlot | null {
   if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= MAX_GRID_ADS) return null;
   const slot = slots[slotIndex];
   if (!slot || !slot.zoneId) return null;
-  if (slot.network === "wynq" && !wynqEnabled) return null;
   return slot;
 }
 
@@ -99,35 +93,53 @@ export function adPositions(videoCount: number, bp: Breakpoint, max = MAX_GRID_A
 }
 
 export type GridCell =
-  | { kind: "video"; index: number }
+  | { kind: "video"; index: number; hidden: Readonly<Record<Breakpoint, boolean>> }
   | { kind: "ad"; key: string; breakpoint: Breakpoint; slotIndex: number; slot: GridSlot };
 
+/** Columns of the catalog grid per breakpoint (CATALOG_GRID: grid-cols-1, lg:grid-cols-3), same as the main site. */
+export const GRID_COLS: Readonly<Record<Breakpoint, number>> = { mobile: 1, desktop: 3 };
+
+/** Cell order for a catalog grid. Every page gets exactly MAX_GRID_ADS ad cells per breakpoint (slotIndex
+ * 0..5), ad cells carry stable keys (`ad-mobile-N` / `ad-desktop-N`, no re-request on re-render), and
+ * trailing videos are hidden per breakpoint so the visible cell count is a multiple of the columns: every
+ * row is full, no holes (except a last page of only 1-2 videos, which keeps them). */
 export function planGrid(
   videoCount: number,
   showAds: boolean,
   slots: readonly GridSlot[] = GRID_SLOTS,
-  wynqEnabled = WYNQ_ENABLED,
+  cols: Readonly<Record<Breakpoint, number>> = GRID_COLS,
 ): GridCell[] {
   const after: Record<Breakpoint, Map<number, GridCell[]>> = { mobile: new Map(), desktop: new Map() };
-  if (showAds) {
-    for (const bp of ["mobile", "desktop"] as const) {
-      adPositions(videoCount, bp).forEach((pos, slotIndex) => {
-        const slot = gridSlot(slotIndex, slots, wynqEnabled);
-        if (!slot) return;
-        const list = after[bp].get(pos) || [];
-        list.push({ kind: "ad", key: `ad-${bp}-${slotIndex}`, breakpoint: bp, slotIndex, slot });
-        after[bp].set(pos, list);
-      });
-    }
+  const hidden: Record<Breakpoint, Set<number>> = { mobile: new Set(), desktop: new Set() };
+  for (const bp of ["mobile", "desktop"] as const) {
+    if (!showAds) continue;
+    let ads = 0;
+    adPositions(videoCount, bp).forEach((pos, slotIndex) => {
+      const slot = gridSlot(slotIndex, slots);
+      if (!slot) return;
+      ads++;
+      const list = after[bp].get(pos) || [];
+      list.push({ kind: "ad", key: `ad-${bp}-${slotIndex}`, breakpoint: bp, slotIndex, slot });
+      after[bp].set(pos, list);
+    });
+    const k = Math.max(1, cols[bp]);
+    const trim = (videoCount + ads) % k;
+    // Never trim a tiny last page down to no / almost no videos (1-2 videos: keep them, last row short).
+    if (videoCount - trim >= k) for (let i = 0; i < trim; i++) hidden[bp].add(videoCount - 1 - i);
   }
   const cells: GridCell[] = [];
   for (let index = 0; index < videoCount; index++) {
-    cells.push({ kind: "video", index });
+    cells.push({ kind: "video", index, hidden: { mobile: hidden.mobile.has(index), desktop: hidden.desktop.has(index) } });
     for (const bp of ["mobile", "desktop"] as const) cells.push(...(after[bp].get(index + 1) || []));
   }
   return cells;
 }
 
-export function gridAdsOn(slots: readonly GridSlot[] = GRID_SLOTS, wynqEnabled = WYNQ_ENABLED): boolean {
-  return slots.some((_, i) => gridSlot(i, slots, wynqEnabled));
+/** Cells visible on one breakpoint, in order. */
+export function visibleCells(cells: GridCell[], bp: Breakpoint): GridCell[] {
+  return cells.filter((c) => (c.kind === "video" ? !c.hidden[bp] : c.breakpoint === bp));
+}
+
+export function gridAdsOn(slots: readonly GridSlot[] = GRID_SLOTS): boolean {
+  return slots.some((_, i) => gridSlot(i, slots));
 }

@@ -1,15 +1,17 @@
 /**
  * Ad slots for this build. videyy.icu and videqsss.icu each get their own zones.
- * network is exoclick. Popunder stays on. Banner, in-page push, slider and VAST
- * keep their zone ids but stay disabled here: catalog banners come from src/lib/grid-ads.ts
- * (max one ExoClick zone per page until a second zone exists). There is no 300x100 zone.
+ * network is exoclick. The popunder (direct link, player tap only) and the in-page push are on.
+ * Banner, slider and VAST keep their zone ids but stay disabled here: catalog banners come from
+ * src/lib/grid-ads.ts (6 distinct zones per page). There is no 300x100 zone.
  */
 import { gridAdsOn as gridSlotsOn } from "../grid-ads.ts";
 import { activeScript, activeVast, buildAds, popunderLink, videqsssZones, videyyZones } from "./ads-config.ts";
 
 export type { AdNetwork, AdSpot, AdsConfig } from "./ads-config.ts";
 
-const zones = import.meta.env.VITE_SITE_ID === "videqsss" ? videqsssZones : videyyZones;
+// import.meta.env is undefined under plain node (tests): default to the videyy zones there.
+const siteId = (import.meta as { env?: { VITE_SITE_ID?: string } }).env?.VITE_SITE_ID;
+const zones = siteId === "videqsss" ? videqsssZones : videyyZones;
 
 export const ADS = buildAds(zones);
 

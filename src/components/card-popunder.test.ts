@@ -1,0 +1,266 @@
+import assert from "node:assert/strict";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { registerHooks } from "node:module";
+import { fileURLToPath } from "node:url";
+import { afterEach, beforeEach, test } from "node:test";
+
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier.startsWith("@/")) {
+      const base = new URL(`../${specifier.slice(2)}`, import.meta.url);
+      for (const ext of ["", ".ts", ".tsx", ".js"]) {
+        const url = new URL(base.href + ext);
+        if (existsSync(fileURLToPath(url))) return nextResolve(url.href, context);
+      }
+    }
+    return nextResolve(specifier, context);
+  },
+});
+
+const {
+  POP_MAX_OTHER,
+  POP_MAX_VIDEY,
+  POP_MIN_GAP_MS,
+  canPop,
+  firePop,
+  popMaxFor,
+} = await import("./card-popunder.ts");
+type Store = { getItem(k: string): string | null; setItem(k: string, v: string): void; removeItem(k: string): void; clear(): void };
+
+function memoryStore(): Store {
+  const m = new Map<string, string>();
+  return {
+    getItem: (k) => (m.has(k) ? m.get(k)! : null),
+    setItem: (k, v) => {
+      m.set(k, String(v));
+    },
+    removeItem: (k) => {
+      m.delete(k);
+    },
+    clear: () => m.clear(),
+  };
+}
+
+let now = 1_700_000_000_000;
+const realNow = Date.now;
+let opened: string[] = [];
+let openImpl: () => { opener: unknown } | null = () => ({ opener: {} });
+
+function installBrowser() {
+  const session = memoryStore();
+  const local = memoryStore();
+  let cookie = "";
+  const g = globalThis as unknown as {
+    window: unknown;
+    sessionStorage: unknown;
+    localStorage: unknown;
+    Element?: unknown;
+    fetch: unknown;
+  };
+  g.window = {
+    open: (url: string) => {
+      const w = openImpl();
+      if (w) opened.push(url);
+      return w;
+    },
+  };
+  g.sessionStorage = session;
+  g.localStorage = local;
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: {
+      get cookie() {
+        return cookie;
+      },
+      set cookie(v: string) {
+        const [pair] = String(v).split(";");
+        const eq = pair.indexOf("=");
+        const name = pair.slice(0, eq);
+        const val = pair.slice(eq + 1);
+        const rest = cookie
+          .split("; ")
+          .filter((p) => p && !p.startsWith(`${name}=`));
+        rest.push(`${name}=${val}`);
+        cookie = rest.join("; ");
+      },
+    },
+  });
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: { ...(globalThis.navigator || {}), sendBeacon: () => true },
+  });
+  if (typeof g.Element === "undefined") g.Element = class Element {};
+  g.fetch = async () => new Response(null, { status: 204 });
+}
+
+beforeEach(() => {
+  now = 1_700_000_000_000;
+  Date.now = () => now;
+  opened = [];
+  openImpl = () => ({ opener: {} });
+  installBrowser();
+});
+
+afterEach(() => {
+  Date.now = realNow;
+});
+
+test("player tap caps: Videy 3 per video, other hosts 1, 5s gap", () => {
+  assert.equal(popMaxFor("Videy"), 3);
+  assert.equal(popMaxFor("Videy"), POP_MAX_VIDEY);
+  assert.equal(POP_MAX_VIDEY, 3);
+  assert.equal(POP_MIN_GAP_MS, 5_000);
+  assert.equal(popMaxFor("UserBokep"), 1);
+  assert.equal(popMaxFor("UserBokep"), POP_MAX_OTHER);
+  assert.equal(popMaxFor("IndoAV"), POP_MAX_OTHER);
+  assert.equal(popMaxFor("Streamtape"), POP_MAX_OTHER);
+  assert.equal(popMaxFor("Putarin"), POP_MAX_OTHER);
+});
+
+test("Videy can open 3 popunders per video after the 5s gap", () => {
+  const id = "videyAAAA1";
+  for (let i = 0; i < POP_MAX_VIDEY; i++) {
+    assert.equal(canPop(id, POP_MAX_VIDEY), true, `videy open ${i + 1} allowed`);
+    assert.equal(firePop(id, POP_MAX_VIDEY, "Videy"), "ok", `videy open ${i + 1}`);
+    now += POP_MIN_GAP_MS + 1;
+  }
+  assert.equal(firePop(id, POP_MAX_VIDEY, "Videy"), "skip");
+  assert.equal(opened.length, 3);
+});
+
+test("non-Videy player taps stop after 1 per video", () => {
+  const id = "userbokep01";
+  assert.equal(firePop(id, POP_MAX_OTHER, "UserBokep"), "ok");
+  now += POP_MIN_GAP_MS + 1;
+  assert.equal(firePop(id, POP_MAX_OTHER, "UserBokep"), "skip");
+});
+
+test("a blocked window.open is not counted and can be retried", () => {
+  const id = "blockretry1";
+  openImpl = () => null;
+  assert.equal(firePop(id, POP_MAX_VIDEY, "Videy"), "block");
+  openImpl = () => ({ opener: {} });
+  assert.equal(firePop(id, POP_MAX_VIDEY, "Videy"), "ok");
+  assert.equal(opened.length, 1);
+});
+
+test("IndoAV player taps stop after 1 per video, same as other non-Videy hosts", () => {
+  const id = "indoav00001";
+  assert.equal(firePop(id, POP_MAX_OTHER, "IndoAV"), "ok");
+  now += POP_MIN_GAP_MS + 1;
+  assert.equal(firePop(id, POP_MAX_OTHER, "IndoAV"), "skip");
+  assert.equal(opened.length, 1);
+});
+
+test("no page-click popunder anywhere: the ExoClick popunder embed and its page hooks are gone", () => {
+  const root = fileURLToPath(new URL("../", import.meta.url));
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (/\.(ts|tsx)$/.test(e.name) && !/\.test\.ts$/.test(e.name) && e.name !== "routeTree.gen.ts") files.push(p);
+    }
+  };
+  walk(root);
+  assert.ok(files.length > 50);
+  for (const f of files) {
+    const src = readFileSync(f, "utf8");
+    for (const bad of ["popunder1000", "EXOCLICK_POPUNDER_SCRIPT", "installExoPagePopunder", "syncExoPagePopunder", "ExoPagePopunder", "takeVideySkipPop", "onCatalogCardClick", "pemsrv.com/popunder"]) {
+      assert.equal(src.includes(bad), false, `${f} still mentions ${bad}`);
+    }
+  }
+  // The only window.open for a popunder is firePop (card-popunder.ts), fed by the player tap layers.
+  const users = files.filter((f) => /firePop\(/.test(readFileSync(f, "utf8"))).map((f) => f.slice(root.length));
+  assert.deepEqual(users.sort(), ["components/card-popunder.ts", "components/tap-popunder.tsx", "components/ts-videy-popunder.tsx"]);
+});
+
+test("the popunder is this satellite's own ExoClick direct link, and never opens on owner/admin paths", () => {
+  const g = globalThis as unknown as { window: { location?: { pathname: string } } };
+  assert.equal(firePop("ownerpath001", POP_MAX_OTHER, "UserBokep"), "ok");
+  assert.match(opened[0], /^https:\/\/s\.pemsrv\.com\/v1\/link\.php\?idzone=\d{6,8}&type=8$/);
+  g.window.location = { pathname: "/pemilik" };
+  assert.equal(canPop("ownerpath002", POP_MAX_OTHER), false);
+  g.window.location = { pathname: "/api/player-log" };
+  assert.equal(firePop("ownerpath002", POP_MAX_OTHER, "UserBokep"), "skip");
+  g.window.location = { pathname: "/watch/abc" };
+  assert.equal(canPop("ownerpath002", POP_MAX_OTHER), true);
+});
+
+test("the 5s gap blocks a second Videy open on the same video, not on a new video", () => {
+  assert.equal(firePop("samevideo01", POP_MAX_VIDEY, "Videy"), "ok");
+  now += POP_MIN_GAP_MS - 1;
+  assert.equal(firePop("samevideo01", POP_MAX_VIDEY, "Videy"), "skip");
+  assert.equal(firePop("newvideo001", POP_MAX_VIDEY, "Videy"), "ok");
+});
+
+test("the 5s gap then allows Videy pops #2 and #3 on the same video, and blocks #4", () => {
+  const id = "gapvideo001";
+  assert.equal(firePop(id, POP_MAX_VIDEY, "Videy"), "ok");
+  now += POP_MIN_GAP_MS - 1;
+  assert.equal(firePop(id, POP_MAX_VIDEY, "Videy"), "skip");
+  now += 1;
+  assert.equal(firePop(id, POP_MAX_VIDEY, "Videy"), "ok");
+  now += POP_MIN_GAP_MS;
+  assert.equal(firePop(id, POP_MAX_VIDEY, "Videy"), "ok");
+  now += POP_MIN_GAP_MS;
+  assert.equal(firePop(id, POP_MAX_VIDEY, "Videy"), "skip");
+});
+
+test("A -> B -> A: a non-Videy video that already popped does not pop again after another video", () => {
+  assert.equal(firePop("indoavAAAA1", POP_MAX_OTHER, "IndoAV"), "ok");
+  now += POP_MIN_GAP_MS + 1;
+  assert.equal(firePop("userbokepB1", POP_MAX_OTHER, "UserBokep"), "ok");
+  now += POP_MIN_GAP_MS + 1;
+  assert.equal(canPop("indoavAAAA1", POP_MAX_OTHER), false);
+  assert.equal(firePop("indoavAAAA1", POP_MAX_OTHER, "IndoAV"), "skip");
+  assert.equal(opened.length, 2);
+});
+
+test("Videy keeps max 3 per video across revisits (A -> B -> A -> B)", () => {
+  const a = "videyAAAAA1";
+  const b = "videyBBBBB1";
+  assert.equal(firePop(a, POP_MAX_VIDEY, "Videy"), "ok");
+  now += POP_MIN_GAP_MS;
+  assert.equal(firePop(a, POP_MAX_VIDEY, "Videy"), "ok");
+  // B pops at once (new video, no gap), then back to A: A has 1 pop left.
+  assert.equal(firePop(b, POP_MAX_VIDEY, "Videy"), "ok");
+  now += POP_MIN_GAP_MS;
+  assert.equal(firePop(a, POP_MAX_VIDEY, "Videy"), "ok");
+  now += POP_MIN_GAP_MS;
+  assert.equal(firePop(a, POP_MAX_VIDEY, "Videy"), "skip", "A is at 3");
+  // B again: 2 left, still with the 5s gap.
+  assert.equal(firePop(b, POP_MAX_VIDEY, "Videy"), "ok");
+  assert.equal(firePop(b, POP_MAX_VIDEY, "Videy"), "skip", "5s gap on B");
+  now += POP_MIN_GAP_MS;
+  assert.equal(firePop(b, POP_MAX_VIDEY, "Videy"), "ok");
+  now += POP_MIN_GAP_MS;
+  assert.equal(firePop(b, POP_MAX_VIDEY, "Videy"), "skip", "B is at 3");
+  now += POP_MIN_GAP_MS;
+  assert.equal(firePop(a, POP_MAX_VIDEY, "Videy"), "skip", "A still at 3 after B");
+  assert.equal(opened.length, 6);
+});
+
+test("the per-video memory survives a fresh page (stored in localStorage)", () => {
+  assert.equal(firePop("persistA001", POP_MAX_OTHER, "Streamtape"), "ok");
+  const stored = (globalThis as unknown as { localStorage: Store }).localStorage.getItem("kdp_pop_v2");
+  assert.ok(stored && stored.includes("persistA001"));
+  now += POP_MIN_GAP_MS + 1;
+  assert.equal(canPop("persistA001", POP_MAX_OTHER), false);
+});
+
+test("there is no daily cap: many different videos can each pop once", () => {
+  for (let i = 0; i < 20; i++) assert.equal(firePop(`dailyvid${i}x`, POP_MAX_OTHER, "UserBokep"), "ok");
+  assert.equal(opened.length, 20);
+  assert.equal(firePop("dailyvid3x", POP_MAX_OTHER, "UserBokep"), "skip", "but a video that already popped does not pop again");
+  assert.equal(firePop("dailyvid20x", POP_MAX_OTHER, "UserBokep"), "ok");
+});
+
+test("memory keeps only the last 50 videos (the 51st pushes the oldest out)", () => {
+  for (let i = 0; i < 51; i++) assert.equal(firePop(`mem${String(i).padStart(3, "0")}xx`, POP_MAX_OTHER, "UserBokep"), "ok");
+  assert.equal(canPop("mem000xx", POP_MAX_OTHER), true, "oldest forgotten");
+  assert.equal(canPop("mem050xx", POP_MAX_OTHER), false, "newest remembered");
+  now += 24 * 60 * 60 * 1000 + 1;
+  assert.equal(canPop("mem050xx", POP_MAX_OTHER), true, "24h later it may pop again");
+});
