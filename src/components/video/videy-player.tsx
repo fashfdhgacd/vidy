@@ -3,7 +3,8 @@ import type { VideoDetail } from "@/lib/catalog/types";
 import { sendPlayerLog } from "@/lib/player-log-client";
 import { loadVast, ping, prerollDue, VAST_TIMEOUT_MS, type VastAd } from "@/components/videy-preroll";
 import { prerollUrl } from "@/lib/ads/spots";
-import { takeVideySkipPop, videySkipArmed } from "@/components/ts-videy-popunder";
+import { popTap } from "@/components/ts-videy-popunder";
+import { PopTapLayer } from "@/components/tap-popunder";
 import { cleanDisplayTitle } from "@/lib/seo";
 
 /**
@@ -20,9 +21,12 @@ import { cleanDisplayTitle } from "@/lib/seo";
  * Fullscreen (native video button): a landscape video locks the screen to landscape where the
  * browser allows it, and unlocks on exit.
  *
- * Skip popunder (ts-videy-popunder.tsx): clicks on this player and on Lewati open
- * this host's ExoClick popunder, up to 3 times for this video id. That count is
- * not the daily page/card cap. IndoAV iframes are unchanged.
+ * Popunder (same rules as the main site; this host's ExoClick direct link): the first poster/start tap
+ * (ts-videy-popunder.tsx) opens it and does not start playback (the next tap plays). During playback, a
+ * one-shot PopTapLayer re-arms after POP_MIN_GAP_MS (5s) so later player-control taps (play/resume,
+ * seek, speed) can add pops up to POP_MAX_VIDEY (3) per video, remembered for the last 50 videos for
+ * 24h (pop-memory.ts). After 2 blocked opens the tap is allowed to play so ad-blocker visitors are
+ * never stuck. Nothing else (card, hero, category, page change) opens a popunder.
  *
  * Kesehatan player (/pemilik): the same /api/player-log beacons as the other hosts, once per video
  * per session (src/lib/player-log-client.ts), host "Videy":
@@ -88,8 +92,6 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
   const adRef = useRef<{ ad: VastAd; fired: Set<string>; token: number } | null>(null);
   const tokenRef = useRef(0);
   const [skipIn, setSkipIn] = useState<number | null>(null);
-  const [skipTick, setSkipTick] = useState(0);
-  const [paused, setPaused] = useState(false);
 
   const settle = useCallback(
     (event: "slow2" | "fail2") => {
@@ -322,25 +324,12 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
     };
   }, [phase, endAd]);
 
-  useEffect(() => {
-    if (phase !== "main") {
-      setPaused(false);
-      return;
-    }
-    const v = videoRef.current;
-    if (!v) return;
-    const sync = () => setPaused(v.paused);
-    sync();
-    v.addEventListener("pause", sync);
-    v.addEventListener("play", sync);
-    return () => {
-      v.removeEventListener("pause", sync);
-      v.removeEventListener("play", sync);
-    };
-  }, [phase]);
-
   const start = useCallback(() => {
     if (phase !== "idle") return;
+    // First tap is the ad (video stays on the poster). popTap() returns true when this tap was
+    // used for the popunder or a blocked retry; the next tap, or a tap after 2 blocks, plays.
+    // Later control taps (play/resume, seek, speed) go through PopTapLayer (cap 3/video, 5s gap).
+    if (popTap(item.id)) return;
     if (!prerollUrl() || !prerollDue()) {
       playFilm();
       return;
@@ -429,48 +418,29 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
         poster={poster}
         controls={phase === "main"}
       />
+      {phase === "main" ? (
+        // Re-armed popunder layer during playback (cap 3/video, 5s gap); intercepts later control taps, then removes itself.
+        <PopTapLayer
+          videoId={item.id}
+          host="Videy"
+          mediaRef={videoRef}
+          onPass={() => {
+            const v = videoRef.current;
+            if (v) void (v.paused ? v.play().catch(() => {}) : v.pause());
+          }}
+        />
+      ) : null}
       {phase === "idle" ? (
         <button
           type="button"
-          data-videy-skip=""
-          onClick={(event) => {
-            event.stopPropagation();
-            // First tap is the popunder; the video stays on the poster until the next tap
-            // (or until 2 blocked opens, when takeVideySkipPop returns false).
-            if (takeVideySkipPop(item.id)) {
-              setSkipTick((n) => n + 1);
-              return;
-            }
-            setSkipTick((n) => n + 1);
-            start();
-          }}
+          onClick={start}
           aria-label={`Putar ${cleanDisplayTitle(item.title)}`}
-          className="kdp-no-pop absolute inset-0 flex items-center justify-center bg-black/30"
+          className="absolute inset-0 flex items-center justify-center bg-black/30"
         >
           <span className="flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground sm:size-16">
             <svg viewBox="0 0 24 24" className="ml-0.5 size-6 fill-current" aria-hidden="true">
               <polygon points="6 3 20 12 6 21 6 3" />
             </svg>
-          </span>
-        </button>
-      ) : null}
-      {phase === "main" && paused && videySkipArmed(item.id) ? (
-        <button
-          type="button"
-          data-videy-skip=""
-          aria-label="Lewati"
-          className="kdp-no-pop absolute inset-0 z-10 cursor-pointer bg-transparent"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            // Resume-after-pause popunder (up to 6/video, 20s gap). The video stays paused
-            // so the next tap hits the native controls and plays.
-            takeVideySkipPop(item.id);
-            setSkipTick((n) => n + 1);
-          }}
-        >
-          <span className="pointer-events-none absolute bottom-3 right-0 rounded-l-md bg-black/75 px-4 py-2 text-sm text-white">
-            Lewati
           </span>
         </button>
       ) : null}
@@ -506,13 +476,9 @@ export function VideyPlayer({ item }: { item: VideoDetail }) {
           {skipIn !== null ? (
             <button
               type="button"
-              data-videy-skip=""
               disabled={skipIn > 0}
-              onClick={(event) => {
-                event.stopPropagation();
-                endAd("skip");
-              }}
-              className="kdp-no-pop absolute bottom-3 right-0 rounded-l-md border border-white/30 bg-black/75 px-4 py-2 text-sm text-white disabled:opacity-80"
+              onClick={() => endAd("skip")}
+              className="absolute bottom-3 right-0 rounded-l-md border border-white/30 bg-black/75 px-4 py-2 text-sm text-white disabled:opacity-80"
             >
               {skipIn > 0 ? `Lewati dalam ${skipIn}` : "Lewati iklan ▸"}
             </button>

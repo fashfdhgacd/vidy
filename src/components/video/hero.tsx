@@ -1,5 +1,4 @@
 import { usePublicText } from "@/lib/public-ui";
-import { isIndoAvCreator, NO_POP_CLASS } from "@/lib/ads/exo-popunder";
 import { tr, uiCategory } from "@/lib/ui-lang";
 import { cleanDisplayTitle } from "@/lib/seo";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -111,7 +110,7 @@ export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
         <Link
           to="/watch/$id"
           params={{ id: current.id }}
-          className={`absolute inset-0 z-10 flex items-center justify-center touch-manipulation md:hidden${isIndoAvCreator(current.creator) ? ` ${NO_POP_CLASS}` : ""}`}
+          className="absolute inset-0 z-10 flex items-center justify-center touch-manipulation md:hidden"
           aria-label={`${tr("Putar", "Play")} ${heroTitle}`}
         >
           <span
@@ -149,7 +148,7 @@ export function Hero({ video, videos, intervalMs = ROTATE_MS }: HeroProps) {
           </div>
           <div className="pointer-events-auto pt-0.5">
             <Button asChild size="default" className="h-11 rounded-lg px-5 text-base">
-              <Link to="/watch/$id" params={{ id: current.id }} className={isIndoAvCreator(current.creator) ? NO_POP_CLASS : ""}>
+              <Link to="/watch/$id" params={{ id: current.id }}>
                 <Play className="size-4 fill-current" style={{ marginLeft: 2 }} />
                 {tr("Putar sekarang", "Play now")}
               </Link>

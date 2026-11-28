@@ -4,7 +4,6 @@ import { useTr } from "@/lib/ui-lang";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { AgeGate } from "@/components/age-gate";
 import { InPagePush, VideoSlider } from "@/components/ad-slot";
-import { ExoPagePopunder } from "@/components/exo-page-popunder";
 import { showKirimNav } from "@/lib/kirim-videy";
 import { IS_VIDEQSSS, SITE_NAME, TITLE_SUFFIX } from "@/lib/seo";
 import { Header } from "./header";
@@ -23,7 +22,6 @@ export function Shell({
   return (
     <AgeGate>
       <div className="flex min-h-dvh flex-col bg-background text-foreground">
-        <ExoPagePopunder />
         <InPagePush />
         <VideoSlider />
         <Header query={query} />

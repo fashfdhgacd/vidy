@@ -2,8 +2,6 @@
  * Per-host ExoClick zones. The client bundle imports only one of these objects
  * (spots.ts), so a videyy build does not contain videqsss zone ids.
  */
-import { popunderScriptBody } from "./exo-popunder.ts";
-
 export type AdNetwork = "exoclick";
 
 /** Official ExoClick ad-provider script (banner, in-page push, slider). */
@@ -79,13 +77,14 @@ function displaySpot(zoneId: string, insClass: string, enabled: boolean): AdSpot
 }
 
 export function buildAds(zone: ZoneSet): AdsConfig {
-  const script = popunderScriptBody(zone.popunder);
-  const own = script.includes(`"idzone": ${zone.popunder}`);
+  // The popunder is a direct link (popunderLink) opened only from a player tap (card-popunder.ts). No ExoClick
+  // popunder embed script is ever added to a page: it would pop on browsing clicks (card, hero, category).
+  const own = /^\d{6,8}$/.test(zone.popunder);
   return {
     network: "exoclick",
     popunder: {
       zoneId: zone.popunder,
-      script: own ? script : "",
+      script: "",
       vastUrl: "",
       enabled: own,
       insClass: "",

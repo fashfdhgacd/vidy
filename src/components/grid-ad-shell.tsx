@@ -1,4 +1,4 @@
-// Shared shell for catalog grid ads. ExoClick / TrafficStars / Wynq each fill the same
+// Shared shell for catalog grid ads. ExoClick / TrafficStars each fill the same
 // 300x250 frame. ExoClick: ad-provider.js loaded once per page, one <ins data-zoneid> per
 // slot, one serve push when the slot first nears the viewport. No refresh, no interval, no rotation.
 // A slot hidden with display:none (other breakpoint) never intersects, so it never requests an ad.

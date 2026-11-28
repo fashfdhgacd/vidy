@@ -9,7 +9,9 @@ import { activeScript, activeVast, buildAds, popunderLink, videqsssZones, videyy
 
 export type { AdNetwork, AdSpot, AdsConfig } from "./ads-config.ts";
 
-const zones = import.meta.env.VITE_SITE_ID === "videqsss" ? videqsssZones : videyyZones;
+// import.meta.env is undefined under plain node (tests): default to the videyy zones there.
+const siteId = (import.meta as { env?: { VITE_SITE_ID?: string } }).env?.VITE_SITE_ID;
+const zones = siteId === "videqsss" ? videqsssZones : videyyZones;
 
 export const ADS = buildAds(zones);
 

@@ -13,8 +13,6 @@ import { PosterIdContext } from "@/components/video/thumb";
 import { VideyPlayer } from "@/components/video/videy-player";
 import { AdblockGate } from "@/components/adblock-gate";
 import { PopTapLayer } from "@/components/tap-popunder";
-import { isIndoAvPlayback } from "@/lib/ads/exo-popunder";
-import { syncExoPagePopunder } from "@/lib/ads/exo-popunder-dom";
 import { hostLabel } from "@/lib/catalog/embed";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchCatalog } from "@/lib/catalog/client";
@@ -416,15 +414,8 @@ export function WatchPage() {
 
   const softLoading = status === "loading" && related.length > 0;
   const coldLoading = status === "loading" && related.length === 0;
-  const playUrl = item ? itemForServer(item, pickServer(item, wantedServer)).video_url : "";
-  const adMode = !item ? "wait" : isIndoAvPlayback(item.creator, playUrl) ? "off" : "on";
-  useEffect(() => {
-    syncExoPagePopunder();
-  }, [adMode, id]);
-
   return (
     <Shell>
-      <span data-kdp-page-ad={adMode} hidden />
       {coldLoading ? (
         <div className="space-y-8">
           <Skeleton className="aspect-video rounded-2xl" />
@@ -451,9 +442,6 @@ export function WatchPage() {
               <AdblockGate key={`gate-${item.id}`} videoId={item.id}>
                 <VideyPlayer key={item.id} item={item} />
               </AdblockGate>
-            ) : hostLabel(catalogPlayUrl(playItem)) === "IndoAV" ? (
-              // IndoAV: no ads, no popunder (standing rule).
-              <VideoPlayer key={playItem.id} item={playItem} />
             ) : (
               <div className="relative">
                 <PosterIdContext.Provider value={item.id}>

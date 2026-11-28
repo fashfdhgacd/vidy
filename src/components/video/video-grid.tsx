@@ -1,8 +1,8 @@
-// Grid: 2 / 3 / 4 kolom (mobile / tablet / desktop) for the watch page; catalog grids 1 / 3 / 4.
-// Catalog grids (`ads` prop): 1 / 3 / 4 columns, 16:10 thumbs, and 6 grid
-// ad slots (src/lib/grid-ads.ts: same positions as the main site; shorter pages
-// still get 6 banners). A slot without a zone ID still collapses.
-// The watch page ("Tonton juga") keeps the default grid unless ads is on.
+// Catalog grids (`ads` / `catalog` props) are laid out like the main site (koleksidrpinguin.com):
+// phone 1 full-width column, laptop 3 columns in a wide container, rows of equal height, 16:10 thumbs,
+// exactly 6 grid ad cards per breakpoint (src/lib/grid-ads.ts: phone after every 4th video, laptop after
+// videos 2, 7, 12 ... so the banner sits in column 3 of rows 1, 3, 5) and trailing videos hidden per
+// breakpoint so no row has a hole. The watch page ("Tonton juga") keeps the default 2 / 3 / 4 grid.
 import type { VideoCard as VideoCardType } from "@/lib/catalog/types";
 import { isRealMinor } from "@/lib/minor-terms";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,28 +15,12 @@ import { restoreCatalogScroll } from "@/lib/catalog/last-catalog";
 const DEFAULT_GRID =
   "grid grid-cols-2 gap-x-2.5 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-7 lg:grid-cols-4";
 const CATALOG_GRID =
-  "grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-3 sm:gap-y-7 lg:grid-cols-4";
+  "relative left-1/2 grid w-full max-w-screen-2xl -translate-x-1/2 auto-rows-fr grid-cols-1 gap-3 lg:w-[calc(100%+2rem)] lg:grid-cols-3 lg:gap-4";
 
-/**
- * Rows full: hide trailing videos so the cell count (videos + ads) is a multiple of the column
- * count, 3 on tablet (sm..lg) and 4 on laptop (lg+). Ads are divs, videos are links, so
- * nth-last-of-type only counts videos. Static strings so Tailwind generates them.
- */
-const TRIM_SM = [
-  "",
-  " sm:max-lg:[&>a:nth-last-of-type(-n+1)]:hidden",
-  " sm:max-lg:[&>a:nth-last-of-type(-n+2)]:hidden",
-];
-const TRIM_LG = [
-  "",
-  " lg:[&>a:nth-last-of-type(-n+1)]:hidden",
-  " lg:[&>a:nth-last-of-type(-n+2)]:hidden",
-  " lg:[&>a:nth-last-of-type(-n+3)]:hidden",
-];
-function trimClass(count: number): string {
-  if (count <= 12) return "";
-  return TRIM_SM[count % 3] + TRIM_LG[count % 4];
-}
+/** Show a cell on one breakpoint only (lg = laptop). */
+const BP_ONLY = { mobile: "lg:hidden", desktop: "hidden lg:block" } as const;
+/** Hide classes for a video cell by [hidden on mobile][hidden on desktop]. */
+const HIDE: Record<string, string> = { "00": "", "10": "hidden lg:block", "01": "lg:hidden", "11": "hidden" };
 
 function visibleCards(items: VideoCardType[]): VideoCardType[] {
   return items.filter((video) => !isRealMinor({ title: video.title, tags: video.category }));
@@ -59,24 +43,24 @@ export function VideoGrid({
   useEffect(() => {
     if (ads && hasItems) restoreCatalogScroll();
   }, [ads, hasItems]);
-  const cells = planGrid(shown.length, ads);
-  const cellCount = cells.length;
   return (
-    <div
-      className={catalog ? CATALOG_GRID + (ads ? "" : trimClass(cellCount)) : DEFAULT_GRID}
-    >
-      {cells.map((cell) => {
+    <div className={catalog || ads ? CATALOG_GRID : DEFAULT_GRID}>
+      {/* Exactly 6 ads per breakpoint on every page, each its own zone (src/lib/grid-ads.ts); trailing videos
+          hidden per breakpoint so rows stay full. Flat list with stable keys: a re-render keeps every mounted
+          ad slot (no second request). */}
+      {planGrid(shown.length, ads).map((cell) => {
         if (cell.kind === "ad") {
-          return (
-            <GridAd
-              key={cell.key}
-              slot={cell.slot}
-              className={cell.breakpoint === "mobile" ? "lg:hidden" : "hidden lg:block"}
-            />
-          );
+          return <GridAd key={cell.key} slot={cell.slot} className={BP_ONLY[cell.breakpoint]} />;
         }
         const video = shown[cell.index];
-        return <VideoCard key={video.id} catalog={catalog} video={video} eager={cell.index < eagerCount} />;
+        const hide = HIDE[`${cell.hidden.mobile ? 1 : 0}${cell.hidden.desktop ? 1 : 0}`];
+        return hide ? (
+          <div key={video.id} className={hide}>
+            <VideoCard catalog={catalog} video={video} eager={cell.index < eagerCount} />
+          </div>
+        ) : (
+          <VideoCard key={video.id} catalog={catalog} video={video} eager={cell.index < eagerCount} />
+        );
       })}
     </div>
   );
